@@ -650,24 +650,37 @@ export function stimaGrasso(p, misureRec) {
 // Analisi trend peso: regressione lineare semplice
 // Restituisce { tdeeAdattivo, settimane, rateKgSettimana, kcalMedie }
 
-export function calcolaTDEEAdattivo(misureOrdinateAsc, kcalPianoAttuale) {
+export function calcolaTDEEAdattivo(misureOrdinateAsc, kcalAssunteStimate) {
   const pesoPunti = misureOrdinateAsc
     .map(r => ({ d: parseDataIT(r.date), v: parseFloat(r.peso) }))
     .filter(x => x.d && !isNaN(x.v));
-  if (pesoPunti.length < 2) return null;
+  if (pesoPunti.length < 3) return null; // con 2 punti il trend è troppo rumoroso
 
   const first = pesoPunti[0], last = pesoPunti[pesoPunti.length - 1];
   const giorniTotali = (last.d - first.d) / 86400000;
-  if (giorniTotali < 7) return null; // meno di una settimana, troppo poco
+  if (giorniTotali < 14) return null; // meno di due settimane: troppa acqua, poco segnale
 
   const settimane = giorniTotali / 7;
-  const deltaKg   = last.v - first.v;         // negativo se in calo
-  const rateKgSett= deltaKg / settimane;
+
+  // Regressione lineare ai minimi quadrati su TUTTI i punti (robusta agli outlier
+  // del singolo giorno, a differenza del semplice primo-vs-ultimo)
+  const xs = pesoPunti.map(p => (p.d - first.d) / 86400000);
+  const ys = pesoPunti.map(p => p.v);
+  const n  = xs.length;
+  const mx = xs.reduce((a,b)=>a+b,0) / n;
+  const my = ys.reduce((a,b)=>a+b,0) / n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) { num += (xs[i]-mx)*(ys[i]-my); den += (xs[i]-mx)**2; }
+  if (!den) return null;
+  let rateKgSett = (num / den) * 7;            // kg/settimana, negativo se in calo
+
+  // Clamp fisiologico: oltre ±1 kg/sett è quasi sempre acqua o errore di misura
+  rateKgSett = Math.max(-1, Math.min(1, rateKgSett));
 
   // 1 kg grasso ≈ 7700 kcal
-  // TDEE_adattivo = kcal_piano + (perdita_settimanale_in_kcal / 7)
-  // Se non abbiamo le kcal del piano usiamo 0 (andrà solo il delta)
-  const kcal = kcalPianoAttuale || 0;
+  // TDEE = kcal realmente assunte − (variazione settimanale in kcal / 7)
+  // kcalAssunteStimate DEVE essere l'intake del piano (con deficit), non il mantenimento
+  const kcal = kcalAssunteStimate || 0;
   const tdeeAdattivo = Math.round(kcal - (rateKgSett * 7700 / 7));
 
   return { tdeeAdattivo, settimane, rateKgSett, kcalMedie: kcal };
@@ -735,22 +748,42 @@ export function calcTargetAdattivo(p, misurePersona) {
   let usaTDEEAdattivo = false;
   let adattivoInfo = null;
 
-  if (!isChild && recs.length >= 2) {
+  if (!isChild && recs.length >= 3) {
     const pesoPunti = recs.filter(r=>!isNaN(parseFloat(r.peso)));
-    if (pesoPunti.length >= 2) {
+    if (pesoPunti.length >= 3) {
       const giorniSpan = (() => {
         const d1 = parseDataIT(pesoPunti[0].date);
         const d2 = parseDataIT(pesoPunti[pesoPunti.length-1].date);
         return d1 && d2 ? (d2-d1)/86400000 : 0;
       })();
       if (giorniSpan >= 14) {
-        const adattivo = calcolaTDEEAdattivo(pesoPunti, tdeeMifflin);
-        if (adattivo && adattivo.tdeeAdattivo > 1000 && adattivo.tdeeAdattivo < 6000) {
-          // media pesata: più dati → più peso all'adattivo
-          const pesoAdattivo = Math.min(0.85, 0.4 + (adattivo.settimane / 20) * 0.45);
-          tdeeFinale = Math.round(tdeeFinale * (1-pesoAdattivo) + adattivo.tdeeAdattivo * pesoAdattivo);
+        // Stima di quanto la persona sta REALMENTE mangiando: il target del
+        // piano (mantenimento − deficit), non il mantenimento. Passare il
+        // mantenimento gonfiava il TDEE adattivo dell'intero deficit (~400-600 kcal).
+        let offsetPiano = 0;
+        if (p.dietaIntensita !== undefined && p.dietaIntensita !== null) {
+          offsetPiano = Math.round(100 + (p.dietaIntensita / 100) * 900);
+        } else if (obiettivo === "perdita") {
+          offsetPiano = Math.min(600, Math.round(tdeeMifflin * 0.18));
+        } else if (obiettivo === "aumento") {
+          offsetPiano = -300;
+        }
+        const kcalAssunteStimate = Math.max(1200, tdeeMifflin - offsetPiano);
+
+        const adattivo = calcolaTDEEAdattivo(pesoPunti, kcalAssunteStimate);
+        if (adattivo) {
+          // Vincolo di plausibilità: l'adattivo non può discostarsi oltre il
+          // ±25% dalla formula LARN (filtra dati sporchi e derive iniziali)
+          const tdeeClamped = Math.max(
+            Math.round(tdeeMifflin * 0.75),
+            Math.min(Math.round(tdeeMifflin * 1.25), adattivo.tdeeAdattivo)
+          );
+          // Media pesata: più settimane di dati → più peso all'adattivo,
+          // ma mai oltre il 60% (la formula LARN resta sempre ≥40%)
+          const pesoAdattivo = Math.min(0.60, 0.25 + (adattivo.settimane / 20) * 0.45);
+          tdeeFinale = Math.round(tdeeMifflin * (1-pesoAdattivo) + tdeeClamped * pesoAdattivo);
           usaTDEEAdattivo = true;
-          adattivoInfo = adattivo;
+          adattivoInfo = { ...adattivo, tdeeAdattivo: tdeeClamped };
         }
       }
     }
