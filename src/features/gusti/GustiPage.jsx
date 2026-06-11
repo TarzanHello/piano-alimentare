@@ -1,7 +1,7 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { DB, getPrefEntry } from '@/core';
-import { App } from '@/App';
+import { EmptyState } from '@/components/shared';
 
 export function GustiPage({ prefs, onToggleLike, onResetPrefs }) {
   // Costruisce l'elenco completo: ogni ricetta del DB + i suoi segnali.
@@ -60,6 +60,11 @@ export function GustiPage({ prefs, onToggleLike, onResetPrefs }) {
         <Stat emoji="🔄" n={disliked.length}       label="Non gradite" color="#7c3aed"/>
         <Stat emoji="⏱" n={contextSwaps.length}    label="Per fretta" color="#d97706"/>
       </div>
+
+      {liked.length===0 && disliked.length===0 && contextSwaps.length===0 && (
+        <EmptyState emoji="🍽️" title="Ancora nessun gusto registrato"
+          text="Metti ❤️ alle ricette che ami nel Piano e sostituisci quelle che non gradisci: l'app imparerà le preferenze della famiglia e ne terrà conto nei prossimi piani."/>
+      )}
 
       {!hasAnyData ? (
         <div style={{textAlign:"center",padding:"50px 20px",color:"#94a3b8"}}>

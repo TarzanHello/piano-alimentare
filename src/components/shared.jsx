@@ -54,3 +54,17 @@ export function ProgressBar({ value, max, color }) {
 // La struttura ingredienti interna usa { ingId: { valore, unit } }
 // compatibile con macroDaQuantita() e formattaPorzione().
 
+
+// Stato vuoto curato e riusabile, con call-to-action opzionale
+export function EmptyState({ emoji, title, text, ctaLabel, onCta }) {
+  return (
+    <div style={{textAlign:"center",padding:"44px 24px",background:"#fff",border:"1.5px dashed #e2e8f0",borderRadius:16}}>
+      <div style={{fontSize:40,marginBottom:10}}>{emoji}</div>
+      <div style={{fontSize:15,fontWeight:800,color:"#1e293b",marginBottom:4}}>{title}</div>
+      <div style={{fontSize:12,color:"#94a3b8",lineHeight:1.5,maxWidth:300,margin:"0 auto"}}>{text}</div>
+      {ctaLabel && onCta && (
+        <button onClick={onCta} style={{marginTop:14,padding:"9px 18px",borderRadius:10,border:"none",background:"#2563eb",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer"}}>{ctaLabel}</button>
+      )}
+    </div>
+  );
+}

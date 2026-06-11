@@ -1,17 +1,18 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, normalizeAttivita, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
+import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
 import { SwipeContainer } from '@/components/shared';
 import { FamigliaPage } from '@/features/famiglia/FamigliaPage';
 import { GustiPage } from '@/features/gusti/GustiPage';
 import { IngredientiPage } from '@/features/ingredienti/IngredientiPage';
 import { MisurePage } from '@/features/misure/MisurePage';
 import { OpzioniPage } from '@/features/opzioni/OpzioniPage';
+import { OggiPage } from '@/features/oggi/OggiPage';
 import { MealCard, TotaleBar, WaterTracker } from '@/features/piano/MealParts';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
 
 export function App() {
-  const [page, setPage]               = useState("piano");
+  const [page, setPage]               = useState("oggi");
   const [menuOpen, setMenuOpen]       = useState(false);  // bottom-sheet del menu secondario
   const [selDay, setSelDay]           = useState(todayDayIndex());
   const [selPersonaId, setSelPersonaId] = useState(null);
@@ -321,14 +322,15 @@ export function App() {
   // "Menu" apre un bottom-sheet con le 4 voci secondarie:
   // Ingredienti · Gusti · Misure · Famiglia.
   const TABS_MAIN = [
-    {key:"piano", short:"Piano", icon:"📋"},
-    {key:"spesa", short:"Spesa", icon:"🛒"},
-    {key:"menu",  short:"Menu",  icon:"☰"},
+    {key:"oggi",   short:"Oggi",   icon:"🏠"},
+    {key:"piano",  short:"Piano",  icon:"📋"},
+    {key:"spesa",  short:"Spesa",  icon:"🛒"},
+    {key:"misure", short:"Misure", icon:"📏"},
+    {key:"menu",   short:"Menu",   icon:"☰"},
   ];
   const SUBMENU = [
     {key:"ingredienti", label:"Ingredienti", icon:"🥦", desc:"Cosa escludere dal piano"},
     {key:"gusti",       label:"Gusti",       icon:"❤️", desc:"Preferiti e non amati"},
-    {key:"misure",      label:"Misure",      icon:"📏", desc:"Peso, circonferenze, calcolatori"},
     {key:"famiglia",    label:"Famiglia",    icon:"👥", desc:"Profili e dati personali"},
     {key:"opzioni",     label:"Opzioni",     icon:"⚙️", desc:"Notifiche e promemoria pasti"},
   ];
@@ -391,6 +393,7 @@ export function App() {
       </div>
 
       <div style={{maxWidth:680,margin:"0 auto",padding:"18px 16px 0"}}>
+       <div key={showHistory?"history":page} style={{animation:"pageIn 0.22s ease-out"}}>
         {/* STORICO */}
         {showHistory&&(
           <div>
@@ -405,6 +408,22 @@ export function App() {
         )}
 
         {/* PIANO */}
+        {!showHistory&&page==="oggi"&&(
+          <OggiPage
+            personas={personas}
+            selPersonaId={selPersonaId}
+            onSelPersona={setSelPersonaId}
+            persona={persona}
+            personaSlot={personaSlot}
+            target={personaTarget}
+            effectivePlan={applyOverrides(plan, overrides)}
+            misure={misureApp[persona?.id]}
+            mealsLog={mealsLog}
+            onToggleMeal={handleToggleMealLog}
+            onGoPiano={()=>{ setSelDay(todayDayIndex()); setPage("piano"); }}
+            onGoMisure={()=>setPage("misure")}
+          />
+        )}
         {!showHistory&&page==="piano"&&(
           <SwipeContainer onSwipeLeft={swipeAvanti} onSwipeRight={swipeIndietro} style={{touchAction:"pan-y"}}>
             <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
@@ -592,6 +611,7 @@ export function App() {
           <FamigliaPage personas={personas} onUpdate={handleUpdatePersona} onAdd={handleAddPersona} onDelete={handleDeletePersona}
             currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} misureApp={misureApp}/>
         )}
+       </div>
       </div>
 
       {/* BOTTOM NAV — 3 voci principali */}
@@ -604,6 +624,13 @@ export function App() {
             : page===tab.key && !showHistory;
           // Badge "ingredienti esclusi" mostrato sulla voce Menu
           const badge = tab.key==="menu" && excluded.length>0 ? excluded.length : 0;
+          // Pallino sulla tab Misure se l'ultima misurazione è datata (>7gg)
+          const misureStale = tab.key==="misure" && (() => {
+            const recs = (misureApp[myPersonaId]||[]).map(r=>parseDataIT(r.date)).filter(Boolean);
+            if (!recs.length) return true;
+            const last = Math.max(...recs.map(d=>d.getTime()));
+            return (Date.now()-last)/86400000 > 7;
+          })();
           return (
             <button key={tab.key}
               onClick={()=>{
@@ -616,6 +643,9 @@ export function App() {
               <span style={{fontSize:11,fontWeight:active?800:600,letterSpacing:0.1,whiteSpace:"nowrap"}}>{tab.short}</span>
               {badge>0 && (
                 <div style={{position:"absolute",top:6,right:"calc(50% - 20px)",minWidth:16,height:16,background:"#ef4444",borderRadius:"50%",fontSize:9,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,padding:"0 4px"}}>{badge}</div>
+              )}
+              {misureStale && (
+                <div title="Misurazione datata" style={{position:"absolute",top:7,right:"calc(50% - 16px)",width:8,height:8,background:"#f59e0b",borderRadius:"50%",border:"1.5px solid #fff"}}/>
               )}
             </button>
           );
