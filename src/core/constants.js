@@ -114,9 +114,9 @@ export const TUTTI_FIELDS = [
 ];
 
 export const DEFAULT_PERSONAS = [
-  { id:"p1", nome:"Uomo",  sesso:"M", eta:38, peso:100, altezza:185, stile:"attivo",  obiettivo:"perdita",     color:"#2563eb" },
-  { id:"p2", nome:"Donna", sesso:"F", eta:31, peso:65,  altezza:160, stile:"attivo",  obiettivo:"perdita",     color:"#db2777" },
-  { id:"p3", nome:"Bimbo", sesso:"M", eta:2,  peso:13,  altezza:87,  stile:"leggero", obiettivo:"mantenimento",color:"#16a34a" },
+  { id:"p1", nome:"Uomo",  sesso:"M", eta:38, peso:100, altezza:185, lavoro:"sedentario", allenamenti:3, obiettivo:"perdita",     color:"#2563eb" },
+  { id:"p2", nome:"Donna", sesso:"F", eta:31, peso:65,  altezza:160, lavoro:"sedentario", allenamenti:3, obiettivo:"perdita",     color:"#db2777" },
+  { id:"p3", nome:"Bimbo", sesso:"M", eta:2,  peso:13,  altezza:87,  lavoro:"sedentario", allenamenti:2, obiettivo:"mantenimento",color:"#16a34a" },
 ];
 
 // ─── Utilities ───────────────────────────────────────────────────────
@@ -176,6 +176,35 @@ export const STILE_TO_LARN = {
   attivo:       { lavoro: "moderato", auspicabile: true  },
   molto_attivo: { lavoro: "pesante",  auspicabile: false },
   sportivo:     { lavoro: "pesante",  auspicabile: true  },
+};
+
+// ── Doppia variabile attività: lavoro + giorni di allenamento ──────
+// Il lavoro mappa sulle classi di intensità occupazionale LARN; i
+// giorni di allenamento/settimana coprono la dimensione "attività
+// fisica auspicabile" (0 gg = colonna "no", 4+ gg = colonna "sì",
+// interpolazione lineare in mezzo, piccolo extra oltre i 4 giorni).
+
+export const LAVORI = [
+  { key:"sedentario", label:"Sedentario", larn:"leggero"  },
+  { key:"attivo",     label:"Attivo",     larn:"moderato" },
+  { key:"sportivo",   label:"Sportivo",   larn:"pesante"  },
+];
+
+// Migrazione del vecchio campo `stile` (adulti): coppie scelte per
+// riprodurre ESATTAMENTE il LAF precedente, così i target non cambiano
+// finché l'utente non tocca i nuovi controlli.
+export const STILE_LEGACY_ADULTI = {
+  sedentario:   { lavoro:"sedentario", allenamenti:0 }, // LAF M 1.41
+  leggero:      { lavoro:"sedentario", allenamenti:4 }, // LAF M 1.55
+  attivo:       { lavoro:"attivo",     allenamenti:4 }, // LAF M 1.78
+  molto_attivo: { lavoro:"sportivo",   allenamenti:0 }, // LAF M 2.01
+  sportivo:     { lavoro:"sportivo",   allenamenti:4 }, // LAF M 2.10
+};
+
+// Migrazione per i minori (il lavoro non si applica; il moltiplicatore
+// Mifflin diventa 1.2 + 0.0875 × allenamenti, che riproduce i vecchi mult)
+export const STILE_LEGACY_BAMBINI = {
+  sedentario: 0, leggero: 2, attivo: 4, molto_attivo: 6, sportivo: 7,
 };
 
 export const UNIT_OPTIONS = ["g", "ml", "pz", "cucchiaio", "cucchiaino"];

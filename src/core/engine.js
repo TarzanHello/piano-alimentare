@@ -1,6 +1,6 @@
 // ── Motore: calcolo macro, scaling, piano, lista spesa ────────────
 import { DB, ING_MAP, ING_QTY, PESO_PEZZO } from '@/data';
-import { CONFIDENZA, DAYS, LAF_TAB_LARN, LIMITI_SCALING, MB_COEFF_LARN, MEAL_HOUR, MEAL_KEYS, MEAL_META, PERSONAS_KEYS, PREF_WEIGHTS, STILE_TO_LARN, STILI, SWAP_CONTEXT_HOURS } from './constants';
+import { CONFIDENZA, DAYS, LAF_TAB_LARN, LAVORI, LIMITI_SCALING, MB_COEFF_LARN, MEAL_HOUR, MEAL_KEYS, MEAL_META, PERSONAS_KEYS, PREF_WEIGHTS, STILE_LEGACY_ADULTI, STILE_LEGACY_BAMBINI, SWAP_CONTEXT_HOURS } from './constants';
 
 export function nutriPerGrammi(ingId, grammi) {
   const n = (ING_MAP[ingId] || {}).nutri;
@@ -602,22 +602,39 @@ export function metabolismoBasaleLARN(sesso, eta, pesoKg) {
   return fascia.c * pesoKg + fascia.k;
 }
 
-// LAF per sesso, fascia d'età, intensità lavoro e attività auspicabile.
+// LAF per sesso, fascia d'età, intensità lavoro e giorni di allenamento.
 
-export function lafLARN(sesso, eta, stile) {
+// Normalizza i campi attività di una persona: usa lavoro+allenamenti se
+// presenti, altrimenti li deriva dal vecchio campo `stile` (legacy).
+export function normalizeAttivita(p) {
+  if (p && p.lavoro !== undefined && p.allenamenti !== undefined) {
+    return { lavoro: p.lavoro, allenamenti: Math.max(0, Math.min(7, +p.allenamenti || 0)) };
+  }
+  const stile = p && p.stile;
+  if (p && p.eta < 12) {
+    const all = STILE_LEGACY_BAMBINI[stile];
+    return { lavoro: "sedentario", allenamenti: all !== undefined ? all : 2 };
+  }
+  return STILE_LEGACY_ADULTI[stile] || { lavoro: "attivo", allenamenti: 4 };
+}
+
+export function lafLARN(sesso, eta, lavoro, allenamenti) {
   const S = LAF_TAB_LARN[sesso === "M" ? "M" : "F"];
-  const map = STILE_TO_LARN[stile] || STILE_TO_LARN.attivo;
-  const chiave = map.auspicabile ? "si" : "no";
-  if (eta >= 75) return S.eta75[chiave];
-  if (eta >= 60) return S.eta60_74[chiave];
-  return S.adulto[map.lavoro][chiave];
+  const larnLavoro = (LAVORI.find(l => l.key === lavoro) || LAVORI[1]).larn;
+  const gg = Math.max(0, Math.min(7, +allenamenti || 0));
+  const riga = eta >= 75 ? S.eta75 : eta >= 60 ? S.eta60_74 : S.adulto[larnLavoro];
+  // 0 gg = colonna "no", 4 gg = colonna "sì" (attività auspicabile),
+  // interpolazione lineare in mezzo; oltre i 4 gg piccolo extra (+0.02/g)
+  const f = Math.min(gg, 4) / 4;
+  const extra = Math.max(0, gg - 4) * 0.02;
+  return Math.round((riga.no + f * (riga.si - riga.no) + extra) * 1000) / 1000;
 }
 
 // Fabbisogno calorico LARN completo. Ritorna anche i componenti.
 
-export function fabbisognoLARN(sesso, eta, pesoKg, stile) {
+export function fabbisognoLARN(sesso, eta, pesoKg, lavoro, allenamenti) {
   const mb  = metabolismoBasaleLARN(sesso, eta, pesoKg);
-  const laf = lafLARN(sesso, eta, stile);
+  const laf = lafLARN(sesso, eta, lavoro, allenamenti);
   return { mb: Math.round(mb), laf, fabbisogno: Math.round(mb * laf) };
 }
 
@@ -701,9 +718,11 @@ export function isRicomposizione(misureOrdinateAsc) {
 // ─── FUNZIONE PRINCIPALE ────────────────────────────────────────────
 
 export function calcTargetAdattivo(p, misurePersona) {
-  const { peso, altezza, eta, sesso, stile, obiettivo } = p;
+  const { peso, altezza, eta, sesso, obiettivo } = p;
+  const { lavoro, allenamenti } = normalizeAttivita(p);
   const isChild = eta < 12;
-  const mult = (STILI.find(s=>s.key===stile)||STILI[2]).mult;
+  // Moltiplicatore Mifflin per i minori, derivato dai giorni di allenamento
+  const mult = Math.min(1.9, Math.round((1.2 + allenamenti * 0.0875) * 1000) / 1000);
 
   // misure ordinate dal più vecchio al più recente
   const recs = (misurePersona||[]).slice().sort((a,b)=>dateToSort(a.date).localeCompare(dateToSort(b.date)));
@@ -719,7 +738,7 @@ export function calcTargetAdattivo(p, misurePersona) {
   let larnInfo = null;
   let tdeeMifflin;            // nome storico mantenuto per compatibilità display
   if (!isChild) {
-    larnInfo = fabbisognoLARN(sesso, eta, peso, stile);
+    larnInfo = fabbisognoLARN(sesso, eta, peso, lavoro, allenamenti);
     tdeeMifflin = larnInfo.fabbisogno;        // fabbisogno LARN = MB × LAF
   } else {
     // minori: Mifflin × moltiplicatore stile, come in precedenza
@@ -815,13 +834,14 @@ export function calcTargetAdattivo(p, misurePersona) {
 
   // ── STEP 5: Macros ────────────────────────────────────────────────
   // Proteine: dipendono da massa magra se disponibile, altrimenti da peso
-  const protMultiplier = stile==="sportivo" ? 2.2 : stile==="molto_attivo" ? 2.0 : 1.8;
+  const sportivo = allenamenti >= 5 || lavoro === "sportivo";
+  const protMultiplier = sportivo ? 2.2 : allenamenti >= 3 ? 2.0 : 1.8;
   let prot;
   if (!isChild && pctGrasso !== null && latestRec) {
     const pesoDaRec = !isNaN(parseFloat(latestRec.peso)) ? parseFloat(latestRec.peso) : peso;
     const lbm = pesoDaRec * (1 - pctGrasso / 100);
     // Proteine su massa magra: più preciso
-    prot = Math.round(lbm * (stile==="sportivo" ? 2.6 : stile==="molto_attivo" ? 2.4 : 2.2));
+    prot = Math.round(lbm * (sportivo ? 2.6 : allenamenti >= 3 ? 2.4 : 2.2));
   } else {
     prot = isChild ? Math.round(peso*1.2) : Math.round(peso * protMultiplier);
   }

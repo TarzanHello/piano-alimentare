@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
+import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, normalizeAttivita, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
 import { SwipeContainer } from '@/components/shared';
 import { FamigliaPage } from '@/features/famiglia/FamigliaPage';
 import { GustiPage } from '@/features/gusti/GustiPage';
@@ -59,8 +59,16 @@ export function App() {
           window.storage.set(SK_EXCL, JSON.stringify(loadedExcl)).catch(()=>{});
         }
         const loadedPersRaw = safeParse(pS, DEFAULT_PERSONAS);
-        const loadedPers = (Array.isArray(loadedPersRaw) && loadedPersRaw.length > 0)
+        const loadedPersBase = (Array.isArray(loadedPersRaw) && loadedPersRaw.length > 0)
           ? loadedPersRaw : DEFAULT_PERSONAS;
+        // Migrazione attività: deriva lavoro+allenamenti dal vecchio `stile`
+        // (coppie equivalenti: stesso LAF, nessun cambio di target) e ri-persiste.
+        const loadedPers = loadedPersBase.map(p =>
+          (p.lavoro !== undefined && p.allenamenti !== undefined) ? p : { ...p, ...normalizeAttivita(p) }
+        );
+        if (JSON.stringify(loadedPers) !== JSON.stringify(loadedPersBase)) {
+          window.storage.set(SK_PERSONAS, JSON.stringify(loadedPers)).catch(()=>{});
+        }
         const loadedMyP  = mS.status==="fulfilled"&&mS.value ? mS.value.value : loadedPers[0].id;
         const loadedMisu = (() => { const v = safeParse(miS, {}); return (v && typeof v==="object" && !Array.isArray(v)) ? v : {}; })();
         const loadedOvrd = (() => {

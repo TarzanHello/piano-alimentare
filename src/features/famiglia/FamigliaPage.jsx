@@ -1,9 +1,9 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { COLORS, OBIETTIVI, SESSI, STILI, calcTarget, calcTargetAdattivo, decodeSeed, emojiBySesso, encodeSeed } from '@/core';
+import { COLORS, LAVORI, OBIETTIVI, SESSI, calcTarget, calcTargetAdattivo, decodeSeed, emojiBySesso, encodeSeed, normalizeAttivita } from '@/core';
 
 export function PersonaForm({ persona, onSave, onCancel, isNew }) {
-  const [form, setForm] = useState({...persona});
+  const [form, setForm] = useState({...persona, ...normalizeAttivita(persona)});
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
   const target = calcTarget(form);
   const isBambino = form.eta < 12;
@@ -36,10 +36,18 @@ export function PersonaForm({ persona, onSave, onCancel, isNew }) {
           <input type="number" value={form.altezza} onChange={e=>set("altezza",+e.target.value)} min={50} max={250} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
         </div>
       </div>
+      {!isBambino&&(
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:10,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:0.8,display:"block",marginBottom:6}}>Lavoro</label>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+            {LAVORI.map(l=><button key={l.key} onClick={()=>set("lavoro",l.key)} style={{padding:"6px 11px",borderRadius:7,border:"2px solid",borderColor:form.lavoro===l.key?form.color:"#e2e8f0",background:form.lavoro===l.key?form.color:"#fff",color:form.lavoro===l.key?"#fff":"#64748b",fontWeight:700,fontSize:11,cursor:"pointer"}}>{l.label}</button>)}
+          </div>
+        </div>
+      )}
       <div style={{marginBottom:12}}>
-        <label style={{fontSize:10,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:0.8,display:"block",marginBottom:6}}>Stile di vita</label>
+        <label style={{fontSize:10,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:0.8,display:"block",marginBottom:6}}>Allenamento — giorni a settimana</label>
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          {STILI.map(s=><button key={s.key} onClick={()=>set("stile",s.key)} style={{padding:"6px 11px",borderRadius:7,border:"2px solid",borderColor:form.stile===s.key?form.color:"#e2e8f0",background:form.stile===s.key?form.color:"#fff",color:form.stile===s.key?"#fff":"#64748b",fontWeight:700,fontSize:11,cursor:"pointer"}}>{s.label}</button>)}
+          {[0,1,2,3,4,5,6,7].map(g=><button key={g} onClick={()=>set("allenamenti",g)} style={{minWidth:34,padding:"6px 0",borderRadius:7,border:"2px solid",borderColor:form.allenamenti===g?form.color:"#e2e8f0",background:form.allenamenti===g?form.color:"#fff",color:form.allenamenti===g?"#fff":"#64748b",fontWeight:700,fontSize:11,cursor:"pointer"}}>{g}</button>)}
         </div>
       </div>
       {!isBambino&&(
@@ -173,7 +181,7 @@ export function SeedSyncSection({ currentSeed, overrides, onApplySeed }) {
 export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed, overrides, onApplySeed, myPersonaId, onSetMyPersona, misureApp }) {
   const [editing, setEditing] = useState(null);
   const [adding, setAdding]   = useState(false);
-  const newPersona = () => ({ id:"p"+Date.now(), nome:"Nuovo", sesso:"M", eta:30, peso:70, altezza:170, stile:"attivo", obiettivo:"mantenimento", color:COLORS[personas.length%COLORS.length] });
+  const newPersona = () => ({ id:"p"+Date.now(), nome:"Nuovo", sesso:"M", eta:30, peso:70, altezza:170, lavoro:"sedentario", allenamenti:3, obiettivo:"mantenimento", color:COLORS[personas.length%COLORS.length] });
   return (
     <div>
       <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #e2e8f0",padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
@@ -212,7 +220,7 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
                   <div style={{width:40,height:40,borderRadius:"50%",background:p.color+"18",border:`2px solid ${p.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{emojiBySesso(p)}</div>
                   <div style={{flex:1}}>
                     <div style={{fontSize:15,fontWeight:800,color:"#1e293b"}}>{p.nome}</div>
-                    <div style={{fontSize:11,color:"#64748b"}}>{p.eta} anni · {p.peso}kg · {p.altezza}cm · {(STILI.find(s=>s.key===p.stile)||{label:p.stile}).label}</div>
+                    <div style={{fontSize:11,color:"#64748b"}}>{p.eta} anni · {p.peso}kg · {p.altezza}cm · {(()=>{const a=normalizeAttivita(p);const lav=(LAVORI.find(l=>l.key===a.lavoro)||LAVORI[0]).label;return p.eta<12?`${a.allenamenti}× sport/sett`:`Lavoro ${lav.toLowerCase()} · ${a.allenamenti}× allenamento/sett`;})()}</div>
                   </div>
                   <div style={{display:"flex",gap:6}}>
                     <button onClick={()=>setEditing(p.id)} style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #e2e8f0",background:"#f8fafc",color:"#475569",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
