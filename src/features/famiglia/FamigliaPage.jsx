@@ -179,7 +179,7 @@ export function SeedSyncSection({ currentSeed, overrides, onApplySeed }) {
 
 // ─── FamigliaPage ────────────────────────────────────────────────────
 
-export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed, overrides, onApplySeed, myPersonaId, onSetMyPersona, misureApp }) {
+export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed, overrides, onApplySeed, myPersonaId, onSetMyPersona, misureApp , onGoUtente }) {
   // Con il cloud attivo, i profili degli altri utenti registrati sono in
   // sola lettura (la regola vera è imposta dal database via RLS; qui
   // nascondiamo solo i comandi). Editabili: i profili senza account
@@ -191,7 +191,7 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
   const newPersona = () => ({ id:"p"+Date.now(), nome:"Nuovo", sesso:"M", eta:30, peso:70, altezza:170, lavoro:"sedentario", allenamenti:3, obiettivo:"mantenimento", color:COLORS[personas.length%COLORS.length] });
   return (
     <div>
-      <AccountCard myPersona={personas.find(p=>p.id===myPersonaId)}/>
+      <AccountCard myPersona={personas.find(p=>p.id===myPersonaId)} onGoUtente={onGoUtente}/>
       <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #e2e8f0",padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
         <div style={{fontSize:13,fontWeight:800,color:"#1e293b",marginBottom:4}}>👤 Chi sei tu?</div>
         <div style={{fontSize:10,color:"#64748b",marginBottom:12}}>Seleziona il tuo profilo per vedere le porzioni personalizzate</div>

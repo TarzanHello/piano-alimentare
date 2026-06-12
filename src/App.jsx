@@ -9,6 +9,7 @@ import { MisurePage } from '@/features/misure/MisurePage';
 import { OpzioniPage } from '@/features/opzioni/OpzioniPage';
 import { OggiPage } from '@/features/oggi/OggiPage';
 import { MigrationWizard } from '@/features/famiglia/MigrationWizard';
+import { UtentePage } from '@/features/utente/UtentePage';
 import { startSync } from '@/db/sync';
 import { cloudEnabled } from '@/db/cloud';
 import { MealCard, TotaleBar, WaterTracker } from '@/features/piano/MealParts';
@@ -41,7 +42,16 @@ export function App() {
   useEffect(()=>{
     if (!cloudEnabled) return;
     startSync();
-    const onStatus = (e)=> setCloudStatus(e.detail||{});
+    let primoStatus = true;
+    const onStatus = (e)=> {
+      const s = e.detail||{};
+      setCloudStatus(s);
+      // A ogni avvio: se l'utente non è connesso, la prima pagina è Utente
+      if (primoStatus) {
+        primoStatus = false;
+        if (!s.loggedIn) setPage("utente");
+      }
+    };
     const onUpdate = async (e)=>{
       const k = e.detail?.key;
       const read = async (sk, fb) => { try { const r = await window.storage.get(sk); return JSON.parse(r.value); } catch { return fb; } };
@@ -53,7 +63,8 @@ export function App() {
         case "excluded": { const v = await read(SK_EXCL, null); if (Array.isArray(v)) { setExcluded(v); } break; }
         case "spesa":    { const v = await read(SK_SPESA, null); if (v) setSpesaChecks(v); break; }
         case "piano":    {
-          const seedCloud = e.detail.seed, ovrCloud = e.detail.overrides || {};
+          const seedCloud = parseInt(e.detail.seed, 10), ovrCloud = e.detail.overrides || {};
+          if (isNaN(seedCloud) || seedCloud <= 0) break;
           const np = generateWeekPlan(seedCloud, excludedRef.current || []);
           setSeed(seedCloud); setPlan(np); setOverrides(ovrCloud); setRegenNeeded(false);
           break;
@@ -96,10 +107,13 @@ export function App() {
           window.storage.get(SK_MEALS_LOG), window.storage.get(SK_NOTIF),
           window.storage.get(SK_SPESA), window.storage.get("pf-cloud-migrated"),
         ]);
-        setSpesaChecks((() => { const v = safeParse(spS, {}); return (v && typeof v==="object") ? v : {}; })());
-        setCloudMigrated(cmS.status==="fulfilled" && cmS.value && cmS.value.value === "1");
         const parsedSeed = sS.status==="fulfilled"&&sS.value ? parseInt(sS.value.value, 10) : NaN;
         const loadedSeed = (!isNaN(parsedSeed) && parsedSeed > 0) ? parsedSeed : Date.now();
+        // FIX: persisti subito il seed se mancava, altrimenti ogni refresh
+        // genererebbe un piano nuovo (Date.now() diverso a ogni avvio)
+        if (isNaN(parsedSeed) || parsedSeed <= 0) {
+          window.storage.set(SK_SEED, String(loadedSeed)).catch(()=>{});
+        }
         const safeParse = (res, fallback) => {
           try {
             if (res.status==="fulfilled" && res.value) {
@@ -110,6 +124,8 @@ export function App() {
           return fallback;
         };
         const loadedHist = (() => { const v = safeParse(hS, []); return Array.isArray(v) ? v : []; })();
+        setSpesaChecks((() => { const v = safeParse(spS, {}); return (v && typeof v==="object" && !Array.isArray(v)) ? v : {}; })());
+        setCloudMigrated(cmS.status==="fulfilled" && cmS.value && cmS.value.value === "1");
         // Migrazione ID legacy (database unificato CRA-NUT): traduce i vecchi
         // ID ing_* nei dati salvati e ri-persiste solo se qualcosa è cambiato.
         const rawExcl = (() => { const v = safeParse(eS, []); return Array.isArray(v) ? v : []; })();
@@ -159,8 +175,13 @@ export function App() {
         }
         setMisureApp(loadedMisu); setOverrides(loadedOvrd); setPrefs(loadedPrefs); setMealsLog(loadedMealsLog); setNotifSettings(loadedNotif);
         setPlan(generateWeekPlan(loadedSeed, loadedExcl));
-      } catch {
-        const ns=Date.now(); setSeed(ns); setPersonas(DEFAULT_PERSONAS);
+      } catch (err) {
+        console.error("Errore caricamento dati:", err);
+        // Fallback prudente: NON sovrascrivere il seed salvato (e quindi il
+        // piano condiviso) per un errore transitorio di caricamento.
+        let ns = Date.now();
+        try { const r = await window.storage.get(SK_SEED); const p = parseInt(r.value,10); if (!isNaN(p)&&p>0) ns = p; } catch {}
+        setSeed(ns); setPersonas(DEFAULT_PERSONAS);
         setSelPersonaId(DEFAULT_PERSONAS[0].id); setMyPersonaId(DEFAULT_PERSONAS[0].id);
         setPlan(generateWeekPlan(ns,[]));
       }
@@ -387,9 +408,10 @@ export function App() {
     {key:"menu",   short:"Menu",   icon:"☰"},
   ];
   const SUBMENU = [
+    {key:"utente",      label:"Utente",      icon:"👤", desc:"Account, accesso e sincronizzazione"},
+    {key:"famiglia",    label:"Famiglia",    icon:"👥", desc:"Crea e gestisci la famiglia, profili"},
     {key:"ingredienti", label:"Ingredienti", icon:"🥦", desc:"Cosa escludere dal piano"},
     {key:"gusti",       label:"Gusti",       icon:"❤️", desc:"Preferiti e non amati"},
-    {key:"famiglia",    label:"Famiglia",    icon:"👥", desc:"Profili e dati personali"},
     {key:"opzioni",     label:"Opzioni",     icon:"⚙️", desc:"Notifiche e promemoria pasti"},
   ];
 
@@ -668,8 +690,11 @@ export function App() {
         {!showHistory&&page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
         {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId}/>}
         {!showHistory&&page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={setMisureApp} mealsLog={mealsLog}/>}
+        {!showHistory&&page==="utente"&&(
+          <UtentePage personas={personas} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} onGoFamiglia={()=>setPage("famiglia")}/>
+        )}
         {!showHistory&&page==="famiglia"&&(
-          <FamigliaPage personas={personas} onUpdate={handleUpdatePersona} onAdd={handleAddPersona} onDelete={handleDeletePersona}
+          <FamigliaPage onGoUtente={()=>setPage("utente")} personas={personas} onUpdate={handleUpdatePersona} onAdd={handleAddPersona} onDelete={handleDeletePersona}
             currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} misureApp={misureApp}/>
         )}
        </div>

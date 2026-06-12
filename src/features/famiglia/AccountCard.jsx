@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { cloudEnabled, createFamily, ensureMyProfile, getFamilyMembers, getMyFamily, getSession, joinFamily, leaveFamily, onAuthChange, signInWithGoogle, signOut } from '@/db/cloud';
+import { cloudEnabled, createFamily, ensureMyProfile, getFamilyMembers, getMyFamily, getSession, joinFamily, leaveFamily, onAuthChange } from '@/db/cloud';
 
 // ── Card "Account e famiglia cloud" (Fase S1) ────────────────
 // Vive in cima alla pagina Famiglia. Se Supabase non è configurato
 // non viene renderizzata: l'app resta locale al 100%.
-export function AccountCard({ myPersona }) {
+export function AccountCard({ myPersona, onGoUtente }) {
   const [session, setSession]   = useState(null);
   const [famiglia, setFamiglia] = useState(null);
   const [membri, setMembri]     = useState([]);
@@ -65,11 +65,9 @@ export function AccountCard({ myPersona }) {
       {!session ? (
         <>
           <div style={{fontSize:12,color:"#64748b",lineHeight:1.5,marginBottom:10}}>
-            Accedi per sincronizzare i dati tra dispositivi e condividere piano e spesa con la tua famiglia. I dati già inseriti restano al loro posto.
+            Per creare una famiglia o entrare con un codice serve prima l'accesso con Google, dalla pagina Utente.
           </div>
-          <button disabled={busy} onClick={()=>azione(signInWithGoogle)} style={S.btn("#1e293b")}>
-            🔑 Accedi con Google
-          </button>
+          <button onClick={onGoUtente} style={S.btn("#1e293b")}>👤 Vai alla pagina Utente</button>
         </>
       ) : !famiglia ? (
         <>
@@ -86,7 +84,6 @@ export function AccountCard({ myPersona }) {
             <input style={{...S.input,textTransform:"uppercase",fontFamily:"monospace"}} placeholder="ES. PASTA-1234" value={codice} onChange={e=>setCodice(e.target.value)}/>
             <button disabled={busy||!codice.trim()} onClick={()=>azione(()=>joinFamily(codice))} style={S.btn("#16a34a")}>Unisciti</button>
           </div>
-          <button onClick={()=>azione(signOut)} style={{border:"none",background:"transparent",color:"#94a3b8",fontSize:11,fontWeight:700,cursor:"pointer",padding:0}}>Esci dall'account</button>
         </>
       ) : (
         <>

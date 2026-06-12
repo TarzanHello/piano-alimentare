@@ -4,6 +4,7 @@
 // Così l'app funziona davvero offline dopo la prima apertura.
 
 const CACHE = "piano-alimentare-v17";
+const CACHE = "piano-alimentare-v18";
 
 // Asset locali dell'app
 const LOCAL_ASSETS = [
