@@ -140,6 +140,17 @@ async function pullFamigliaDati(soloChiave) {
         const curOvr  = await getLocalRaw(SK_OVERRIDES, "{}");
         const newOvr  = JSON.stringify(overrides || {});
         if (String(seed) !== curSeed || newOvr !== curOvr) {
+          // il piano locale che viene sostituito non si perde: va nello Storico
+          if (curSeed && String(seed) !== curSeed) {
+            try {
+              const hist = await getLocal("pf-history", []);
+              if (!hist.some(h => String(h.seed) === curSeed)) {
+                hist.unshift({ seed: curSeed, date: new Date().toLocaleDateString("it-IT"), label: "Piano prima della famiglia" });
+                await setLocalQuiet("pf-history", JSON.stringify(hist.slice(0, 5)));
+                emit("history");
+              }
+            } catch {}
+          }
           await setLocalQuiet(SK_SEED, String(seed));
           await setLocalQuiet(SK_OVERRIDES, newOvr);
           emit("piano", { seed: String(seed), overrides: overrides || {} });
@@ -415,6 +426,19 @@ export async function finishMigration(mapping) {
   await reconcile();
   subscribeRealtime();
   emit("misure"); emit("mealsLog");
+}
+
+// Associazione automatica quando sul dispositivo c'è una sola persona
+export async function autoClaimSingle(persona) {
+  if (!supabase || !me) throw new Error("cloud non pronto");
+  await supabase.from("profili").update({
+    nome: persona.nome, sesso: persona.sesso === "F" ? "F" : "M",
+    data_nascita: persona.dataNascita || etaToDataNascita(persona.eta),
+    peso: persona.peso ?? null, altezza: persona.altezza ?? null,
+    lavoro: persona.lavoro || "sedentario", allenamenti: persona.allenamenti ?? 3,
+    obiettivo: persona.obiettivo || "mantenimento", color: persona.color || "#2563eb",
+  }).eq("id", me.profiloId);
+  await finishMigration([{ localId: persona.id, cloudId: me.profiloId }]);
 }
 
 export { remapPersonaId };

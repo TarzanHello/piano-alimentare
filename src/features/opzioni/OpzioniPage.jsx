@@ -1,9 +1,10 @@
+import { SeedSyncSection } from '@/features/famiglia/FamigliaPage';
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { DEFAULT_NOTIF, MEAL_KEYS, MEAL_META, scheduleNotifications, todayDayIndex } from '@/core';
 import { GustiPage } from '@/features/gusti/GustiPage';
 
-export function OpzioniPage({ notifSettings, onNotifChange, plan, personas, myPersonaId }) {
+export function OpzioniPage({ notifSettings, onNotifChange, plan, personas, myPersonaId, currentSeed, overrides, onApplySeed }) {
   const [permStatus, setPermStatus] = React.useState("Notification" in window ? Notification.permission : "unsupported");
   const [requesting, setRequesting] = React.useState(false);
   const settings = notifSettings || DEFAULT_NOTIF;
@@ -19,6 +20,7 @@ export function OpzioniPage({ notifSettings, onNotifChange, plan, personas, myPe
   const MICONS={colazione:"☀️",spuntino_m:"🍎",pranzo:"🥗",spuntino_p:"🫐",cena:"🍽️"};
   return (
     <div>
+      <SeedSyncSection currentSeed={currentSeed} overrides={overrides} onApplySeed={onApplySeed}/>
       <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #e2e8f0",padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
         <div style={{fontSize:13,fontWeight:800,color:"#1e293b",marginBottom:4}}>🔔 Notifiche pasto</div>
         <div style={{fontSize:11,color:"#64748b",marginBottom:14,lineHeight:1.6}}>Ricevi un promemoria con il nome della ricetta prima di ogni pasto.</div>

@@ -10,7 +10,8 @@ import { OpzioniPage } from '@/features/opzioni/OpzioniPage';
 import { OggiPage } from '@/features/oggi/OggiPage';
 import { MigrationWizard } from '@/features/famiglia/MigrationWizard';
 import { UtentePage } from '@/features/utente/UtentePage';
-import { startSync } from '@/db/sync';
+import { startSync, autoClaimSingle } from '@/db/sync';
+import { Onboarding } from '@/features/onboarding/Onboarding';
 import { cloudEnabled } from '@/db/cloud';
 import { MealCard, TotaleBar, WaterTracker } from '@/features/piano/MealParts';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
@@ -25,7 +26,8 @@ export function App() {
   const [history, setHistory]         = useState([]);
   const [plan, setPlan]               = useState(null);
   const [excluded, setExcluded]       = useState([]);
-  const [personas, setPersonas]       = useState(DEFAULT_PERSONAS);
+  const [personas, setPersonas]       = useState([]);
+  const [booted, setBooted]           = useState(false);
   const [spinning, setSpinning]       = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [regenNeeded, setRegenNeeded] = useState(false);
@@ -62,6 +64,7 @@ export function App() {
         case "prefs":    { const v = await read(SK_PREFS, null); if (v) setPrefs(normalizePrefs(v)); break; }
         case "excluded": { const v = await read(SK_EXCL, null); if (Array.isArray(v)) { setExcluded(v); } break; }
         case "spesa":    { const v = await read(SK_SPESA, null); if (v) setSpesaChecks(v); break; }
+        case "history":  { const v = await read(SK_HISTORY, null); if (Array.isArray(v)) setHistory(v); break; }
         case "piano":    {
           const seedCloud = parseInt(e.detail.seed, 10), ovrCloud = e.detail.overrides || {};
           if (isNaN(seedCloud) || seedCloud <= 0) break;
@@ -75,6 +78,14 @@ export function App() {
     window.addEventListener("pf-cloud-update", onUpdate);
     return ()=>{ window.removeEventListener("pf-cloud-status", onStatus); window.removeEventListener("pf-cloud-update", onUpdate); };
   },[]);
+  // Auto-claim: se sul dispositivo c'è UNA sola persona, l'associazione
+  // col profilo cloud avviene da sola, senza wizard
+  useEffect(()=>{
+    if (cloudStatus.inFamily && !cloudMigrated && personas.length === 1) {
+      autoClaimSingle(personas[0]).then(()=>setCloudMigrated(true)).catch(()=>{});
+    }
+  },[cloudStatus.inFamily, cloudMigrated, personas]);
+
   // ref per leggere le esclusioni correnti dentro il listener stabile
   const excludedRef = useRef([]);
   useEffect(()=>{ excludedRef.current = excluded; },[excluded]);
@@ -133,9 +144,8 @@ export function App() {
         if (JSON.stringify(loadedExcl) !== JSON.stringify(rawExcl)) {
           window.storage.set(SK_EXCL, JSON.stringify(loadedExcl)).catch(()=>{});
         }
-        const loadedPersRaw = safeParse(pS, DEFAULT_PERSONAS);
-        const loadedPersBase = (Array.isArray(loadedPersRaw) && loadedPersRaw.length > 0)
-          ? loadedPersRaw : DEFAULT_PERSONAS;
+        const loadedPersRaw = safeParse(pS, []);
+        const loadedPersBase = Array.isArray(loadedPersRaw) ? loadedPersRaw : [];
         // Migrazione attività: deriva lavoro+allenamenti dal vecchio `stile`
         // (coppie equivalenti: stesso LAF, nessun cambio di target) e ri-persiste.
         const loadedPers = loadedPersBase.map(p =>
@@ -144,7 +154,7 @@ export function App() {
         if (JSON.stringify(loadedPers) !== JSON.stringify(loadedPersBase)) {
           window.storage.set(SK_PERSONAS, JSON.stringify(loadedPers)).catch(()=>{});
         }
-        const loadedMyP  = mS.status==="fulfilled"&&mS.value ? mS.value.value : loadedPers[0].id;
+        const loadedMyP  = mS.status==="fulfilled"&&mS.value ? mS.value.value : loadedPers[0]?.id;
         const loadedMisu = (() => { const v = safeParse(miS, {}); return (v && typeof v==="object" && !Array.isArray(v)) ? v : {}; })();
         const loadedOvrd = (() => {
           const v = safeParse(ovS, {});
@@ -166,24 +176,26 @@ export function App() {
           return migrated;
         })();
         const loadedNotif = (() => { const v = safeParse(nfS, null); return (v && typeof v==="object") ? { ...DEFAULT_NOTIF, ...v, meals: { ...DEFAULT_NOTIF.meals, ...(v.meals||{}) } } : DEFAULT_NOTIF; })();
-        const validMyP   = loadedPers.find(p=>p.id===loadedMyP) ? loadedMyP : loadedPers[0].id;
+        const validMyP   = loadedPers.find(p=>p.id===loadedMyP) ? loadedMyP : loadedPers[0]?.id;
         setSeed(loadedSeed); setHistory(loadedHist); setExcluded(loadedExcl);
-        setPersonas(loadedPers); setSelPersonaId(loadedPers[0].id); setMyPersonaId(validMyP);
+        setPersonas(loadedPers);
+        if (loadedPers.length > 0) { setSelPersonaId(loadedPers[0].id); setMyPersonaId(validMyP); }
         // Ripristina ING_QTY per ricette custom salvate negli overrides
         for (const ricetta of Object.values(loadedOvrd || {})) {
           restoreCustomING_QTY(ricetta);
         }
         setMisureApp(loadedMisu); setOverrides(loadedOvrd); setPrefs(loadedPrefs); setMealsLog(loadedMealsLog); setNotifSettings(loadedNotif);
         setPlan(generateWeekPlan(loadedSeed, loadedExcl));
+        setBooted(true);
       } catch (err) {
         console.error("Errore caricamento dati:", err);
         // Fallback prudente: NON sovrascrivere il seed salvato (e quindi il
         // piano condiviso) per un errore transitorio di caricamento.
         let ns = Date.now();
         try { const r = await window.storage.get(SK_SEED); const p = parseInt(r.value,10); if (!isNaN(p)&&p>0) ns = p; } catch {}
-        setSeed(ns); setPersonas(DEFAULT_PERSONAS);
-        setSelPersonaId(DEFAULT_PERSONAS[0].id); setMyPersonaId(DEFAULT_PERSONAS[0].id);
+        setSeed(ns); setPersonas([]);
         setPlan(generateWeekPlan(ns,[]));
+        setBooted(true);
       }
     }
     load();
@@ -376,7 +388,7 @@ export function App() {
     setRegenNeeded(true);
   },[]);
 
-  if (!plan||!personas.length) return (
+  if (!plan) return (
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#64748b"}}>
       <div style={{textAlign:"center"}}><div style={{fontSize:32,marginBottom:12}}>🥗</div><div>Caricamento...</div></div>
     </div>
@@ -394,8 +406,8 @@ export function App() {
   };
   const swipeAvanti   = () => cambiaPersona(+1);
   const swipeIndietro = () => cambiaPersona(-1);
-  const personaTarget = calcTargetAdattivo(persona, misureApp[persona?.id]);
-  const personaSlot = slotForPersona(persona);
+  const personaTarget = persona ? calcTargetAdattivo(persona, misureApp[persona?.id]) : null;
+  const personaSlot = persona ? slotForPersona(persona) : "uomo";
 
   // Navigazione: 3 voci principali nella bottom-nav (Piano · Spesa · Menu).
   // "Menu" apre un bottom-sheet con le 4 voci secondarie:
@@ -414,6 +426,42 @@ export function App() {
     {key:"gusti",       label:"Gusti",       icon:"❤️", desc:"Preferiti e non amati"},
     {key:"opzioni",     label:"Opzioni",     icon:"⚙️", desc:"Notifiche e promemoria pasti"},
   ];
+
+  // ── Primo accesso: nessuna persona → flusso di onboarding ──
+  const completaOnboarding = async (p, session) => {
+    let nuova = { ...p };
+    if (session) {
+      // crea/aggiorna il profilo cloud con i dati della scheda e allinea gli ID:
+      // niente wizard, l'utente nasce già sincronizzato
+      try {
+        const { ensureMyProfile, supabase } = await import('@/db/cloud');
+        const prof = await ensureMyProfile(nuova);
+        if (prof) {
+          await supabase.from("profili").update({
+            nome: nuova.nome, sesso: nuova.sesso==="F"?"F":"M",
+            data_nascita: nuova.dataNascita || null,
+            peso: nuova.peso ?? null, altezza: nuova.altezza ?? null,
+            lavoro: nuova.lavoro, allenamenti: nuova.allenamenti,
+            obiettivo: nuova.obiettivo, color: nuova.color,
+          }).eq("id", prof.id);
+          nuova = { ...nuova, id: prof.id, _uid: prof.user_id };
+          await window.storage.set("pf-cloud-migrated", "1");
+        }
+      } catch (e) { console.warn("onboarding cloud:", e?.message); }
+    }
+    setPersonas([nuova]); setSelPersonaId(nuova.id); setMyPersonaId(nuova.id);
+    try {
+      await window.storage.set(SK_PERSONAS, JSON.stringify([nuova]));
+      await window.storage.set(SK_MY_PERSONA, nuova.id);
+    } catch {}
+    setPage("oggi");
+  };
+  if (booted && personas.length === 0) {
+    return <Onboarding onComplete={completaOnboarding}/>;
+  }
+  if (!booted) {
+    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontSize:32}}>🥗</div>;
+  }
 
   return (
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%)",fontFamily:"'Segoe UI',system-ui,sans-serif",paddingBottom:80}}>
@@ -488,7 +536,7 @@ export function App() {
         )}
 
         {/* PIANO */}
-        {cloudStatus.inFamily && !cloudMigrated && personas.length>0 && (
+        {cloudStatus.inFamily && !cloudMigrated && personas.length>1 && (
           <MigrationWizard personas={personas} onDone={()=>setCloudMigrated(true)}/>
         )}
         {!showHistory&&page==="oggi"&&(
@@ -688,10 +736,10 @@ export function App() {
         {!showHistory&&page==="spesa"&&<ShoppingPage plan={applyOverrides(plan, overrides)} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa}/>}
         {!showHistory&&page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
         {!showHistory&&page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
-        {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId}/>}
+        {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed}/>}
         {!showHistory&&page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={setMisureApp} mealsLog={mealsLog}/>}
         {!showHistory&&page==="utente"&&(
-          <UtentePage personas={personas} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} onGoFamiglia={()=>setPage("famiglia")}/>
+          <UtentePage personas={personas} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} onGoFamiglia={()=>setPage("famiglia")} onUpdatePersona={handleUpdatePersona} misureApp={misureApp} cloudStatus={cloudStatus}/>
         )}
         {!showHistory&&page==="famiglia"&&(
           <FamigliaPage onGoUtente={()=>setPage("utente")} personas={personas} onUpdate={handleUpdatePersona} onAdd={handleAddPersona} onDelete={handleDeletePersona}
