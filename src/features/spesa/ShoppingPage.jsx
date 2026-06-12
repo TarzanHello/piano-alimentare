@@ -3,12 +3,13 @@ const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { DAYS, buildShoppingForDays, depColor, depLabel } from '@/core';
 import { IngredientiPage } from '@/features/ingredienti/IngredientiPage';
 
-export function ShoppingPage({ plan }) {
+export function ShoppingPage({ plan, checks, onToggle, onReset }) {
   const [selDays, setSelDays] = useState([0,1,2,3,4,5,6]);
-  const [checked, setChecked] = useState({});
-  const toggle = id => setChecked(p => ({...p,[id]:!p[id]}));
+  // Spunte persistenti e condivise con la famiglia (gestite da App)
+  const checked = checks || {};
+  const toggle = id => onToggle(id);
   const toggleDay = i => setSelDays(p => p.includes(i) ? p.filter(d=>d!==i) : [...p,i].sort());
-  const setQuick = (days) => { setSelDays(days); setChecked({}); };
+  const setQuick = (days) => { setSelDays(days); };
   const grouped = buildShoppingForDays(plan, selDays);
   const allIds = Object.values(grouped).flat().map(i=>i.id);
   const done = allIds.filter(id=>checked[id]).length;
@@ -40,7 +41,7 @@ export function ShoppingPage({ plan }) {
               </div>
             </div>
             <span style={{fontFamily:"monospace",fontWeight:800,fontSize:14,color:"#1e293b"}}>{done}/{allIds.length}</span>
-            {done>0&&<button onClick={()=>setChecked({})} style={{fontSize:10,color:"#94a3b8",background:"none",border:"1px solid #e2e8f0",borderRadius:6,padding:"3px 8px",cursor:"pointer"}}>Reset</button>}
+            {done>0&&<button onClick={onReset} style={{fontSize:10,color:"#94a3b8",background:"none",border:"1px solid #e2e8f0",borderRadius:6,padding:"3px 8px",cursor:"pointer"}}>Reset</button>}
           </div>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
             {[[2,"≤3g","Freschissimo"],[7,"≤7g","Breve conservaz."],[14,"≤14g","Media conservaz."],[365,"Stabile","Lunga conservaz."]].map(([days,lab,desc])=>(

@@ -180,6 +180,12 @@ export function SeedSyncSection({ currentSeed, overrides, onApplySeed }) {
 // ─── FamigliaPage ────────────────────────────────────────────────────
 
 export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed, overrides, onApplySeed, myPersonaId, onSetMyPersona, misureApp }) {
+  // Con il cloud attivo, i profili degli altri utenti registrati sono in
+  // sola lettura (la regola vera è imposta dal database via RLS; qui
+  // nascondiamo solo i comandi). Editabili: i profili senza account
+  // (_gestito / locali) e il mio.
+  const myCloudProfiloId = (()=>{ try { return JSON.parse(localStorage.getItem("pa__pf-cloud-me")||"null")?.profiloId || null; } catch { return null; } })();
+  const isEditable = (p) => !p._uid || p.id === myCloudProfiloId;
   const [editing, setEditing] = useState(null);
   const [adding, setAdding]   = useState(false);
   const newPersona = () => ({ id:"p"+Date.now(), nome:"Nuovo", sesso:"M", eta:30, peso:70, altezza:170, lavoro:"sedentario", allenamenti:3, obiettivo:"mantenimento", color:COLORS[personas.length%COLORS.length] });
@@ -225,8 +231,12 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
                     <div style={{fontSize:11,color:"#64748b"}}>{p.eta} anni · {p.peso}kg · {p.altezza}cm · {(()=>{const a=normalizeAttivita(p);const lav=(LAVORI.find(l=>l.key===a.lavoro)||LAVORI[0]).label;return p.eta<12?`${a.allenamenti}× sport/sett`:`Lavoro ${lav.toLowerCase()} · ${a.allenamenti}× allenamento/sett`;})()}</div>
                   </div>
                   <div style={{display:"flex",gap:6}}>
-                    <button onClick={()=>setEditing(p.id)} style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #e2e8f0",background:"#f8fafc",color:"#475569",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
-                    {personas.length>1&&<button onClick={()=>onDelete(p.id)} style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑</button>}
+                    {isEditable(p) ? (
+                      <button onClick={()=>setEditing(p.id)} style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #e2e8f0",background:"#f8fafc",color:"#475569",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
+                    ) : (
+                      <span title="Profilo di un altro membro: sola lettura" style={{padding:"6px 10px",borderRadius:7,background:"#f1f5f9",color:"#94a3b8",fontSize:11,fontWeight:700}}>🔒</span>
+                    )}
+                    {personas.length>1&&isEditable(p)&&!p._uid&&<button onClick={()=>onDelete(p.id)} style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑</button>}
                   </div>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>

@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
+import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, buildShoppingForDays, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
 import { SwipeContainer } from '@/components/shared';
 import { FamigliaPage } from '@/features/famiglia/FamigliaPage';
 import { GustiPage } from '@/features/gusti/GustiPage';
@@ -8,6 +8,9 @@ import { IngredientiPage } from '@/features/ingredienti/IngredientiPage';
 import { MisurePage } from '@/features/misure/MisurePage';
 import { OpzioniPage } from '@/features/opzioni/OpzioniPage';
 import { OggiPage } from '@/features/oggi/OggiPage';
+import { MigrationWizard } from '@/features/famiglia/MigrationWizard';
+import { startSync } from '@/db/sync';
+import { cloudEnabled } from '@/db/cloud';
 import { MealCard, TotaleBar, WaterTracker } from '@/features/piano/MealParts';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
 
@@ -25,21 +28,76 @@ export function App() {
   const [spinning, setSpinning]       = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [regenNeeded, setRegenNeeded] = useState(false);
+  const [spesaChecks, setSpesaChecks] = useState({});   // { [seed]: { [itemId]: true } }
+  const [cloudStatus, setCloudStatus] = useState({ loggedIn:false, inFamily:false });
+  const [cloudMigrated, setCloudMigrated] = useState(true); // finché non sappiamo, niente wizard
   const [misureApp, setMisureApp]     = useState({});
   const [overrides, setOverrides]     = useState({}); // { "dayIdx-mealKey": ricettaObj }
   const [prefs, setPrefs]             = useState({ recipes:{}, contextSwaps:[] });
   const [mealsLog, setMealsLog]       = useState({});
   const [notifSettings, setNotifSettings] = useState(DEFAULT_NOTIF);
 
+  // ── Cloud sync: avvio, stato e applicazione degli aggiornamenti remoti ──
+  useEffect(()=>{
+    if (!cloudEnabled) return;
+    startSync();
+    const onStatus = (e)=> setCloudStatus(e.detail||{});
+    const onUpdate = async (e)=>{
+      const k = e.detail?.key;
+      const read = async (sk, fb) => { try { const r = await window.storage.get(sk); return JSON.parse(r.value); } catch { return fb; } };
+      switch(k){
+        case "personas": { const v = await read(SK_PERSONAS, null); if (Array.isArray(v)&&v.length) setPersonas(v); break; }
+        case "misure":   { const v = await read(SK_MISURE, null); if (v) setMisureApp(v); break; }
+        case "mealsLog": { const v = await read(SK_MEALS_LOG, null); if (v) setMealsLog(v); break; }
+        case "prefs":    { const v = await read(SK_PREFS, null); if (v) setPrefs(normalizePrefs(v)); break; }
+        case "excluded": { const v = await read(SK_EXCL, null); if (Array.isArray(v)) { setExcluded(v); } break; }
+        case "spesa":    { const v = await read(SK_SPESA, null); if (v) setSpesaChecks(v); break; }
+        case "piano":    {
+          const seedCloud = e.detail.seed, ovrCloud = e.detail.overrides || {};
+          const np = generateWeekPlan(seedCloud, excludedRef.current || []);
+          setSeed(seedCloud); setPlan(np); setOverrides(ovrCloud); setRegenNeeded(false);
+          break;
+        }
+      }
+    };
+    window.addEventListener("pf-cloud-status", onStatus);
+    window.addEventListener("pf-cloud-update", onUpdate);
+    return ()=>{ window.removeEventListener("pf-cloud-status", onStatus); window.removeEventListener("pf-cloud-update", onUpdate); };
+  },[]);
+  // ref per leggere le esclusioni correnti dentro il listener stabile
+  const excludedRef = useRef([]);
+  useEffect(()=>{ excludedRef.current = excluded; },[excluded]);
+
+  // ── Spunte lista spesa: persistenti per piano (seed) e sincronizzate ──
+  const handleToggleSpesa = useCallback((itemId)=>{
+    setSpesaChecks(prev=>{
+      const wk = { ...(prev[String(seed)]||{}) };
+      if (wk[itemId]) delete wk[itemId]; else wk[itemId] = true;
+      const next = { ...prev, [String(seed)]: wk };
+      window.storage.set(SK_SPESA, JSON.stringify(next)).catch(()=>{});
+      return next;
+    });
+  },[seed]);
+  const handleResetSpesa = useCallback(()=>{
+    setSpesaChecks(prev=>{
+      const next = { ...prev, [String(seed)]: {} };
+      window.storage.set(SK_SPESA, JSON.stringify(next)).catch(()=>{});
+      return next;
+    });
+  },[seed]);
+
   useEffect(()=>{
     async function load(){
       try {
-        const [sS,hS,eS,pS,mS,miS,ovS,prS,mlS,nfS] = await Promise.allSettled([
+        const [sS,hS,eS,pS,mS,miS,ovS,prS,mlS,nfS,spS,cmS] = await Promise.allSettled([
           window.storage.get(SK_SEED), window.storage.get(SK_HISTORY), window.storage.get(SK_EXCL),
           window.storage.get(SK_PERSONAS), window.storage.get(SK_MY_PERSONA), window.storage.get(SK_MISURE),
           window.storage.get(SK_OVERRIDES), window.storage.get(SK_PREFS),
           window.storage.get(SK_MEALS_LOG), window.storage.get(SK_NOTIF),
+          window.storage.get(SK_SPESA), window.storage.get("pf-cloud-migrated"),
         ]);
+        setSpesaChecks((() => { const v = safeParse(spS, {}); return (v && typeof v==="object") ? v : {}; })());
+        setCloudMigrated(cmS.status==="fulfilled" && cmS.value && cmS.value.value === "1");
         const parsedSeed = sS.status==="fulfilled"&&sS.value ? parseInt(sS.value.value, 10) : NaN;
         const loadedSeed = (!isNaN(parsedSeed) && parsedSeed > 0) ? parsedSeed : Date.now();
         const safeParse = (res, fallback) => {
@@ -408,6 +466,9 @@ export function App() {
         )}
 
         {/* PIANO */}
+        {cloudStatus.inFamily && !cloudMigrated && personas.length>0 && (
+          <MigrationWizard personas={personas} onDone={()=>setCloudMigrated(true)}/>
+        )}
         {!showHistory&&page==="oggi"&&(
           <OggiPage
             personas={personas}
@@ -602,7 +663,7 @@ export function App() {
           </SwipeContainer>
         )}
 
-        {!showHistory&&page==="spesa"&&<ShoppingPage plan={applyOverrides(plan, overrides)}/>}
+        {!showHistory&&page==="spesa"&&<ShoppingPage plan={applyOverrides(plan, overrides)} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa}/>}
         {!showHistory&&page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
         {!showHistory&&page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
         {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId}/>}
@@ -623,7 +684,16 @@ export function App() {
             ? (isSubPage || menuOpen) && !showHistory
             : page===tab.key && !showHistory;
           // Badge "ingredienti esclusi" mostrato sulla voce Menu
-          const badge = tab.key==="menu" && excluded.length>0 ? excluded.length : 0;
+          let badge = tab.key==="menu" && excluded.length>0 ? excluded.length : 0;
+          // Badge spesa: articoli della settimana non ancora spuntati
+          if (tab.key==="spesa") {
+            try {
+              const eff = applyOverrides(plan, overrides);
+              const ids = Object.values(buildShoppingForDays(eff,[0,1,2,3,4,5,6])).flat().map(i=>i.id);
+              const wk = spesaChecks[String(seed)]||{};
+              badge = ids.filter(id=>!wk[id]).length;
+            } catch { badge = 0; }
+          }
           // Pallino sulla tab Misure se l'ultima misurazione è datata (>7gg)
           const misureStale = tab.key==="misure" && (() => {
             const recs = (misureApp[myPersonaId]||[]).map(r=>parseDataIT(r.date)).filter(Boolean);

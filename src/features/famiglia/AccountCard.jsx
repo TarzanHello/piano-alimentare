@@ -113,7 +113,7 @@ export function AccountCard({ myPersona }) {
             </div>
           )}
           <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.5,marginBottom:10}}>
-            Con il prossimo aggiornamento i profili e le misure dei membri appariranno qui automaticamente.
+            Profili, misure, piano, gusti e spesa sono sincronizzati con la famiglia: le modifiche compaiono su tutti i dispositivi.
           </div>
           <button disabled={busy} onClick={()=>{ if(window.confirm("Uscire dalla famiglia? I tuoi dati personali restano tuoi; i profili a tuo carico ti seguono.")) azione(leaveFamily); }}
             style={{border:"1.5px solid #fecaca",background:"#fff",color:"#dc2626",borderRadius:10,padding:"8px 14px",fontWeight:800,fontSize:11,cursor:"pointer"}}>
