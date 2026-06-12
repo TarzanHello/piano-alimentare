@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { emojiBySesso } from '@/core';
 import { cloudEnabled, getMyFamily, getSession, onAuthChange, signInWithGoogle, signOut } from '@/db/cloud';
-import { IntensitaDieta, PersonaForm } from '@/features/famiglia/FamigliaPage';
-import { calcTargetAdattivo } from '@/core';
 
 // ── Pagina Utente ─────────────────────────────────────────────
 // Tutto il lato account: accesso, disconnessione, stato della
 // sincronizzazione e identità ("chi sono io" tra le persone).
 // La pagina Famiglia resta dedicata a creare e gestire la famiglia.
-export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia, onUpdatePersona, misureApp, cloudStatus }) {
-  const [editing, setEditing] = useState(false);
+export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia }) {
   const [session, setSession]   = useState(null);
   const [famiglia, setFamiglia] = useState(null);
   const [busy, setBusy]         = useState(false);
@@ -43,43 +40,8 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
 
   const myPersona = personas.find(p=>p.id===myPersonaId);
 
-  const target = myPersona ? calcTargetAdattivo(myPersona, misureApp?.[myPersona.id]) : null;
-
   return (
     <div>
-      {/* ── Scheda utente ── */}
-      {myPersona && (
-        <div style={S.card}>
-          <div style={S.h}>{emojiBySesso(myPersona)} La tua scheda</div>
-          {editing ? (
-            <PersonaForm persona={myPersona} isNew={false}
-              onSave={(p)=>{ onUpdatePersona(p); setEditing(false); }}
-              onCancel={()=>setEditing(false)}/>
-          ) : (
-            <>
-              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:16,fontWeight:900,color:myPersona.color}}>{myPersona.nome}</div>
-                  <div style={{fontSize:12,color:"#64748b",fontWeight:600,marginTop:2}}>
-                    {myPersona.eta} anni · {myPersona.peso} kg · {myPersona.altezza} cm · obiettivo {myPersona.obiettivo}
-                  </div>
-                </div>
-                {target && (
-                  <div style={{textAlign:"center",background:myPersona.color+"10",border:`1.5px solid ${myPersona.color}30`,borderRadius:12,padding:"8px 14px",flexShrink:0}}>
-                    <div style={{fontSize:17,fontWeight:900,color:myPersona.color,lineHeight:1}}>{target.kcal}</div>
-                    <div style={{fontSize:9,fontWeight:700,color:"#94a3b8",marginTop:2}}>kcal/giorno</div>
-                  </div>
-                )}
-              </div>
-              {myPersona.eta>=12 && myPersona.obiettivo!=="mantenimento" && <IntensitaDieta persona={myPersona} onUpdate={onUpdatePersona}/>}
-              <button onClick={()=>setEditing(true)} style={{marginTop:10,padding:"9px 16px",borderRadius:10,border:"1.5px solid #e2e8f0",background:"#f8fafc",color:"#475569",fontWeight:800,fontSize:12,cursor:"pointer"}}>
-                ✏️ Modifica la scheda
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
       {/* ── Account ── */}
       <div style={S.card}>
         <div style={S.h}>👤 Account</div>
@@ -135,8 +97,8 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
         </div>
       )}
 
-      {/* ── Chi sono io (solo in modalità locale) ── */}
-      {(!cloudEnabled || !session) && personas.length>1 && <div style={S.card}>
+      {/* ── Chi sono io ── */}
+      <div style={S.card}>
         <div style={S.h}>🪪 Io sono</div>
         <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.5,marginBottom:10}}>
           La persona predefinita su questo dispositivo: home Oggi, notifiche e log pasti partono da qui.
@@ -148,7 +110,8 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
             </button>
           ))}
         </div>
-      </div>}
+        {myPersona && <div style={{fontSize:11,color:"#94a3b8",marginTop:8}}>I dati anagrafici si modificano nella pagina <button onClick={onGoFamiglia} style={{border:"none",background:"none",color:"#2563eb",fontWeight:700,cursor:"pointer",padding:0,fontSize:11}}>Famiglia</button>.</div>}
+      </div>
     </div>
   );
 }

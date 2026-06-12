@@ -23,22 +23,8 @@ export function PersonaForm({ persona, onSave, onCancel, isNew }) {
           </div>
         </div>
         <div>
-          <label style={{fontSize:10,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:0.8,display:"block",marginBottom:4}}>Data di nascita {form.dataNascita?<span style={{color:form.color,textTransform:"none",letterSpacing:0}}>· {form.eta} anni</span>:null}</label>
-          <input type="date" value={form.dataNascita||""} max={new Date().toISOString().slice(0,10)}
-            onChange={e=>{
-              const v = e.target.value;
-              if (!v) { set("dataNascita", null); return; }
-              const dn = new Date(v), oggi = new Date();
-              let eta = oggi.getFullYear()-dn.getFullYear();
-              const m = oggi.getMonth()-dn.getMonth();
-              if (m<0||(m===0&&oggi.getDate()<dn.getDate())) eta--;
-              setForm(f=>({...f, dataNascita:v, eta:Math.max(0,eta)}));
-            }}
-            style={{width:"100%",padding:"8px 10px",border:"1.5px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
-          {!form.dataNascita && (
-            <input type="number" value={form.eta} onChange={e=>set("eta",+e.target.value)} min={0} max={99} placeholder="oppure età"
-              style={{width:"100%",marginTop:6,padding:"8px 10px",border:"1.5px dashed #e2e8f0",borderRadius:8,fontSize:12,outline:"none",boxSizing:"border-box"}}/>
-          )}
+          <label style={{fontSize:10,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:0.8,display:"block",marginBottom:4}}>Età (anni)</label>
+          <input type="number" value={form.eta} onChange={e=>set("eta",+e.target.value)} min={1} max={99} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
         </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
@@ -90,7 +76,7 @@ export function PersonaForm({ persona, onSave, onCancel, isNew }) {
       </div>
       <div style={{display:"flex",gap:8}}>
         <button onClick={()=>onSave(form)} style={{flex:1,padding:"10px",borderRadius:9,border:"none",background:form.color,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}}>{isNew?"➕ Aggiungi":"✓ Salva"}</button>
-        {onCancel&&<button onClick={onCancel} style={{padding:"10px 16px",borderRadius:9,border:"1.5px solid #e2e8f0",background:"#fff",color:"#64748b",fontWeight:700,fontSize:13,cursor:"pointer"}}>Annulla</button>}
+        <button onClick={onCancel} style={{padding:"10px 16px",borderRadius:9,border:"1.5px solid #e2e8f0",background:"#fff",color:"#64748b",fontWeight:700,fontSize:13,cursor:"pointer"}}>Annulla</button>
       </div>
     </div>
   );
@@ -206,7 +192,26 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
   return (
     <div>
       <AccountCard myPersona={personas.find(p=>p.id===myPersonaId)} onGoUtente={onGoUtente}/>
-      <div style={{fontSize:13,fontWeight:900,color:"#1e293b",margin:"4px 0 10px"}}>👥 Membri della famiglia</div>
+      <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #e2e8f0",padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
+        <div style={{fontSize:13,fontWeight:800,color:"#1e293b",marginBottom:4}}>👤 Chi sei tu?</div>
+        <div style={{fontSize:10,color:"#64748b",marginBottom:12}}>Seleziona il tuo profilo per vedere le porzioni personalizzate</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {personas.map(p=>{
+            const isMe=myPersonaId===p.id;
+            return (
+              <button key={p.id} onClick={()=>onSetMyPersona(p.id)} style={{display:"flex",alignItems:"center",gap:7,padding:"9px 14px",borderRadius:10,border:`2px solid ${isMe?p.color:"#e2e8f0"}`,background:isMe?p.color+"12":"#f8fafc",cursor:"pointer",transition:"all 0.2s",boxShadow:isMe?`0 0 0 3px ${p.color}25`:"none"}}>
+                <span style={{fontSize:18}}>{emojiBySesso(p)}</span>
+                <div style={{textAlign:"left"}}>
+                  <div style={{fontSize:12,fontWeight:800,color:isMe?p.color:"#475569"}}>{p.nome}</div>
+                  <div style={{fontSize:9,color:"#94a3b8"}}>{p.eta} anni · {p.peso}kg</div>
+                </div>
+                {isMe&&<span style={{marginLeft:4,fontSize:10,background:p.color,color:"#fff",borderRadius:5,padding:"2px 6px",fontWeight:800}}>IO</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <SeedSyncSection currentSeed={currentSeed} overrides={overrides} onApplySeed={onApplySeed}/>
       <div style={{background:"#f0f9ff",border:"1px solid #bae6fd",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:11,color:"#0369a1"}}>
         ℹ️ I target calorici vengono calcolati automaticamente da BMR + TDEE. I valori delle ricette sono approssimazioni medie.
       </div>
@@ -226,9 +231,7 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
                     <div style={{fontSize:11,color:"#64748b"}}>{p.eta} anni · {p.peso}kg · {p.altezza}cm · {(()=>{const a=normalizeAttivita(p);const lav=(LAVORI.find(l=>l.key===a.lavoro)||LAVORI[0]).label;return p.eta<12?`${a.allenamenti}× sport/sett`:`Lavoro ${lav.toLowerCase()} · ${a.allenamenti}× allenamento/sett`;})()}</div>
                   </div>
                   <div style={{display:"flex",gap:6}}>
-                    {p.id===myPersonaId ? (
-                      <button onClick={onGoUtente} title="La tua scheda si modifica nella pagina Utente" style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:11,fontWeight:700,cursor:"pointer"}}>👤 Utente</button>
-                    ) : isEditable(p) ? (
+                    {isEditable(p) ? (
                       <button onClick={()=>setEditing(p.id)} style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #e2e8f0",background:"#f8fafc",color:"#475569",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
                     ) : (
                       <span title="Profilo di un altro membro: sola lettura" style={{padding:"6px 10px",borderRadius:7,background:"#f1f5f9",color:"#94a3b8",fontSize:11,fontWeight:700}}>🔒</span>
@@ -244,7 +247,7 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
                     </div>
                   ))}
                 </div>
-                {isEditable(p)&&p.id!==myPersonaId&&p.eta>=12&&<IntensitaDieta persona={p} onUpdate={onUpdate}/>}
+                {(()=>{const intensita=p.dietaIntensita??50;const getLabel=v=>v<=10?{txt:"Molto facile",sub:"−100 kcal",col:"#16a34a",emoji:"😊"}:v<=30?{txt:"Facile",sub:"~−320 kcal",col:"#65a30d",emoji:"🙂"}:v<=55?{txt:"Moderato",sub:"~−550 kcal",col:"#2563eb",emoji:"⚖️"}:v<=80?{txt:"Intenso",sub:"~−775 kcal",col:"#d97706",emoji:"😓"}:{txt:"Molto difficile",sub:"−1000 kcal",col:"#dc2626",emoji:"🔥"};const lbl=getLabel(intensita);const off=Math.round(100+(intensita/100)*900);return(<div style={{marginTop:10,padding:"10px 12px",background:"#f8fafc",borderRadius:9,border:"1px solid #e2e8f0"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><span style={{fontSize:10,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:0.5}}>⚡ Intensità dieta</span><span style={{fontSize:11,fontWeight:800,color:lbl.col}}>{lbl.emoji} {lbl.txt} <span style={{fontFamily:"monospace",fontSize:10}}>{lbl.sub}</span></span></div><div style={{position:"relative",height:22,display:"flex",alignItems:"center"}}><div style={{position:"absolute",left:0,right:0,height:4,borderRadius:2,background:"linear-gradient(to right,#16a34a,#65a30d,#2563eb,#d97706,#dc2626)"}}/><input type="range" min={0} max={100} step={1} value={intensita} onChange={e=>onUpdate({...p,dietaIntensita:parseInt(e.target.value)})} style={{position:"relative",zIndex:1,width:"100%",margin:0,background:"transparent"}}/></div><div style={{display:"flex",justifyContent:"space-between",marginTop:4}}><span style={{fontSize:9,color:"#16a34a",fontWeight:700}}>😊 −100 kcal</span><span style={{fontSize:9,color:"#475569",fontWeight:700,fontFamily:"monospace"}}>TDEE − {off} kcal</span><span style={{fontSize:9,color:"#dc2626",fontWeight:700}}>🔥 −1000 kcal</span></div></div>);})()}
                 <div style={{marginTop:8,fontSize:10,color:"#94a3b8",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:4}}>
                   <span>Obiettivo: <strong style={{color:"#475569"}}>{(OBIETTIVI.find(o=>o.key===p.obiettivo)||{label:p.obiettivo||"—"}).label}</strong></span>
                   <div style={{display:"flex",alignItems:"center",gap:4,background:t.confidenza.bg,border:`1px solid ${t.confidenza.border}`,borderRadius:5,padding:"2px 7px"}}>
@@ -269,29 +272,3 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
   );
 }
 
-
-// Slider intensità dieta: appartiene alla scheda della persona
-export function IntensitaDieta({ persona, onUpdate }) {
-  const p = persona;
-  const intensita = p.dietaIntensita ?? 50;
-  const getLabel = v => v<=10?{txt:"Molto facile",sub:"−100 kcal",col:"#16a34a",emoji:"😊"}:v<=30?{txt:"Facile",sub:"~−320 kcal",col:"#65a30d",emoji:"🙂"}:v<=55?{txt:"Moderato",sub:"~−550 kcal",col:"#2563eb",emoji:"⚖️"}:v<=80?{txt:"Intenso",sub:"~−775 kcal",col:"#d97706",emoji:"😓"}:{txt:"Molto difficile",sub:"−1000 kcal",col:"#dc2626",emoji:"🔥"};
-  const lbl = getLabel(intensita);
-  const off = Math.round(100+(intensita/100)*900);
-  return (
-    <div style={{marginTop:10,padding:"10px 12px",background:"#f8fafc",borderRadius:9,border:"1px solid #e2e8f0"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <span style={{fontSize:10,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:0.5}}>⚡ Intensità dieta</span>
-        <span style={{fontSize:11,fontWeight:800,color:lbl.col}}>{lbl.emoji} {lbl.txt} <span style={{fontFamily:"monospace",fontSize:10}}>{lbl.sub}</span></span>
-      </div>
-      <div style={{position:"relative",height:22,display:"flex",alignItems:"center"}}>
-        <div style={{position:"absolute",left:0,right:0,height:4,borderRadius:2,background:"linear-gradient(to right,#16a34a,#65a30d,#2563eb,#d97706,#dc2626)"}}/>
-        <input type="range" min={0} max={100} step={1} value={intensita} onChange={e=>onUpdate({...p,dietaIntensita:parseInt(e.target.value)})} style={{position:"relative",zIndex:1,width:"100%",margin:0,background:"transparent"}}/>
-      </div>
-      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-        <span style={{fontSize:9,color:"#16a34a",fontWeight:700}}>😊 −100 kcal</span>
-        <span style={{fontSize:9,color:"#475569",fontWeight:700,fontFamily:"monospace"}}>TDEE − {off} kcal</span>
-        <span style={{fontSize:9,color:"#dc2626",fontWeight:700}}>🔥 −1000 kcal</span>
-      </div>
-    </div>
-  );
-}
