@@ -3,11 +3,7 @@
 // delle librerie esterne (React, Babel) al primo caricamento online.
 // Così l'app funziona davvero offline dopo la prima apertura.
 
-<<<<<<< HEAD
-const CACHE = "piano-alimentare-v16";
-=======
-const CACHE = "piano-alimentare-v15";
->>>>>>> b211fafeccf471e6207f3f6a91c7b7f217b93440
+const CACHE = "piano-alimentare-v17";
 
 // Asset locali dell'app
 const LOCAL_ASSETS = [
