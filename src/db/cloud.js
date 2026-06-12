@@ -3,7 +3,15 @@
 // l'app resta perfettamente funzionante in locale.
 
 import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabaseConfig';
+import { SUPABASE_URL as RAW_URL, SUPABASE_ANON_KEY as RAW_KEY } from './supabaseConfig';
+
+// Pulizia difensiva dei valori incollati a mano: spazi, a-capo,
+// barre finali o percorsi extra dopo il dominio non rompono più nulla.
+const SUPABASE_URL = (RAW_URL || "")
+  .trim()
+  .replace(/\/+$/, "")
+  .replace(/^(https:\/\/[^/]+).*$/, "$1");
+const SUPABASE_ANON_KEY = (RAW_KEY || "").trim().replace(/\s+/g, "");
 
 export const cloudEnabled = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -15,9 +23,11 @@ export const supabase = cloudEnabled
 
 export async function signInWithGoogle() {
   if (!supabase) return { error: 'Cloud non configurato' };
-  // redirectTo: torna esattamente alla pagina corrente (funziona su
-  // GitHub Pages in sottocartella e in locale)
-  const redirectTo = window.location.origin + import.meta.env.BASE_URL;
+  // redirectTo: torna esattamente alla pagina corrente dell'app
+  // (origin + pathname: robusto su GitHub Pages in sottocartella,
+  // in locale e dentro Capacitor; NON usare BASE_URL che con base
+  // relativa './' produce un URL malformato)
+  const redirectTo = window.location.origin + window.location.pathname;
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo },
