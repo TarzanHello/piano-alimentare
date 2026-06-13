@@ -13,6 +13,26 @@ export function AccountCard({ myPersona, onGoUtente }) {
   const [nomeFam, setNomeFam]   = useState("");
   const [codice, setCodice]     = useState("");
   const [copiato, setCopiato]   = useState(false);
+  const [diag, setDiag]         = useState(null);
+
+  const eseguiDiagnostica = async () => {
+    const out = {};
+    try {
+      const { supabase } = await import('@/db/cloud');
+      const s = await getSession();
+      out.sessione = s ? s.user.email : "NESSUNA";
+      out.userId = s?.user?.id || null;
+      if (s) {
+        const r1 = await supabase.from('profili').select('id,nome,famiglia_id,user_id').eq('user_id', s.user.id);
+        out.mioProfilo = r1.error ? "ERR: "+r1.error.message : r1.data;
+        const r2 = await supabase.from('profili').select('id,nome,famiglia_id').not('famiglia_id','is',null);
+        out.profiliInFamiglia = r2.error ? "ERR: "+r2.error.message : r2.data;
+        const r3 = await supabase.from('famiglie').select('id,nome,invite_code');
+        out.famiglieVisibili = r3.error ? "ERR: "+r3.error.message : r3.data;
+      }
+    } catch (e) { out.eccezione = e.message; }
+    setDiag(out);
+  };
 
   const ricarica = async () => {
     const s = await getSession();
@@ -120,6 +140,15 @@ export function AccountCard({ myPersona, onGoUtente }) {
       )}
 
       {err && <div style={{marginTop:10,background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#b91c1c",fontWeight:600}}>⚠️ {err}</div>}
+
+      <div style={{marginTop:12,paddingTop:10,borderTop:"1px solid #f1f5f9"}}>
+        <button onClick={eseguiDiagnostica} style={{border:"none",background:"transparent",color:"#94a3b8",fontSize:10,fontWeight:700,cursor:"pointer",padding:0,textDecoration:"underline"}}>🔍 Diagnostica accoppiamento</button>
+        {diag && (
+          <pre style={{marginTop:8,background:"#0f172a",color:"#a5f3fc",fontSize:10,lineHeight:1.5,padding:"10px 12px",borderRadius:8,overflowX:"auto",whiteSpace:"pre-wrap",wordBreak:"break-all"}}>
+{JSON.stringify(diag, null, 2)}
+          </pre>
+        )}
+      </div>
     </div>
   );
 }

@@ -150,8 +150,16 @@ export async function leaveFamily() {
 
 export async function getMyFamily() {
   if (!supabase) return null;
-  const { data } = await supabase.from('famiglie').select('*').maybeSingle();
-  return data || null;
+  // Passo dal mio profilo → famiglia, evitando maybeSingle() su famiglie
+  // (che fallisce se le RLS lasciassero intravedere più righe).
+  const session = await getSession();
+  if (!session) return null;
+  const { data: mio } = await supabase.from('profili')
+    .select('famiglia_id').eq('user_id', session.user.id).maybeSingle();
+  if (!mio?.famiglia_id) return null;
+  const { data } = await supabase.from('famiglie')
+    .select('*').eq('id', mio.famiglia_id).limit(1);
+  return (data && data[0]) || null;
 }
 
 export async function getFamilyMembers() {
