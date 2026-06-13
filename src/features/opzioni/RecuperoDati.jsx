@@ -93,6 +93,24 @@ export function RecuperoDati({ personas }) {
       })}
       {orfane.length === 0 && serie.length > 0 && <div style={{fontSize:11,color:"#16a34a",fontWeight:700,marginTop:8}}>✓ Nessuna serie orfana: tutto assegnato correttamente.</div>}
       {fatto && <div style={{marginTop:10,fontSize:12,fontWeight:700,color:fatto.startsWith("✓")?"#16a34a":"#b91c1c"}}>{fatto}</div>}
+
+      <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #f1f5f9"}}>
+        <div style={{fontSize:11,fontWeight:800,color:"#475569",marginBottom:4}}>🔄 Ripristina collegamento famiglia</div>
+        <div style={{fontSize:10.5,color:"#94a3b8",lineHeight:1.5,marginBottom:10}}>
+          Da usare solo se l'accoppiamento è bloccato. Scollega questo dispositivo dal cloud e dimentica lo stato di sincronizzazione, così potrai riaccedere e ricreare/rientrare in famiglia da zero. <strong>Misure, piano e persone su questo dispositivo NON vengono toccati.</strong>
+        </div>
+        <button onClick={async()=>{
+          if(!window.confirm("Ripristinare il collegamento cloud? Dovrai riaccedere e rifare crea/entra in famiglia. I tuoi dati locali restano intatti.")) return;
+          try {
+            for (const k of ["pf-cloud-migrated","pf-cloud-me","pf-local-only"]) { try{ await window.storage.delete(k); }catch{} }
+            const { signOut } = await import('@/db/cloud');
+            await signOut();
+          } catch {}
+          window.location.reload();
+        }} style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid #fed7aa",background:"#fff7ed",color:"#c2410c",fontWeight:800,fontSize:11,cursor:"pointer"}}>
+          Scollega e reimposta
+        </button>
+      </div>
     </div>
   );
 }
