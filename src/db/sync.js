@@ -375,9 +375,7 @@ function hookStorage() {
 
 // ─── Realtime ────────────────────────────────────────────────
 function subscribeRealtime() {
-  if (channel) { try { supabase.removeChannel(channel); } catch {} }
-  // Nome canale unico per device: due device sullo stesso account non
-  // devono condividere lo stesso canale (Supabase li tratterebbe come uno).
+  if (channel) { try { supabase.removeChannel(channel); } catch {} channel = null; }
   const devId = Math.random().toString(36).slice(2, 10);
   channel = supabase.channel("fam-sync-" + devId)
     .on("postgres_changes", { event: "*", schema: "public", table: "profili" },        () => { pullProfili(); })
@@ -385,7 +383,25 @@ function subscribeRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "profilo_dati" },   () => { pullMealsLog(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "famiglia_dati" },  (p) => { pullFamigliaDati(p?.new?.chiave || p?.old?.chiave); })
     .on("postgres_changes", { event: "*", schema: "public", table: "famiglia_spesa" }, () => { pullSpesa(); })
-    .subscribe();
+    .subscribe((status) => {
+      // Diagnostica visibile in console + retry se la sottoscrizione cade
+      if (status === "SUBSCRIBED") {
+        console.log("[sync] Realtime attivo");
+        emitStatus({ loggedIn: true, inFamily: true, me, realtime: "ok" });
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        console.warn("[sync] Realtime", status, "→ riprovo tra 3s");
+        emitStatus({ loggedIn: true, inFamily: true, me, realtime: status });
+        clearTimeout(timers.__rt);
+        timers.__rt = setTimeout(() => { if (me) subscribeRealtime(); }, 3000);
+      }
+    });
+}
+
+// Forza un allineamento completo (usato come fallback al polling).
+async function fullPullSafe() {
+  if (!me) return;
+  try { await pullProfili(); await pullMisure(); await pullMealsLog(); await pullFamigliaDati(); await pullSpesa(); }
+  catch (e) { console.warn("[sync] fullPull", e?.message); }
 }
 
 // ═══ Avvio ═══════════════════════════════════════════════════
@@ -418,8 +434,14 @@ export async function startSync() {
     await window.storage.set("pf-cloud-migrated", "1");
     await reconcile();
     subscribeRealtime();
-    // Il wizard (gestito dall'App) serve solo ad ASSOCIARE eventuali altre
-    // persone locali a profili cloud: è ortogonale al sync, non lo blocca.
+    // Rete di sicurezza: un polling leggero ogni 15s riallinea piano e
+    // spesa anche se il Realtime non scatta (es. tabella non pubblicata o
+    // websocket sospeso dal sistema operativo del telefono). Garantisce la
+    // sincronizzazione a prescindere dalla configurazione Realtime.
+    clearInterval(timers.__poll);
+    timers.__poll = setInterval(() => {
+      if (me && document.visibilityState === "visible") { pullFamigliaDati(); pullSpesa(); }
+    }, 15000);
   };
 
   await boot();
@@ -552,6 +574,7 @@ export { remapPersonaId };
 // migrazione. I dati locali (misure, piano, persone) restano intatti.
 export async function resetSyncState() {
   if (channel) { try { supabase.removeChannel(channel); } catch {} channel = null; }
+  clearInterval(timers.__poll); clearTimeout(timers.__rt);
   me = null;
   pendingSpesa = {};
   try {
