@@ -19,24 +19,32 @@ const ok = (name, cond) => { results.push({ name, pass: !!cond }); };
   ok('contatore applying: libero solo a fine di tutti i pull', busy('S') === false);
 }
 
-// ─── B. Merge spesa: gli echi non cancellano le spunte locali ───
-// Riproduce: spunto A, B, C mentre arrivano echi col cloud non aggiornato.
+// ─── B. Merge spesa con timestamp: select/deselect concorrenti ───
+// Riproduce: A seleziona, B deseleziona quasi in contemporanea.
+// Vince chi ha il timestamp piu recente; dopo 5s il server e autorevole.
 {
   const mergePull = (serverRows, pending) => {
-    const wk = {}; for (const r of serverRows) if (r.checked) wk[r.item_id] = true;
-    for (const id of Object.keys(pending)) { if (pending[id]) wk[id]=true; else delete wk[id]; }
+    const ora = Date.now();
+    const wk = {};
+    for (const r of serverRows) if (r.checked) wk[r.item_id] = true;
+    for (const [id, p] of Object.entries(pending)) {
+      const fresco = (ora - (p.ts || 0)) < 5000;
+      if (fresco) { if (p.checked) wk[id] = true; else delete wk[id]; }
+    }
     return wk;
   };
-  let pending = {}, local = {};
-  pending['A'] = true; local = mergePull([], pending);                          // eco: server vuoto
-  ok('spesa: dopo A, A resta', local.A === true);
-  pending['B'] = true; local = mergePull([{item_id:'A',checked:true}], pending); // eco: server={A}
-  ok('spesa: dopo B, A e B restano', local.A && local.B);
-  pending['C'] = true; local = mergePull([{item_id:'A',checked:true},{item_id:'B',checked:true}], pending);
-  ok('spesa: dopo C, A B C tutti presenti', local.A && local.B && local.C);
-  // una deselezione in volo vince sull'eco che ancora lo dà spuntato
-  pending['A'] = false; local = mergePull([{item_id:'A',checked:true},{item_id:'B',checked:true},{item_id:'C',checked:true}], pending);
-  ok('spesa: deselezione in volo vince sull\'eco', !local.A && local.B && local.C);
+  const mk = (checked) => ({ checked, ts: Date.now() });
+  const mkVecchio = (checked) => ({ checked, ts: Date.now() - 6000 });
+
+  let local;
+  local = mergePull([], { pane: mk(true) });
+  ok('spesa: selezione fresca vince su server vuoto', local.pane === true);
+  local = mergePull([{item_id:'pane',checked:true}], { pane: mk(false) });
+  ok('spesa: deselezione fresca vince su server spuntato', local.pane === undefined);
+  local = mergePull([], { pane: mkVecchio(true) });
+  ok('spesa: pending vecchio ignorato, server vince', local.pane === undefined);
+  local = mergePull([], { A: mk(true), B: mk(true), C: mk(true) });
+  ok('spesa: selezioni multiple tutte presenti', local.A && local.B && local.C);
 }
 
 // ─── C. Anti-eco: non ripusha un valore appena ricevuto dal cloud ───

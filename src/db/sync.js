@@ -186,18 +186,26 @@ async function pullSpesaImpl() {
     .eq("famiglia_id", me.famigliaId).eq("settimana", String(seed));
   if (error || !data) return;
   const all = await getLocal(SK_SPESA, {});
+
+  // Base: stato del cloud (fonte di verità condivisa)
   const wkServer = {};
   for (const r of data) if (r.checked) wkServer[r.item_id] = true;
-  // Merge senza perdite: stato del server + spunte locali "in volo"
-  // (toccate di recente e non ancora confermate). Un eco non può mai
-  // cancellare ciò che ho appena selezionato su QUESTO device.
+
+  // Sovrascrivi con gli articoli "in volo" SOLO se sono stati toccati
+  // da meno di 5 secondi: dopo quel tempo il cloud è autorevole e
+  // risolve i conflitti tra device (last-write-wins sul server).
+  const ora = Date.now();
   const wk = { ...wkServer };
-  for (const id of Object.keys(pendingSpesa)) {
-    if (pendingSpesa[id]) wk[id] = true; else delete wk[id];
+  for (const [id, p] of Object.entries(pendingSpesa)) {
+    const fresco = (ora - (p.ts || 0)) < 5000;
+    if (fresco) {
+      if (p.checked) wk[id] = true; else delete wk[id];
+    }
   }
+
   const prev = JSON.stringify(all[String(seed)] || {});
   const nextWk = JSON.stringify(wk);
-  if (prev === nextWk) return; // nessun cambiamento reale: non riscrivo né emetto
+  if (prev === nextWk) return;
   const next = { ...all, [String(seed)]: wk };
   await setLocalQuiet(SK_SPESA, JSON.stringify(next));
   emit("spesa");
@@ -326,17 +334,20 @@ async function pushSpesa() {
     .eq("famiglia_id", me.famigliaId).eq("settimana", String(seed)).in("item_id", dels);
 }
 
-// ─── Spesa per singolo articolo (tempo reale, anti-conflitto) ──
-// Registro degli articoli "in volo": una spunta appena fatta in locale
-// è protetta dagli echi del Realtime finché non è confermata sul cloud.
+// ─── Spesa per singolo articolo ──────────────────────────────
+// Modello: ottimistico (UI aggiornata subito) + conferma dal cloud.
+// Per selezioni concorrenti tra device vince l'ULTIMA operazione nel
+// tempo (last-write-wins): dopo la scrittura riconcilia dal server.
 export async function toggleSpesaItem(itemId, checked) {
   if (!supabase || !me) return;
   const seed = await getLocalRaw(SK_SEED, null);
   if (!seed) return;
-  pendingSpesa[itemId] = checked;
-  // Allineo l'anti-eco allo stato che l'App ha appena salvato in locale,
-  // così un pull successivo non scambia quel valore per "da ripushare".
-  try { lastJson[SK_SPESA] = (await window.storage.get(SK_SPESA)).value; } catch {}
+
+  // Segna come "in volo" con timestamp: se arriva un pull prima della
+  // conferma, sappiamo quale stato locale è più recente.
+  const ts = Date.now();
+  pendingSpesa[itemId] = { checked, ts };
+
   try {
     if (checked) {
       await supabase.from("famiglia_spesa").upsert(
@@ -346,10 +357,18 @@ export async function toggleSpesaItem(itemId, checked) {
       await supabase.from("famiglia_spesa").delete()
         .eq("famiglia_id", me.famigliaId).eq("settimana", String(seed)).eq("item_id", itemId);
     }
-  } catch (e) { console.warn("toggleSpesaItem", e?.message); }
-  // dopo qualche secondo l'articolo non è più "in volo": il cloud è autorevole.
-  // Finestra ampia per coprire la latenza di rete sui cellulari.
-  setTimeout(() => { delete pendingSpesa[itemId]; }, 8000);
+    // Riconcilia dal server subito dopo la scrittura: risolve i conflitti
+    // con altri device che hanno modificato lo stesso articolo in contemporanea.
+    await pullSpesaImpl();
+  } catch (e) {
+    console.warn("toggleSpesaItem", e?.message);
+  } finally {
+    // Rimuovi dal "in volo" solo se non c'è stata un'operazione più recente
+    setTimeout(() => {
+      const p = pendingSpesa[itemId];
+      if (p && p.ts === ts) delete pendingSpesa[itemId];
+    }, 5000);
+  }
 }
 
 // ─── Router del push, con debounce per chiave ────────────────
