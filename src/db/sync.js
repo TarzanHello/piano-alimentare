@@ -365,9 +365,14 @@ const PUSHERS = {
 
 function schedulePush(key) {
   clearTimeout(timers[key]);
+  // Il piano usa un debounce più lungo (2s) perché un pull prematuro
+  // durante la finestra di debounce causerebbe ping-pong.
+  const delay = (key === SK_SEED || key === SK_OVERRIDES) ? 2000 : 900;
   timers[key] = setTimeout(async () => {
     try { await PUSHERS[key]?.(); } catch (e) { console.warn("sync push", key, e?.message); }
-  }, 900);
+    // push completato: cancella il timer così il polling sa che è libero
+    delete timers[key];
+  }, delay);
 }
 
 // ─── Intercettazione di window.storage.set ───────────────────
@@ -450,7 +455,12 @@ export async function startSync() {
     // sincronizzazione a prescindere dalla configurazione Realtime.
     clearInterval(timers.__poll);
     timers.__poll = setInterval(() => {
-      if (me && document.visibilityState === "visible") { pullFamigliaDati(); pullSpesa(); }
+      if (!me || document.visibilityState !== "visible") return;
+      // Non tirare il piano se c'è un push in volo (debounce attivo):
+      // il push vincerà tra <900ms e sovrascrivere adesso causerebbe ping-pong.
+      const pianoPendente = timers[SK_SEED] || timers[SK_OVERRIDES];
+      if (!pianoPendente) pullFamigliaDati("piano");
+      pullSpesa();
     }, 15000);
   };
 
@@ -483,21 +493,31 @@ async function ancoraIdentitaAlCloud() {
 // se il cloud ha già quel dato, si scarica soltanto — un device non può
 // mai sovrascrivere il cloud al primo allineamento.
 async function reconcile() {
-  // ── dati condivisi famiglia: cloud presente → pull; assente → seed ──
+  // ── dati condivisi famiglia ──────────────────────────────────────
   const { data: fd } = await supabase.from("famiglia_dati").select("chiave").eq("famiglia_id", me.famigliaId);
   const chiaviCloud = new Set((fd || []).map(r => r.chiave));
-  if (chiaviCloud.size) await pullFamigliaDati();
-  if (!chiaviCloud.has("piano"))      await pushPiano();
+
+  // PIANO: push PRIMA del pull. Se il cloud non ha ancora un piano, carico
+  // il mio locale. Se ce l'ha, scarico — MA solo se non ho un push in volo
+  // (debounce 900ms): in quel caso il push vincerà comunque tra poco.
+  if (!chiaviCloud.has("piano")) {
+    await pushPiano();
+  } else if (!timers[SK_SEED] && !timers[SK_OVERRIDES]) {
+    // nessun push in attesa: è sicuro scaricare il piano dal cloud
+    await pullFamigliaDati("piano");
+  }
+  // gli altri dati condivisi (gusti, esclusioni)
   if (!chiaviCloud.has("gusti"))      await pushFamigliaDato("gusti", await getLocal(SK_PREFS, {}));
   if (!chiaviCloud.has("esclusioni")) await pushFamigliaDato("esclusioni", await getLocal(SK_EXCL, []));
+  if (chiaviCloud.has("gusti"))       await pullFamigliaDati("gusti");
+  if (chiaviCloud.has("esclusioni"))  await pullFamigliaDati("esclusioni");
 
-  // ── misure: scarico SEMPRE prima; carico solo i giorni che il cloud
-  //    non ha ancora per i profili che posso scrivere (riempio i vuoti) ──
+  // ── dati personali ───────────────────────────────────────────────
   await pullProfili();
   await pullMisure();
   await pullMealsLog();
-  await pushMisureSoloNuove();   // upsert dei soli (profilo,data) assenti sul cloud
-  await pushMealsLogSoloVuoti(); // log caricato solo se il cloud non ne ha
+  await pushMisureSoloNuove();
+  await pushMealsLogSoloVuoti();
   await pullSpesa();
 }
 

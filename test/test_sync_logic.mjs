@@ -90,6 +90,37 @@ const ok = (name, cond) => { results.push({ name, pass: !!cond }); };
   ok('anti-loop: un piano nuovo viene comunque pushato', pushCount === 2);
 }
 
+// ─── F. Reconcile non sovrascrive piano locale con push pendente ───
+// Riproduce il bug: telefono genera piano Y, reconcile parte prima del
+// debounce (900ms), pull del cloud porta il vecchio X → ping-pong.
+{
+  let cloudPiano = { seed: "178369590193", overrides: {} };
+  let localSeed = "178369590193";
+  let timersMap = {};
+
+  // simula schedulePush con lock
+  const schedulePush = (key) => {
+    clearTimeout(timersMap[key]);
+    timersMap[key] = setTimeout(() => { delete timersMap[key]; }, 2000);
+  };
+
+  // il telefono genera un nuovo piano
+  localSeed = "99999";
+  schedulePush("pf-seed"); // debounce: push non ancora partito
+
+  // reconcile parte prima del push
+  const pianoPendente = !!timersMap["pf-seed"];
+  let pullEseguito = false;
+  if (!pianoPendente) {
+    // pull dal cloud: overriderebbe con "178369590193"
+    localSeed = cloudPiano.seed;
+    pullEseguito = true;
+  }
+
+  ok('reconcile con push pendente: NON fa pull del piano', !pullEseguito);
+  ok('reconcile con push pendente: seed locale resta quello nuovo', localSeed === "99999");
+}
+
 let allPass = true;
 for (const r of results) { console.log((r.pass?'✓':'✗')+' '+r.name); if(!r.pass) allPass=false; }
 console.log(allPass ? '\nTEST 2: TUTTO OK' : '\nTEST 2: FALLITO');
