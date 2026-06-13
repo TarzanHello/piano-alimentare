@@ -16,10 +16,12 @@ const SK_CLOUD_ME = "pf-cloud-me"; // { userId, profiloId, famigliaId }
 
 let started = false;
 let me = null;                 // { userId, profiloId, famigliaId }
-let applying = new Set();      // chiavi in applicazione remota (no re-push)
+let applying = {};             // chiave → contatore di applicazioni remote in corso
 let lastJson = {};             // ultimo valore noto per chiave (anti-echo)
 let timers = {};
 let channel = null;
+let pendingSpesa = {};         // articoli spesa "in volo" (protetti dagli echi)
+let pullQueue = Promise.resolve(); // serializza i pull per evitare corse
 
 const emit = (key, detail = {}) =>
   window.dispatchEvent(new CustomEvent("pf-cloud-update", { detail: { key, ...detail } }));
@@ -34,8 +36,9 @@ const getLocalRaw = async (k, fb) => {
 };
 // Scrive in locale SENZA innescare il push (marca la chiave come "remota")
 const setLocalQuiet = async (k, value) => {
-  applying.add(k); lastJson[k] = value;
-  try { await window.storage.set(k, value); } finally { applying.delete(k); }
+  applying[k] = (applying[k] || 0) + 1; lastJson[k] = value;
+  try { await window.storage.set(k, value); }
+  finally { applying[k] = Math.max(0, (applying[k] || 1) - 1); }
 };
 
 const dataIT2ISO = (s) => {
@@ -166,25 +169,35 @@ async function pullFamigliaDati(soloChiave) {
   }
 }
 
-async function pullSpesa() {
+function pullSpesa() {
+  // Serializzo: ogni pull aspetta il precedente. Evita che due pull
+  // concorrenti (echi ravvicinati) leggano/scrivano in parallelo e che
+  // l'ultimo a scrivere sia quello partito con dati più vecchi.
+  pullQueue = pullQueue.then(pullSpesaImpl).catch(e => console.warn("pullSpesa", e?.message));
+  return pullQueue;
+}
+
+async function pullSpesaImpl() {
   const seed = await getLocalRaw(SK_SEED, null);
   if (!seed) return;
   const { data, error } = await supabase.from("famiglia_spesa").select("*")
     .eq("famiglia_id", me.famigliaId).eq("settimana", String(seed));
   if (error || !data) return;
   const all = await getLocal(SK_SPESA, {});
-  // Il cloud è la verità per gli articoli che conosce, MA non deve
-  // cancellare una spunta appena fatta in locale e non ancora propagata:
-  // gli articoli "in volo" (scritti negli ultimi secondi) sono protetti.
   const wkServer = {};
   for (const r of data) if (r.checked) wkServer[r.item_id] = true;
-  const inVolo = pendingSpesa;
+  // Merge senza perdite: stato del server + spunte locali "in volo"
+  // (toccate di recente e non ancora confermate). Un eco non può mai
+  // cancellare ciò che ho appena selezionato su QUESTO device.
   const wk = { ...wkServer };
-  for (const id of Object.keys(inVolo)) {
-    if (inVolo[id]) wk[id] = true; else delete wk[id];
+  for (const id of Object.keys(pendingSpesa)) {
+    if (pendingSpesa[id]) wk[id] = true; else delete wk[id];
   }
-  all[String(seed)] = wk;
-  await setLocalQuiet(SK_SPESA, JSON.stringify(all));
+  const prev = JSON.stringify(all[String(seed)] || {});
+  const nextWk = JSON.stringify(wk);
+  if (prev === nextWk) return; // nessun cambiamento reale: non riscrivo né emetto
+  const next = { ...all, [String(seed)]: wk };
+  await setLocalQuiet(SK_SPESA, JSON.stringify(next));
   emit("spesa");
 }
 
@@ -306,12 +319,14 @@ async function pushSpesa() {
 // ─── Spesa per singolo articolo (tempo reale, anti-conflitto) ──
 // Registro degli articoli "in volo": una spunta appena fatta in locale
 // è protetta dagli echi del Realtime finché non è confermata sul cloud.
-let pendingSpesa = {};
 export async function toggleSpesaItem(itemId, checked) {
   if (!supabase || !me) return;
   const seed = await getLocalRaw(SK_SEED, null);
   if (!seed) return;
   pendingSpesa[itemId] = checked;
+  // Allineo l'anti-eco allo stato che l'App ha appena salvato in locale,
+  // così un pull successivo non scambia quel valore per "da ripushare".
+  try { lastJson[SK_SPESA] = (await window.storage.get(SK_SPESA)).value; } catch {}
   try {
     if (checked) {
       await supabase.from("famiglia_spesa").upsert(
@@ -322,8 +337,9 @@ export async function toggleSpesaItem(itemId, checked) {
         .eq("famiglia_id", me.famigliaId).eq("settimana", String(seed)).eq("item_id", itemId);
     }
   } catch (e) { console.warn("toggleSpesaItem", e?.message); }
-  // dopo qualche secondo l'articolo non è più "in volo": il cloud è autorevole
-  setTimeout(() => { delete pendingSpesa[itemId]; }, 4000);
+  // dopo qualche secondo l'articolo non è più "in volo": il cloud è autorevole.
+  // Finestra ampia per coprire la latenza di rete sui cellulari.
+  setTimeout(() => { delete pendingSpesa[itemId]; }, 8000);
 }
 
 // ─── Router del push, con debounce per chiave ────────────────
@@ -349,7 +365,7 @@ function hookStorage() {
   const orig = window.storage.set.bind(window.storage);
   window.storage.set = async (key, value) => {
     const r = await orig(key, value);
-    if (me && PUSHERS[key] && !applying.has(key) && lastJson[key] !== value) {
+    if (me && PUSHERS[key] && !(applying[key] > 0) && lastJson[key] !== value) {
       lastJson[key] = value;
       schedulePush(key);
     }
@@ -360,7 +376,10 @@ function hookStorage() {
 // ─── Realtime ────────────────────────────────────────────────
 function subscribeRealtime() {
   if (channel) { try { supabase.removeChannel(channel); } catch {} }
-  channel = supabase.channel("famiglia-sync")
+  // Nome canale unico per device: due device sullo stesso account non
+  // devono condividere lo stesso canale (Supabase li tratterebbe come uno).
+  const devId = Math.random().toString(36).slice(2, 10);
+  channel = supabase.channel("fam-sync-" + devId)
     .on("postgres_changes", { event: "*", schema: "public", table: "profili" },        () => { pullProfili(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "misure" },         () => { pullMisure(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "profilo_dati" },   () => { pullMealsLog(); })
@@ -406,8 +425,21 @@ export async function startSync() {
     if (giaMigrato) {
       await reconcile();
       subscribeRealtime();
+    } else {
+      // Identità ancorata: se il MIO profilo cloud esiste già ed è in
+      // famiglia, la migrazione è di fatto avvenuta su un altro device.
+      // Questo secondo device NON deve rifare il wizard: si allinea e
+      // sottoscrive subito (è il caso "stesso account, device nuovo").
+      const personasLocali = await getLocal(SK_PERSONAS, []);
+      const soloIo = personasLocali.length <= 1;
+      if (soloIo) {
+        await window.storage.set("pf-cloud-migrated", "1");
+        await ancoraIdentitaAlCloud();
+        await reconcile();
+        subscribeRealtime();
+      }
+      // se ci sono più persone locali da associare, l'App mostra il wizard
     }
-    // se non migrato, l'App mostra il wizard; al termine chiamerà finishMigration()
   };
 
   await boot();
