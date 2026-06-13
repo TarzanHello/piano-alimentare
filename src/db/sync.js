@@ -409,37 +409,17 @@ export async function startSync() {
     await setLocalQuiet(SK_CLOUD_ME, JSON.stringify(me));
     emitStatus({ loggedIn: true, inFamily: true, me });
 
-    // ── IDENTITÀ ANCORATA AL CLOUD ──
-    // L'ID del MIO profilo è quello del cloud, sempre. Se in locale la
-    // mia persona ha un ID diverso (device diverso, vecchia migrazione),
-    // riallineo la cache locale all'ID cloud UNA volta: è ciò che elimina
-    // i profili sdoppiati tra due dispositivi sullo stesso account.
+    // Ancoro l'identità all'ID cloud (elimina i profili sdoppiati tra device)
     await ancoraIdentitaAlCloud();
 
-    // ── MIGRAZIONE IDEMPOTENTE, DERIVATA DAL CLOUD ──
-    // Non mi affido più al flag per-device: se il mio profilo cloud è già
-    // "popolato" (ha dati o convive con altri membri), considero la
-    // migrazione FATTA e questo device si limita ad allinearsi. Solo se il
-    // cloud è ancora vergine il wizard ha senso (gestito dall'App).
-    const giaMigrato = (await getLocalRaw("pf-cloud-migrated", "0")) === "1";
-    if (giaMigrato) {
-      await reconcile();
-      subscribeRealtime();
-    } else {
-      // Identità ancorata: se il MIO profilo cloud esiste già ed è in
-      // famiglia, la migrazione è di fatto avvenuta su un altro device.
-      // Questo secondo device NON deve rifare il wizard: si allinea e
-      // sottoscrive subito (è il caso "stesso account, device nuovo").
-      const personasLocali = await getLocal(SK_PERSONAS, []);
-      const soloIo = personasLocali.length <= 1;
-      if (soloIo) {
-        await window.storage.set("pf-cloud-migrated", "1");
-        await ancoraIdentitaAlCloud();
-        await reconcile();
-        subscribeRealtime();
-      }
-      // se ci sono più persone locali da associare, l'App mostra il wizard
-    }
+    // REGOLA SEMPLICE E ROBUSTA: se sono loggato e in famiglia, mi allineo
+    // e sottoscrivo SEMPRE il Realtime. La sincronizzazione non dipende mai
+    // dallo stato del wizard o dal numero di persone locali.
+    await window.storage.set("pf-cloud-migrated", "1");
+    await reconcile();
+    subscribeRealtime();
+    // Il wizard (gestito dall'App) serve solo ad ASSOCIARE eventuali altre
+    // persone locali a profili cloud: è ortogonale al sync, non lo blocca.
   };
 
   await boot();
@@ -566,6 +546,21 @@ export async function autoClaimSingle(persona) {
 }
 
 export { remapPersonaId };
+
+// Azzera lo stato di sincronizzazione locale (chiamato all'uscita dalla
+// famiglia): stacca il Realtime, dimentica l'identità cloud e il flag di
+// migrazione. I dati locali (misure, piano, persone) restano intatti.
+export async function resetSyncState() {
+  if (channel) { try { supabase.removeChannel(channel); } catch {} channel = null; }
+  me = null;
+  pendingSpesa = {};
+  try {
+    for (const k of ["pf-cloud-migrated", "pf-cloud-me"]) {
+      try { await window.storage.delete(k); } catch {}
+    }
+  } catch {}
+  emitStatus({ loggedIn: true, inFamily: false });
+}
 
 // Forza un riallineamento completo dal cloud, ON DEMAND (pulsante app).
 // NON cancella dati: riadotta l'identità cloud, ripulisce lo stato di

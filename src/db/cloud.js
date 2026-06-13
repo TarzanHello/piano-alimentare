@@ -146,7 +146,14 @@ export async function joinFamily(codice) {
 export async function leaveFamily() {
   if (!supabase) return { error: 'Cloud non configurato' };
   const { error } = await supabase.rpc('leave_family');
-  return { error: error?.message || null };
+  if (error) return { error: error.message };
+  // Dopo l'uscita, azzero lo stato di sync locale: il device non deve più
+  // comportarsi come "in famiglia" (altrimenti il tasto sembra non funzionare).
+  try {
+    const { resetSyncState } = await import('./sync');
+    await resetSyncState();
+  } catch {}
+  return { error: null };
 }
 
 export async function getMyFamily() {
