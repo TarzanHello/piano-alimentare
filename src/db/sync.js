@@ -140,6 +140,17 @@ async function pullFamigliaDati(soloChiave) {
         const curOvr  = await getLocalRaw(SK_OVERRIDES, "{}");
         const newOvr  = JSON.stringify(overrides || {});
         if (String(seed) !== curSeed || newOvr !== curOvr) {
+          // il piano locale che viene sostituito non si perde: va nello Storico
+          if (curSeed && String(seed) !== curSeed) {
+            try {
+              const hist = await getLocal("pf-history", []);
+              if (!hist.some(h => String(h.seed) === curSeed)) {
+                hist.unshift({ seed: curSeed, date: new Date().toLocaleDateString("it-IT"), label: "Piano prima della famiglia" });
+                await setLocalQuiet("pf-history", JSON.stringify(hist.slice(0, 5)));
+                emit("history");
+              }
+            } catch {}
+          }
           await setLocalQuiet(SK_SEED, String(seed));
           await setLocalQuiet(SK_OVERRIDES, newOvr);
           emit("piano", { seed: String(seed), overrides: overrides || {} });
@@ -209,14 +220,10 @@ async function pushPersonas() {
       }
     }
   }
-  // profili a carico eliminati in locale → elimina dal cloud
-  const localIds = new Set(personas.map(p => p.id));
-  for (const c of cloud) {
-    if (!c.user_id && !localIds.has(c.id)) {
-      await supabase.from("profili").delete().eq("id", c.id);
-      await supabase.from("misure").delete().eq("profilo_id", c.id);
-    }
-  }
+  // NOTA DI SICUREZZA: il push NON elimina mai profili dal cloud.
+  // Una lista locale incompleta (dispositivo nuovo, errore di caricamento)
+  // non deve poter cancellare un profilo a carico e il suo storico.
+  // L'eliminazione esplicita avviene solo dall'app (pulsante 🗑).
   if (remapped) {
     await setLocalQuiet(SK_PERSONAS, JSON.stringify(personas));
     emit("personas");
@@ -235,15 +242,11 @@ async function pushMisure() {
     if (rows.length) {
       await supabase.from("misure").upsert(rows, { onConflict: "profilo_id,data" });
     }
-    // cancellazioni: righe cloud non più presenti in locale
-    const { data: cloud } = await supabase.from("misure").select("data").eq("profilo_id", p.id);
-    if (cloud) {
-      const localDates = new Set(rows.map(r => r.data));
-      const daCancellare = cloud.map(c => c.data.slice(0,10)).filter(d => !localDates.has(d));
-      if (daCancellare.length) {
-        await supabase.from("misure").delete().eq("profilo_id", p.id).in("data", daCancellare);
-      }
-    }
+    // NOTA SICUREZZA: nessuna cancellazione automatica dal cloud.
+    // Un dispositivo con meno dati (es. appena entrato in famiglia)
+    // NON deve mai poter cancellare lo storico degli altri. La
+    // rimozione di una singola misura avviene solo dall'app, in modo
+    // esplicito, tramite deleteMisuraCloud.
   }
 }
 
@@ -384,13 +387,15 @@ async function reconcile() {
   if (!chiaviCloud.has("gusti"))      await pushFamigliaDato("gusti", await getLocal(SK_PREFS, {}));
   if (!chiaviCloud.has("esclusioni")) await pushFamigliaDato("esclusioni", await getLocal(SK_EXCL, []));
 
-  await pushMisure();    // unione: upsert per (profilo, data)
-  await pushMealsLog();
+  // PRIMA si scarica (il pull fa l'unione col locale), POI si carica:
+  // un dispositivo con meno dati non deve mai impoverire il cloud.
   await pullProfili();
   await pullMisure();
   await pullMealsLog();
-  await pushSpesa();
+  await pushMisure();    // unione: upsert per (profilo, data), nessun delete
+  await pushMealsLog();
   await pullSpesa();
+  await pushSpesa();
 }
 
 // ─── Migrazione one-time (chiamata dal wizard) ───────────────
@@ -415,6 +420,25 @@ export async function finishMigration(mapping) {
   await reconcile();
   subscribeRealtime();
   emit("misure"); emit("mealsLog");
+}
+
+// Cancellazione esplicita di UNA misura dal cloud (mai automatica)
+export async function deleteMisuraCloud(profiloId, dataISO) {
+  if (!supabase || !me) return;
+  try { await supabase.from("misure").delete().eq("profilo_id", profiloId).eq("data", dataISO); } catch {}
+}
+
+// Associazione automatica quando sul dispositivo c'è una sola persona
+export async function autoClaimSingle(persona) {
+  if (!supabase || !me) throw new Error("cloud non pronto");
+  await supabase.from("profili").update({
+    nome: persona.nome, sesso: persona.sesso === "F" ? "F" : "M",
+    data_nascita: persona.dataNascita || etaToDataNascita(persona.eta),
+    peso: persona.peso ?? null, altezza: persona.altezza ?? null,
+    lavoro: persona.lavoro || "sedentario", allenamenti: persona.allenamenti ?? 3,
+    obiettivo: persona.obiettivo || "mantenimento", color: persona.color || "#2563eb",
+  }).eq("id", me.profiloId);
+  await finishMigration([{ localId: persona.id, cloudId: me.profiloId }]);
 }
 
 export { remapPersonaId };
