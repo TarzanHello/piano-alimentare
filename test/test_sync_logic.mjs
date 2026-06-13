@@ -61,6 +61,35 @@ const ok = (name, cond) => { results.push({ name, pass: !!cond }); };
   ok('last-write-wins: vince la modifica più recente', vincente.val === 'nuovo');
 }
 
+// ─── E. Anti-loop del piano: ricevere un piano non lo fa ripushare ───
+// Riproduce il "ping-pong": A pusha seed X, B lo riceve; B NON deve
+// rispedire X (altrimenti i due device si rimbalzano il seed all'infinito).
+{
+  let lastPianoSync = null;
+  let pushCount = 0;
+  // simula pushPiano col guard
+  const pushPiano = (seed, overrides) => {
+    const firma = JSON.stringify({ seed:String(seed), overrides });
+    if (firma === lastPianoSync) return;       // guard
+    lastPianoSync = firma;
+    pushCount++;
+  };
+  // simula la ricezione dal cloud (registra la firma)
+  const receivePiano = (seed, overrides) => {
+    lastPianoSync = JSON.stringify({ seed:String(seed), overrides });
+  };
+  // A pusha X
+  pushPiano('X', {});
+  ok('anti-loop: il primo push del piano avviene', pushCount === 1);
+  // B riceve X, poi il suo storage cambia e schedula un push di X
+  receivePiano('X', {});
+  pushPiano('X', {});
+  ok('anti-loop: ricevuto X, B non lo rimbalza', pushCount === 1);
+  // un piano DIVERSO invece viene pushato
+  pushPiano('Y', {});
+  ok('anti-loop: un piano nuovo viene comunque pushato', pushCount === 2);
+}
+
 let allPass = true;
 for (const r of results) { console.log((r.pass?'✓':'✗')+' '+r.name); if(!r.pass) allPass=false; }
 console.log(allPass ? '\nTEST 2: TUTTO OK' : '\nTEST 2: FALLITO');

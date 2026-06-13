@@ -143,6 +143,8 @@ async function pullFamigliaDati(soloChiave) {
         const curOvr  = await getLocalRaw(SK_OVERRIDES, "{}");
         const newOvr  = JSON.stringify(overrides || {});
         if (String(seed) !== curSeed || newOvr !== curOvr) {
+          // registro la firma del piano ricevuto: il push non lo rimbalzerà
+          lastPianoSync = JSON.stringify({ seed: String(seed), overrides: overrides || {} });
           // il piano locale che viene sostituito non si perde: va nello Storico
           if (curSeed && String(seed) !== curSeed) {
             try {
@@ -289,10 +291,18 @@ async function pushFamigliaDato(chiave, valore) {
   );
 }
 
+let lastPianoSync = null; // ultimo {seed,overrides} scambiato col cloud (anti-loop)
+
 async function pushPiano() {
   const seed = await getLocalRaw(SK_SEED, null);
   if (seed == null) return;
   const overrides = await getLocal(SK_OVERRIDES, {});
+  const firma = JSON.stringify({ seed: String(seed), overrides });
+  // Anti-loop: se questo identico piano è quello che ho appena RICEVUTO dal
+  // cloud, non lo rispedisco (altrimenti due device si rimbalzano il seed
+  // all'infinito → "ping-pong" del piano).
+  if (firma === lastPianoSync) return;
+  lastPianoSync = firma;
   await pushFamigliaDato("piano", { seed: String(seed), overrides });
 }
 
