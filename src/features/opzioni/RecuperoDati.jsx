@@ -11,6 +11,8 @@ export function RecuperoDati({ personas }) {
   const [serie, setSerie] = useState(null);   // [{key, count, prima, ultima, orfana}]
   const [target, setTarget] = useState({});
   const [fatto, setFatto] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
   const scan = async () => {
     try {

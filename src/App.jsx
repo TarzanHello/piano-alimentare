@@ -12,6 +12,7 @@ import { MigrationWizard } from '@/features/famiglia/MigrationWizard';
 import { UtentePage } from '@/features/utente/UtentePage';
 import { startSync, autoClaimSingle } from '@/db/sync';
 import { Onboarding } from '@/features/onboarding/Onboarding';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { cloudEnabled } from '@/db/cloud';
 import { MealCard, TotaleBar, WaterTracker } from '@/features/piano/MealParts';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
@@ -533,6 +534,7 @@ export function App() {
       </div>
 
       <div style={{maxWidth:680,margin:"0 auto",padding:"18px 16px 0"}}>
+       <ErrorBoundary onReset={()=>{ setShowHistory(false); setPage("oggi"); }}>
        <div key={showHistory?"history":page} style={{animation:"pageIn 0.22s ease-out"}}>
         {/* STORICO */}
         {showHistory&&(
@@ -758,6 +760,7 @@ export function App() {
             currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} misureApp={misureApp}/>
         )}
        </div>
+       </ErrorBoundary>
       </div>
 
       {/* BOTTOM NAV — 3 voci principali */}
