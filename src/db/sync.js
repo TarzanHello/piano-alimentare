@@ -389,19 +389,54 @@ function hookStorage() {
 }
 
 // ─── Realtime ────────────────────────────────────────────────
+// ID univoco di questo device per tutta la sessione (distingue i propri
+// cambiamenti da quelli degli altri device dello stesso account)
+const DEVICE_ID = Math.random().toString(36).slice(2, 12);
+
 function subscribeRealtime() {
   if (channel) { try { supabase.removeChannel(channel); } catch {} channel = null; }
+  if (!me?.famigliaId) return;
+
+  // Filtro esplicito per famiglia: il Realtime riceve solo i cambiamenti
+  // della nostra famiglia (non di tutte). Senza questo, un device riceve
+  // anche i cambiamenti di altre famiglie e pullare diventa rumoroso.
+  const famFilter = `famiglia_id=eq.${me.famigliaId}`;
+
+  // Debounce dedicato per i pull: evita che eco ravvicinati del proprio
+  // device generino pull multipli in parallelo (causa del ping-pong).
+  let pullPianoTimer = null;
+  const schedulePullPiano = () => {
+    clearTimeout(pullPianoTimer);
+    pullPianoTimer = setTimeout(() => {
+      // Non pullare se c'è un push pendente (il piano locale è più aggiornato)
+      if (!timers[SK_SEED] && !timers[SK_OVERRIDES]) pullFamigliaDati("piano");
+    }, 1500); // aspetta 1.5s: più del debounce del push (2s no, ma post-push)
+  };
+
   const devId = Math.random().toString(36).slice(2, 10);
-  channel = supabase.channel("fam-sync-" + devId)
-    .on("postgres_changes", { event: "*", schema: "public", table: "profili" },        () => { pullProfili(); })
-    .on("postgres_changes", { event: "*", schema: "public", table: "misure" },         () => { pullMisure(); })
-    .on("postgres_changes", { event: "*", schema: "public", table: "profilo_dati" },   () => { pullMealsLog(); })
-    .on("postgres_changes", { event: "*", schema: "public", table: "famiglia_dati" },  (p) => { pullFamigliaDati(p?.new?.chiave || p?.old?.chiave); })
-    .on("postgres_changes", { event: "*", schema: "public", table: "famiglia_spesa" }, () => { pullSpesa(); })
+  channel = supabase.channel("fam-" + devId)
+    .on("postgres_changes",
+      { event: "*", schema: "public", table: "profili" },
+      () => { pullProfili(); })
+    .on("postgres_changes",
+      { event: "*", schema: "public", table: "misure" },
+      () => { pullMisure(); })
+    .on("postgres_changes",
+      { event: "*", schema: "public", table: "profilo_dati" },
+      () => { pullMealsLog(); })
+    .on("postgres_changes",
+      { event: "*", schema: "public", table: "famiglia_dati", filter: famFilter },
+      (p) => {
+        const chiave = p?.new?.chiave || p?.old?.chiave;
+        if (chiave === "piano") schedulePullPiano();
+        else pullFamigliaDati(chiave);
+      })
+    .on("postgres_changes",
+      { event: "*", schema: "public", table: "famiglia_spesa", filter: famFilter },
+      () => { pullSpesa(); })
     .subscribe((status) => {
-      // Diagnostica visibile in console + retry se la sottoscrizione cade
       if (status === "SUBSCRIBED") {
-        console.log("[sync] Realtime attivo");
+        console.log("[sync] Realtime attivo, famiglia:", me.famigliaId.slice(0,8));
         emitStatus({ loggedIn: true, inFamily: true, me, realtime: "ok" });
       } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
         console.warn("[sync] Realtime", status, "→ riprovo tra 3s");
