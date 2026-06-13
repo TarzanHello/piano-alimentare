@@ -14,6 +14,7 @@ const SUPABASE_URL = (RAW_URL || "")
 const SUPABASE_ANON_KEY = (RAW_KEY || "").trim().replace(/\s+/g, "");
 
 export const cloudEnabled = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+export const SUPABASE_URL_ACTIVE = SUPABASE_URL;
 
 export const supabase = cloudEnabled
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)

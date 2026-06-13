@@ -18,7 +18,8 @@ export function AccountCard({ myPersona, onGoUtente }) {
   const eseguiDiagnostica = async () => {
     const out = {};
     try {
-      const { supabase } = await import('@/db/cloud');
+      const { supabase, SUPABASE_URL_ACTIVE } = await import('@/db/cloud');
+      out.progetto = SUPABASE_URL_ACTIVE || "?";
       const s = await getSession();
       out.sessione = s ? s.user.email : "NESSUNA";
       out.userId = s?.user?.id || null;
