@@ -5,9 +5,6 @@
 
 <<<<<<< HEAD
 const CACHE = "piano-alimentare-v29";
-=======
-const CACHE = "piano-alimentare-v27";
->>>>>>> 773dc4eb4ea521b3eae1d2a8dc27014a0cde013d
 
 // Asset locali dell'app
 const LOCAL_ASSETS = [
