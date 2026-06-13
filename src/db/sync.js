@@ -13,7 +13,7 @@ let me        = null;
 let channel   = null;
 let timers    = {};
 let pianoLock = false;   // true mentre un push piano è in corso
-let pendingSpesa = {};   // { itemId: { checked, ts } }
+// pendingSpesa rimosso: il cloud è authoritative per la spesa
 let pullSpesaQueue = Promise.resolve();
 
 const emit       = (key, detail={}) => window.dispatchEvent(new CustomEvent("pf-cloud-update",{detail:{key,...detail}}));
@@ -125,6 +125,9 @@ async function pullAltriDatiFamiglia() {
 }
 
 function pullSpesa() {
+  // Serializzato: ogni pull aspetta il precedente.
+  // Nessun merge locale: il cloud è authoritative, lo stato locale
+  // rispecchia esattamente il cloud. Niente pendingSpesa.
   pullSpesaQueue=pullSpesaQueue.then(async()=>{
     if (!me) return;
     const seed=await getLocalRaw(SK_SEED,null);
@@ -132,13 +135,9 @@ function pullSpesa() {
     const {data,error}=await supabase.from("famiglia_spesa").select("*")
       .eq("famiglia_id",me.famigliaId).eq("settimana",String(seed));
     if (error||!data) return;
-    const all=await getLocal(SK_SPESA,{});
     const wk={};
     for (const r of data) if (r.checked) wk[r.item_id]=true;
-    const ora=Date.now();
-    for (const [id,p] of Object.entries(pendingSpesa)) {
-      if ((ora-(p.ts||0))<5000) {if(p.checked) wk[id]=true; else delete wk[id];}
-    }
+    const all=await getLocal(SK_SPESA,{});
     const prev=JSON.stringify(all[String(seed)]||{});
     if (JSON.stringify(wk)===prev) return;
     await setLocalQuiet(SK_SPESA,JSON.stringify({...all,[String(seed)]:wk}));
@@ -200,16 +199,34 @@ async function pushMealsLogSoloVuoti() {
   }
 }
 
-export async function toggleSpesaItem(itemId,checked) {
-  if (!supabase||!me) return;
-  const seed=await getLocalRaw(SK_SEED,null);if(!seed) return;
-  const ts=Date.now();pendingSpesa[itemId]={checked,ts};
-  try {
-    if (checked) await supabase.from("famiglia_spesa").upsert({famiglia_id:me.famigliaId,settimana:String(seed),item_id:itemId,checked:true},{onConflict:"famiglia_id,settimana,item_id"});
-    else await supabase.from("famiglia_spesa").delete().eq("famiglia_id",me.famigliaId).eq("settimana",String(seed)).eq("item_id",itemId);
-    await pullSpesa();
-  } catch(e){console.warn("[sync] toggleSpesa",e?.message);}
-  finally {setTimeout(()=>{if(pendingSpesa[itemId]?.ts===ts) delete pendingSpesa[itemId];},5000);}
+// toggleSpesaItem: scrive direttamente sul cloud e poi aggiorna il locale.
+// NON usa pendingSpesa: l'aggiornamento ottimistico è gestito dall'App.
+// Il cloud è authoritative — il pull dopo la scrittura è la fonte di verità.
+export async function toggleSpesaItem(itemId, checked) {
+  if (!supabase||!me) throw new Error("sync non pronto");
+  const seed = await getLocalRaw(SK_SEED, null);
+  if (!seed) throw new Error("seed non disponibile");
+  if (checked) {
+    const {error} = await supabase.from("famiglia_spesa").upsert(
+      {famiglia_id:me.famigliaId, settimana:String(seed), item_id:itemId, checked:true},
+      {onConflict:"famiglia_id,settimana,item_id"});
+    if (error) throw new Error(error.message);
+  } else {
+    const {error} = await supabase.from("famiglia_spesa").delete()
+      .eq("famiglia_id",me.famigliaId).eq("settimana",String(seed)).eq("item_id",itemId);
+    if (error) throw new Error(error.message);
+  }
+  // Pull immediato: aggiorna lo stato locale con la verità del cloud
+  await pullSpesa();
+}
+
+// Azzera tutte le spunte di una settimana (pulsante reset lista spesa)
+export async function resetSpesaSeed(seed) {
+  if (!supabase||!me) throw new Error("sync non pronto");
+  const {error} = await supabase.from("famiglia_spesa").delete()
+    .eq("famiglia_id",me.famigliaId).eq("settimana",String(seed));
+  if (error) throw new Error(error.message);
+  await pullSpesa();
 }
 
 // === Hook storage ===
@@ -361,7 +378,7 @@ export async function resetSyncState() {
   if(channel){try{supabase.removeChannel(channel);}catch{}channel=null;}
   clearInterval(timers.__poll);clearTimeout(timers.__rt);
   clearTimeout(timers.__pushPiano);clearTimeout(timers.__pullPianoRetry);
-  me=null;pendingSpesa={};pianoLock=false;
+  me=null;pianoLock=false;
   try{for(const k of["pf-cloud-migrated","pf-cloud-me"]){try{await window.storage.delete(k);}catch{}}}catch{}
   emitStatus({loggedIn:true,inFamily:false});
 }

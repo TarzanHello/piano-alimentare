@@ -92,26 +92,53 @@ export function App() {
   useEffect(()=>{ excludedRef.current = excluded; },[excluded]);
 
   // ── Spunte lista spesa: persistenti per piano (seed) e sincronizzate ──
-  const handleToggleSpesa = useCallback((itemId)=>{
+  // Spesa: aggiornamento ottimistico locale + scrittura cloud come fonte di verità.
+  // Il cloud è authoritative: lo stato locale viene sempre sostitiuito dal pull.
+  const handleToggleSpesa = useCallback(async (itemId)=>{
+    // Aggiornamento ottimistico immediato per la UI
+    const nuovoStato = !((spesaChecks[String(seed)]||{})[itemId]);
     setSpesaChecks(prev=>{
       const wk = { ...(prev[String(seed)]||{}) };
-      const nuovoStato = !wk[itemId];
-      if (wk[itemId]) delete wk[itemId]; else wk[itemId] = true;
-      const next = { ...prev, [String(seed)]: wk };
-      window.storage.set(SK_SPESA, JSON.stringify(next)).catch(()=>{});
-      // scrittura immediata e mirata sul cloud (niente push dell'intera lista)
-      if (cloudEnabled) import('@/db/sync').then(m=>m.toggleSpesaItem(itemId, nuovoStato)).catch(()=>{});
-      return next;
+      if (nuovoStato) wk[itemId]=true; else delete wk[itemId];
+      return { ...prev, [String(seed)]: wk };
     });
-  },[seed]);
-  const handleResetSpesa = useCallback(()=>{
-    setSpesaChecks(prev=>{
-      const daAzzerare = Object.keys(prev[String(seed)]||{});
-      const next = { ...prev, [String(seed)]: {} };
-      window.storage.set(SK_SPESA, JSON.stringify(next)).catch(()=>{});
-      if (cloudEnabled) import('@/db/sync').then(m=>daAzzerare.forEach(id=>m.toggleSpesaItem(id, false))).catch(()=>{});
-      return next;
-    });
+    // Scrivi sul cloud (fonte di verità): il pull successivo aggiorna tutti i device
+    if (cloudEnabled) {
+      try {
+        const { toggleSpesaItem } = await import('@/db/sync');
+        await toggleSpesaItem(itemId, nuovoStato);
+      } catch(e) {
+        // se il cloud fallisce, ripristina lo stato precedente
+        setSpesaChecks(prev=>{
+          const wk = { ...(prev[String(seed)]||{}) };
+          if (!nuovoStato) wk[itemId]=true; else delete wk[itemId];
+          return { ...prev, [String(seed)]: wk };
+        });
+      }
+    } else {
+      // modalità locale: salva in storage
+      setSpesaChecks(prev=>{
+        const next = { ...prev };
+        window.storage.set(SK_SPESA, JSON.stringify(next)).catch(()=>{});
+        return next;
+      });
+    }
+  },[seed, spesaChecks]);
+  const handleResetSpesa = useCallback(async ()=>{
+    // Ottimistico
+    setSpesaChecks(prev=>({ ...prev, [String(seed)]: {} }));
+    if (cloudEnabled) {
+      try {
+        const { resetSpesaSeed } = await import('@/db/sync');
+        await resetSpesaSeed(String(seed));
+      } catch {}
+    } else {
+      setSpesaChecks(prev=>{
+        const next = { ...prev, [String(seed)]: {} };
+        window.storage.set(SK_SPESA, JSON.stringify(next)).catch(()=>{});
+        return next;
+      });
+    }
   },[seed]);
 
   useEffect(()=>{

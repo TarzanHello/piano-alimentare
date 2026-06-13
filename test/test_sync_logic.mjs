@@ -19,32 +19,25 @@ const ok = (name, cond) => { results.push({ name, pass: !!cond }); };
   ok('contatore applying: libero solo a fine di tutti i pull', busy('S') === false);
 }
 
-// ─── B. Merge spesa con timestamp: select/deselect concorrenti ───
-// Riproduce: A seleziona, B deseleziona quasi in contemporanea.
-// Vince chi ha il timestamp piu recente; dopo 5s il server e autorevole.
+// ─── B. Spesa cloud-authoritative: pull rispecchia il cloud esattamente ───
+// Con il nuovo modello non c'è merge locale: lo stato locale = cloud.
+// Due device che scrivono contemporaneamente: vince l'ultima scrittura sul cloud.
 {
-  const mergePull = (serverRows, pending) => {
-    const ora = Date.now();
-    const wk = {};
-    for (const r of serverRows) if (r.checked) wk[r.item_id] = true;
-    for (const [id, p] of Object.entries(pending)) {
-      const fresco = (ora - (p.ts || 0)) < 5000;
-      if (fresco) { if (p.checked) wk[id] = true; else delete wk[id]; }
-    }
-    return wk;
-  };
-  const mk = (checked) => ({ checked, ts: Date.now() });
-  const mkVecchio = (checked) => ({ checked, ts: Date.now() - 6000 });
+  // Simula: cloud ha {A:true, B:true}, locale aveva {A:true, C:true}
+  // dopo pull, locale deve diventare identico al cloud
+  const cloudRows = [{item_id:'A',checked:true},{item_id:'B',checked:true}];
+  const wk = {};
+  for (const r of cloudRows) if (r.checked) wk[r.item_id] = true;
+  // nessun merge: wk è esattamente il cloud
+  ok("spesa cloud-auth: A presente dal cloud", wk.A === true);
+  ok("spesa cloud-auth: B presente dal cloud", wk.B === true);
+  ok("spesa cloud-auth: C locale non sopravvive (cloud autoritativo)", wk.C === undefined);
 
-  let local;
-  local = mergePull([], { pane: mk(true) });
-  ok('spesa: selezione fresca vince su server vuoto', local.pane === true);
-  local = mergePull([{item_id:'pane',checked:true}], { pane: mk(false) });
-  ok('spesa: deselezione fresca vince su server spuntato', local.pane === undefined);
-  local = mergePull([], { pane: mkVecchio(true) });
-  ok('spesa: pending vecchio ignorato, server vince', local.pane === undefined);
-  local = mergePull([], { A: mk(true), B: mk(true), C: mk(true) });
-  ok('spesa: selezioni multiple tutte presenti', local.A && local.B && local.C);
+  // Reset: dopo delete sul cloud, pull restituisce lista vuota
+  const cloudRowsVuoti = [];
+  const wk2 = {};
+  for (const r of cloudRowsVuoti) if (r.checked) wk2[r.item_id] = true;
+  ok("spesa cloud-auth: dopo reset cloud, locale vuoto", Object.keys(wk2).length === 0);
 }
 
 // ─── C. Anti-eco: non ripusha un valore appena ricevuto dal cloud ───
