@@ -173,8 +173,16 @@ async function pullSpesa() {
     .eq("famiglia_id", me.famigliaId).eq("settimana", String(seed));
   if (error || !data) return;
   const all = await getLocal(SK_SPESA, {});
-  const wk = {};
-  for (const r of data) if (r.checked) wk[r.item_id] = true;
+  // Il cloud è la verità per gli articoli che conosce, MA non deve
+  // cancellare una spunta appena fatta in locale e non ancora propagata:
+  // gli articoli "in volo" (scritti negli ultimi secondi) sono protetti.
+  const wkServer = {};
+  for (const r of data) if (r.checked) wkServer[r.item_id] = true;
+  const inVolo = pendingSpesa;
+  const wk = { ...wkServer };
+  for (const id of Object.keys(inVolo)) {
+    if (inVolo[id]) wk[id] = true; else delete wk[id];
+  }
   all[String(seed)] = wk;
   await setLocalQuiet(SK_SPESA, JSON.stringify(all));
   emit("spesa");
@@ -295,16 +303,38 @@ async function pushSpesa() {
     .eq("famiglia_id", me.famigliaId).eq("settimana", String(seed)).in("item_id", dels);
 }
 
+// ─── Spesa per singolo articolo (tempo reale, anti-conflitto) ──
+// Registro degli articoli "in volo": una spunta appena fatta in locale
+// è protetta dagli echi del Realtime finché non è confermata sul cloud.
+let pendingSpesa = {};
+export async function toggleSpesaItem(itemId, checked) {
+  if (!supabase || !me) return;
+  const seed = await getLocalRaw(SK_SEED, null);
+  if (!seed) return;
+  pendingSpesa[itemId] = checked;
+  try {
+    if (checked) {
+      await supabase.from("famiglia_spesa").upsert(
+        { famiglia_id: me.famigliaId, settimana: String(seed), item_id: itemId, checked: true },
+        { onConflict: "famiglia_id,settimana,item_id" });
+    } else {
+      await supabase.from("famiglia_spesa").delete()
+        .eq("famiglia_id", me.famigliaId).eq("settimana", String(seed)).eq("item_id", itemId);
+    }
+  } catch (e) { console.warn("toggleSpesaItem", e?.message); }
+  // dopo qualche secondo l'articolo non è più "in volo": il cloud è autorevole
+  setTimeout(() => { delete pendingSpesa[itemId]; }, 4000);
+}
+
 // ─── Router del push, con debounce per chiave ────────────────
 const PUSHERS = {
   [SK_PERSONAS]:  pushPersonas,
   [SK_MISURE]:    pushMisure,
   [SK_MEALS_LOG]: pushMealsLog,
-  [SK_SEED]:      async () => { await pushPiano(); await pushSpesa(); },
+  [SK_SEED]:      async () => { await pushPiano(); },
   [SK_OVERRIDES]: pushPiano,
   [SK_PREFS]:     async () => pushFamigliaDato("gusti", await getLocal(SK_PREFS, {})),
   [SK_EXCL]:      async () => pushFamigliaDato("esclusioni", await getLocal(SK_EXCL, [])),
-  [SK_SPESA]:     pushSpesa,
 };
 
 function schedulePush(key) {

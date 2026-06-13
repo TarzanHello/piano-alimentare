@@ -94,16 +94,21 @@ export function App() {
   const handleToggleSpesa = useCallback((itemId)=>{
     setSpesaChecks(prev=>{
       const wk = { ...(prev[String(seed)]||{}) };
+      const nuovoStato = !wk[itemId];
       if (wk[itemId]) delete wk[itemId]; else wk[itemId] = true;
       const next = { ...prev, [String(seed)]: wk };
       window.storage.set(SK_SPESA, JSON.stringify(next)).catch(()=>{});
+      // scrittura immediata e mirata sul cloud (niente push dell'intera lista)
+      if (cloudEnabled) import('@/db/sync').then(m=>m.toggleSpesaItem(itemId, nuovoStato)).catch(()=>{});
       return next;
     });
   },[seed]);
   const handleResetSpesa = useCallback(()=>{
     setSpesaChecks(prev=>{
+      const daAzzerare = Object.keys(prev[String(seed)]||{});
       const next = { ...prev, [String(seed)]: {} };
       window.storage.set(SK_SPESA, JSON.stringify(next)).catch(()=>{});
+      if (cloudEnabled) import('@/db/sync').then(m=>daAzzerare.forEach(id=>m.toggleSpesaItem(id, false))).catch(()=>{});
       return next;
     });
   },[seed]);
