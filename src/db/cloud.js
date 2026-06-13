@@ -121,14 +121,25 @@ export async function addManagedProfile(campi) {
 
 export async function createFamily(nome) {
   if (!supabase) return { error: 'Cloud non configurato' };
+  await ensureMyProfile(null);
   const { data, error } = await supabase.rpc('create_family', { p_nome: nome });
   return { data, error: error?.message || null };
 }
 
 export async function joinFamily(codice) {
   if (!supabase) return { error: 'Cloud non configurato' };
-  const { data, error } = await supabase.rpc('join_family', { p_code: codice });
-  return { data, error: error?.message || null };
+  // Garantisce che il profilo cloud di chi entra esista, altrimenti la
+  // funzione non avrebbe nessuna riga da agganciare alla famiglia.
+  await ensureMyProfile(null);
+  const code = (codice || "").trim().toUpperCase().replace(/\s+/g, "");
+  const { data, error } = await supabase.rpc('join_family', { p_code: code });
+  if (error) return { error: error.message };
+  // Verifica reale: il mio profilo ora ha la famiglia?
+  const session = await getSession();
+  const { data: mio } = await supabase.from('profili')
+    .select('famiglia_id').eq('user_id', session.user.id).maybeSingle();
+  if (!mio?.famiglia_id) return { error: 'Accoppiamento non riuscito, riprova' };
+  return { data, error: null };
 }
 
 export async function leaveFamily() {
