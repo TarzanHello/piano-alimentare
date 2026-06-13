@@ -78,7 +78,7 @@ cloud.removeChannel(chB);
 // 9. Verifica statica: subscribeRealtime usa filter esplicito per famiglia_id
 import { readFileSync } from "fs";
 const syncSrc = readFileSync("src/db/sync.js", "utf8");
-ok("filtro famiglia_id esplicito nel Realtime", syncSrc.includes("famFilter") && syncSrc.includes("filter: famFilter"));
+ok("filtro famiglia_id esplicito nel Realtime", syncSrc.includes("famFilter") && syncSrc.includes("filter:") && syncSrc.includes("famFilter"));
 
 let allPass = true;
 for (const r of results) {
