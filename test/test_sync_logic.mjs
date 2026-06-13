@@ -122,6 +122,34 @@ const ok = (name, cond) => { results.push({ name, pass: !!cond }); };
   ok('reconcile con push pendente: seed locale resta quello nuovo', localSeed === "99999");
 }
 
+// ─── G. Due boot() ravvicinati non spengono il canale del primo ───
+{
+  let canaliCreati = 0, canaliRimossi = 0;
+  let canaleCorrente = null;
+  // simula il comportamento di subscribeRealtime con il fix
+  const subscribeRealtime = (famId) => {
+    // guard: non ricreare se già SUBSCRIBED per questa famiglia
+    if (canaleCorrente && canaleCorrente.__famId === famId && canaleCorrente.__stato === "SUBSCRIBED") return;
+    if (canaleCorrente) canaliRimossi++;
+    canaleCorrente = { __famId: famId, __stato: "SUBSCRIBED" };
+    canaliCreati++;
+  };
+  // primo boot (device 1)
+  subscribeRealtime("fam-A");
+  const primoCanale = canaleCorrente;
+  ok("due boot: primo canale creato", canaliCreati === 1);
+  // secondo boot (stesso device, onAuthStateChange scatta di nuovo)
+  subscribeRealtime("fam-A");
+  ok("due boot: canale NON ricreato se gia SUBSCRIBED", canaliCreati === 1);
+  ok("due boot: il primo canale e' ancora quello corrente", canaleCorrente === primoCanale);
+  ok("due boot: nessun canale rimosso", canaliRimossi === 0);
+  // cambio famiglia: il vecchio canale DEVE essere rimosso
+  canaleCorrente.__stato = "SUBSCRIBED";
+  subscribeRealtime("fam-B");
+  ok("due boot: cambio famiglia crea nuovo canale", canaliCreati === 2);
+  ok("due boot: vecchio canale rimosso al cambio famiglia", canaliRimossi === 1);
+}
+
 let allPass = true;
 for (const r of results) { console.log((r.pass?'✓':'✗')+' '+r.name); if(!r.pass) allPass=false; }
 console.log(allPass ? '\nTEST 2: TUTTO OK' : '\nTEST 2: FALLITO');

@@ -272,11 +272,21 @@ function hookStorage() {
 // === Realtime ===
 
 function subscribeRealtime() {
-  if (channel){try{supabase.removeChannel(channel);}catch{}channel=null;}
   if (!me?.famigliaId) return;
+  // Non ricreare il canale se è già attivo per questa famiglia:
+  // due chiamate ravvicinate (onAuthStateChange + visibilitychange)
+  // non devono spegnersi a vicenda.
+  if (channel && channel.__famId === me.famigliaId && channel.__stato === "SUBSCRIBED") {
+    console.log("[sync] canale già attivo, skip subscribe");
+    return;
+  }
+  if (channel){try{supabase.removeChannel(channel);}catch{}channel=null;}
   const famFilter=`famiglia_id=eq.${me.famigliaId}`;
   const devId=Math.random().toString(36).slice(2,10);
-  channel=supabase.channel("fam-"+devId)
+  channel=supabase.channel("fam-"+devId);
+  channel.__famId = me.famigliaId;
+  channel.__stato = "PENDING";
+  channel
     .on("postgres_changes",{event:"*",schema:"public",table:"profili"},()=>pullProfili())
     .on("postgres_changes",{event:"*",schema:"public",table:"misure"},()=>pullMisure())
     .on("postgres_changes",{event:"*",schema:"public",table:"profilo_dati"},()=>pullMealsLog())
@@ -286,6 +296,7 @@ function subscribeRealtime() {
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_spesa",filter:famFilter},()=>pullSpesa())
     .subscribe((status)=>{
+      if (channel) channel.__stato = status;
       if(status==="SUBSCRIBED"){console.log("[sync] Realtime attivo");emitStatus({loggedIn:true,inFamily:true,me,realtime:"ok"});}
       else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status)){
         console.warn("[sync] Realtime",status,"→ retry 3s");
@@ -321,14 +332,25 @@ export async function startSync() {
     },15000);
   };
   await boot();
-  supabase.auth.onAuthStateChange(()=>boot());
-  document.addEventListener("visibilitychange",()=>{
-    if(document.visibilityState==="visible"&&me){
-      if(!pianoLock&&!timers.__pushPiano) pullPiano();
-      pullSpesa();pullProfili();pullMisure();
-      subscribeRealtime();
-    }
-  });
+  // onAuthStateChange registrato UNA SOLA VOLTA: chiamate multiple a
+  // startSync (es. React StrictMode o import multipli) non devono
+  // registrare listener duplicati che chiamano boot() più volte,
+  // causando la sovrascrittura del canale Realtime.
+  if (!window.__syncAuthListenerRegistered) {
+    window.__syncAuthListenerRegistered = true;
+    supabase.auth.onAuthStateChange(()=>boot());
+  }
+  if (!window.__syncVisListenerRegistered) {
+    window.__syncVisListenerRegistered = true;
+    document.addEventListener("visibilitychange",()=>{
+      if(document.visibilityState==="visible"&&me){
+        if(!pianoLock&&!timers.__pushPiano) pullPiano();
+        pullSpesa();pullProfili();pullMisure();
+        // subscribeRealtime controlla internamente se il canale è già attivo
+        subscribeRealtime();
+      }
+    });
+  }
 }
 
 async function ancoraIdentitaAlCloud() {
@@ -379,6 +401,9 @@ export async function resetSyncState() {
   clearInterval(timers.__poll);clearTimeout(timers.__rt);
   clearTimeout(timers.__pushPiano);clearTimeout(timers.__pullPianoRetry);
   me=null;pianoLock=false;
+  // resetta i flag globali così un nuovo boot può ri-registrare i listener
+  window.__syncAuthListenerRegistered = false;
+  window.__syncVisListenerRegistered  = false;
   try{for(const k of["pf-cloud-migrated","pf-cloud-me"]){try{await window.storage.delete(k);}catch{}}}catch{}
   emitStatus({loggedIn:true,inFamily:false});
 }
