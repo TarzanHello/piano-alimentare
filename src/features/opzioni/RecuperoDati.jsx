@@ -95,21 +95,34 @@ export function RecuperoDati({ personas }) {
       {fatto && <div style={{marginTop:10,fontSize:12,fontWeight:700,color:fatto.startsWith("✓")?"#16a34a":"#b91c1c"}}>{fatto}</div>}
 
       <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #f1f5f9"}}>
-        <div style={{fontSize:11,fontWeight:800,color:"#475569",marginBottom:4}}>🔄 Ripristina collegamento famiglia</div>
+        <div style={{fontSize:11,fontWeight:800,color:"#475569",marginBottom:4}}>🔄 Sincronizzazione famiglia</div>
         <div style={{fontSize:10.5,color:"#94a3b8",lineHeight:1.5,marginBottom:10}}>
-          Da usare solo se l'accoppiamento è bloccato. Scollega questo dispositivo dal cloud e dimentica lo stato di sincronizzazione, così potrai riaccedere e ricreare/rientrare in famiglia da zero. <strong>Misure, piano e persone su questo dispositivo NON vengono toccati.</strong>
+          Se i dati tra i tuoi dispositivi non coincidono, premi <strong>Riallinea dal cloud</strong>: scarica la versione più aggiornata dal server senza perdere nulla. Usa <strong>Scollega</strong> solo se l'accesso è bloccato.
         </div>
-        <button onClick={async()=>{
-          if(!window.confirm("Ripristinare il collegamento cloud? Dovrai riaccedere e rifare crea/entra in famiglia. I tuoi dati locali restano intatti.")) return;
-          try {
-            for (const k of ["pf-cloud-migrated","pf-cloud-me","pf-local-only"]) { try{ await window.storage.delete(k); }catch{} }
-            const { signOut } = await import('@/db/cloud');
-            await signOut();
-          } catch {}
-          window.location.reload();
-        }} style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid #fed7aa",background:"#fff7ed",color:"#c2410c",fontWeight:800,fontSize:11,cursor:"pointer"}}>
-          Scollega e reimposta
-        </button>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button onClick={async()=>{
+            setBusy(true); setErr("");
+            try {
+              const { riallineaForzato } = await import('@/db/sync');
+              const r = await riallineaForzato();
+              if (r?.error) setErr(r.error); else { setFatto("✓ Riallineato dal cloud"); setTimeout(()=>setFatto(""),2500); }
+            } catch(e){ setErr(e?.message||"errore"); }
+            setBusy(false);
+          }} disabled={busy} style={{padding:"9px 14px",borderRadius:9,border:"none",background:"#2563eb",color:"#fff",fontWeight:800,fontSize:11,cursor:"pointer"}}>
+            🔄 Riallinea dal cloud
+          </button>
+          <button onClick={async()=>{
+            if(!window.confirm("Scollegare questo dispositivo? Dovrai riaccedere. I dati locali restano intatti.")) return;
+            try {
+              for (const k of ["pf-cloud-migrated","pf-cloud-me","pf-local-only"]) { try{ await window.storage.delete(k); }catch{} }
+              const { signOut } = await import('@/db/cloud');
+              await signOut();
+            } catch {}
+            window.location.reload();
+          }} style={{padding:"9px 14px",borderRadius:9,border:"1.5px solid #fed7aa",background:"#fff7ed",color:"#c2410c",fontWeight:800,fontSize:11,cursor:"pointer"}}>
+            Scollega e reimposta
+          </button>
+        </div>
       </div>
     </div>
   );

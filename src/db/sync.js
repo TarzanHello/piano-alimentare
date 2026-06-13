@@ -390,8 +390,20 @@ export async function startSync() {
     await setLocalQuiet(SK_CLOUD_ME, JSON.stringify(me));
     emitStatus({ loggedIn: true, inFamily: true, me });
 
-    const migrated = (await getLocalRaw("pf-cloud-migrated", "0")) === "1";
-    if (migrated) {
+    // ── IDENTITÀ ANCORATA AL CLOUD ──
+    // L'ID del MIO profilo è quello del cloud, sempre. Se in locale la
+    // mia persona ha un ID diverso (device diverso, vecchia migrazione),
+    // riallineo la cache locale all'ID cloud UNA volta: è ciò che elimina
+    // i profili sdoppiati tra due dispositivi sullo stesso account.
+    await ancoraIdentitaAlCloud();
+
+    // ── MIGRAZIONE IDEMPOTENTE, DERIVATA DAL CLOUD ──
+    // Non mi affido più al flag per-device: se il mio profilo cloud è già
+    // "popolato" (ha dati o convive con altri membri), considero la
+    // migrazione FATTA e questo device si limita ad allinearsi. Solo se il
+    // cloud è ancora vergine il wizard ha senso (gestito dall'App).
+    const giaMigrato = (await getLocalRaw("pf-cloud-migrated", "0")) === "1";
+    if (giaMigrato) {
       await reconcile();
       subscribeRealtime();
     }
@@ -406,10 +418,28 @@ export async function startSync() {
   });
 }
 
-// Riallineamento iniziale: il cloud, se popolato, vince; ciò che il
-// cloud non ha viene caricato dal locale (primo dispositivo = seme).
+// Allinea la persona locale "io" all'ID del profilo cloud, così due
+// device sullo stesso account convergono su un unico ID e non si creano
+// duplicati. Opera solo sulla cache locale (rimappa misure/log/myPersona).
+async function ancoraIdentitaAlCloud() {
+  const personas = await getLocal(SK_PERSONAS, []);
+  const myLocal = await getLocalRaw(SK_MY_PERSONA, null);
+  // la persona "io" locale è quella indicata da myPersona, o l'unica senza _uid
+  const ioLocale = personas.find(p => p.id === myLocal)
+    || personas.find(p => !p._uid)
+    || personas[0];
+  if (ioLocale && ioLocale.id !== me.profiloId) {
+    await remapPersonaId(ioLocale.id, me.profiloId);
+  }
+  await setLocalQuiet(SK_MY_PERSONA, me.profiloId);
+}
+
+// Riallineamento. REGOLA DI SICUREZZA (richiesta dall'utente):
+// il caricamento dal locale al cloud avviene SOLO per colmare un vuoto;
+// se il cloud ha già quel dato, si scarica soltanto — un device non può
+// mai sovrascrivere il cloud al primo allineamento.
 async function reconcile() {
-  // dati condivisi: cloud presente → pull; assente → push del locale
+  // ── dati condivisi famiglia: cloud presente → pull; assente → seed ──
   const { data: fd } = await supabase.from("famiglia_dati").select("chiave").eq("famiglia_id", me.famigliaId);
   const chiaviCloud = new Set((fd || []).map(r => r.chiave));
   if (chiaviCloud.size) await pullFamigliaDati();
@@ -417,15 +447,47 @@ async function reconcile() {
   if (!chiaviCloud.has("gusti"))      await pushFamigliaDato("gusti", await getLocal(SK_PREFS, {}));
   if (!chiaviCloud.has("esclusioni")) await pushFamigliaDato("esclusioni", await getLocal(SK_EXCL, []));
 
-  // PRIMA si scarica (il pull fa l'unione col locale), POI si carica:
-  // un dispositivo con meno dati non deve mai impoverire il cloud.
+  // ── misure: scarico SEMPRE prima; carico solo i giorni che il cloud
+  //    non ha ancora per i profili che posso scrivere (riempio i vuoti) ──
   await pullProfili();
   await pullMisure();
   await pullMealsLog();
-  await pushMisure();    // unione: upsert per (profilo, data), nessun delete
-  await pushMealsLog();
+  await pushMisureSoloNuove();   // upsert dei soli (profilo,data) assenti sul cloud
+  await pushMealsLogSoloVuoti(); // log caricato solo se il cloud non ne ha
   await pullSpesa();
-  await pushSpesa();
+}
+
+// Carica sul cloud SOLO le misure (profilo,data) che il cloud non possiede.
+async function pushMisureSoloNuove() {
+  const misureApp = await getLocal(SK_MISURE, {});
+  const personas = await getLocal(SK_PERSONAS, []);
+  for (const p of personas) {
+    if (!editable(p)) continue;
+    const recs = misureApp[p.id] || [];
+    if (!recs.length) continue;
+    const { data: cloud } = await supabase.from("misure").select("data").eq("profilo_id", p.id);
+    const cloudDates = new Set((cloud || []).map(c => (c.data || "").slice(0, 10)));
+    const rows = recs
+      .map(r => ({ profilo_id: p.id, data: dataIT2ISO(r.date), valori: r }))
+      .filter(r => r.data && !cloudDates.has(r.data));  // solo i vuoti
+    if (rows.length) await supabase.from("misure").upsert(rows, { onConflict: "profilo_id,data" });
+  }
+}
+
+// Carica il log pasti solo per i profili il cui log cloud è assente.
+async function pushMealsLogSoloVuoti() {
+  const log = await getLocal(SK_MEALS_LOG, {});
+  const personas = await getLocal(SK_PERSONAS, []);
+  for (const p of personas) {
+    if (!editable(p) || !log[p.id]) continue;
+    const { data } = await supabase.from("profilo_dati").select("chiave")
+      .eq("profilo_id", p.id).eq("chiave", "meals_log");
+    if (!data || !data.length) {
+      await supabase.from("profilo_dati").upsert(
+        { profilo_id: p.id, chiave: "meals_log", valore: log[p.id] },
+        { onConflict: "profilo_id,chiave" });
+    }
+  }
 }
 
 // ─── Migrazione one-time (chiamata dal wizard) ───────────────
@@ -472,3 +534,32 @@ export async function autoClaimSingle(persona) {
 }
 
 export { remapPersonaId };
+
+// Forza un riallineamento completo dal cloud, ON DEMAND (pulsante app).
+// NON cancella dati: riadotta l'identità cloud, ripulisce lo stato di
+// migrazione locale e riscarica tutto. È il sostituto "sicuro" delle
+// operazioni SQL manuali.
+export async function riallineaForzato() {
+  if (!supabase) return { error: "Cloud non configurato" };
+  const session = await getSession();
+  if (!session) return { error: "Non sei connesso" };
+  const { data: mio } = await supabase.from("profili").select("id,famiglia_id")
+    .eq("user_id", session.user.id).maybeSingle();
+  if (!mio) return { error: "Profilo cloud non trovato" };
+  me = { userId: session.user.id, profiloId: mio.id, famigliaId: mio.famiglia_id };
+  if (!mio.famiglia_id) {
+    // connesso ma senza famiglia: ripulisco solo lo stato, niente da scaricare
+    try { for (const k of ["pf-cloud-migrated"]) await window.storage.delete(k); } catch {}
+    return { ok: true, inFamily: false };
+  }
+  await ancoraIdentitaAlCloud();
+  await pullProfili();
+  await pullMisure();
+  await pullMealsLog();
+  await pullFamigliaDati();
+  await pullSpesa();
+  await window.storage.set("pf-cloud-migrated", "1");
+  subscribeRealtime();
+  emit("personas"); emit("misure"); emit("mealsLog"); emit("piano"); emit("spesa");
+  return { ok: true, inFamily: true };
+}
