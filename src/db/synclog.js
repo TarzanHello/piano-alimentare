@@ -70,9 +70,30 @@ export async function getSyncLog() {
   return buffer.slice();
 }
 
+// ── Log del MOTORE (calcolo calorie + scaling/sostituzione ingredienti) ──
+// Sempre attivo, ma con DEDUPLICA: calcTargetAdattivo e scalaPastiGiorno
+// girano a ogni render, quindi loggare ogni chiamata intaserebbe il registro.
+// Salviamo una voce solo quando la "firma" (chiave + riassunto) cambia rispetto
+// all'ultima per quella stessa chiave. Così vedi un evento per calcolo REALE,
+// non centinaia identici.
+//   categoria: "calc" (calorie) | "scale" (scaling ingredienti)
+//   chiave:    identificatore stabile (es. id profilo, o profilo+giorno)
+//   msg:       descrizione breve
+//   data:      dettagli (input/step/risultato)
+const lastCalcSig = {};
+export function logCalc(categoria, chiave, msg, data) {
+  let sig;
+  try { sig = categoria + "|" + chiave + "|" + JSON.stringify(data); }
+  catch { sig = categoria + "|" + chiave + "|" + String(data); }
+  if (lastCalcSig[categoria + "|" + chiave] === sig) return; // dedup: nessun cambiamento
+  lastCalcSig[categoria + "|" + chiave] = sig;
+  logSync(categoria === "scale" ? "scale" : "calc", msg, data);
+}
+
 export async function clearSyncLog() {
   await load();
   buffer = [];
+  for (const k of Object.keys(lastCalcSig)) delete lastCalcSig[k];
   try { await window.storage.set(SK_SYNC_LOG, JSON.stringify(buffer)); } catch {}
   emitChange();
 }

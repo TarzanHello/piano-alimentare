@@ -11,12 +11,15 @@ const LEVEL_META = {
   "push-schedule": { icon: "⏳" },
   pull:            { icon: "⬇️" },
   realtime:        { icon: "📡" },
+  calc:            { icon: "🧮" },
+  scale:           { icon: "⚖️" },
   warn:            { icon: "⚠️" },
   error:           { icon: "⛔" },
 };
 
 const FILTERS = [
   { key: "all",      label: "Tutto" },
+  { key: "motore",   label: "Motore" },
   { key: "realtime", label: "Realtime" },
   { key: "sync",     label: "Push / Pull" },
   { key: "problemi", label: "Avvisi / Errori" },
@@ -24,6 +27,7 @@ const FILTERS = [
 
 function matchesFilter(entry, filter) {
   switch (filter) {
+    case "motore":   return ["calc", "scale"].includes(entry.level);
     case "realtime": return entry.level === "realtime";
     case "sync":      return ["push", "pull", "push-schedule", "update"].includes(entry.level);
     case "problemi":  return ["warn", "error"].includes(entry.level);
@@ -113,7 +117,7 @@ export function SyncLogPage({ cloudStatus }) {
       <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #e2e8f0", padding: "16px", marginBottom: 14, boxShadow: "0 2px 10px #0000000a" }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", marginBottom: 4 }}>📡 Log sincronizzazione</div>
         <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.6, marginBottom: 10 }}>
-          Traccia in tempo reale cosa fa la sincronizzazione con il cloud (login, push, pull, eventi realtime).
+          Traccia in tempo reale cosa fanno la sincronizzazione cloud (login, push, pull, eventi realtime) e il motore (calcolo calorie 🧮 e scaling ingredienti ⚖️).
           Utile per confrontare due dispositivi: apri questa pagina su entrambi e osserva cosa succede quando
           modifichi qualcosa su uno dei due.
         </div>

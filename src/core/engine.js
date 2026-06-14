@@ -1,6 +1,7 @@
 // ── Motore: calcolo macro, scaling, piano, lista spesa ────────────
 import { DB, ING_MAP, ING_QTY, PESO_PEZZO } from '@/data';
 import { CONFIDENZA, DAYS, LAF_TAB_LARN, LAVORI, LIMITI_SCALING, MB_COEFF_LARN, MEAL_HOUR, MEAL_KEYS, MEAL_META, PERSONAS_KEYS, PREF_WEIGHTS, STILE_LEGACY_ADULTI, STILE_LEGACY_BAMBINI, SWAP_CONTEXT_HOURS } from './constants';
+import { logCalc } from '@/db/synclog';
 
 export function nutriPerGrammi(ingId, grammi) {
   const n = (ING_MAP[ingId] || {}).nutri;
@@ -214,7 +215,9 @@ export function scalaPastiGiorno(pastiDelGiorno, target, personaBase) {
   const W = { p:1.2, c:1.0, g:1.0 };       // pesi macro
   const PASSO = 0.35, MAX_ITER = 60;
   let prevLoss = Infinity;
+  let iterEseguite = 0, lossFinale = null;
   for (let iter = 0; iter < MAX_ITER; iter++) {
+    iterEseguite = iter + 1;
     const t = totali();
     // errori relativi (target/attuale - 1), invertiti perché derivare in fattore
     // crescente significa aumentare il macro
@@ -258,6 +261,7 @@ export function scalaPastiGiorno(pastiDelGiorno, target, personaBase) {
       ref.fattore = nuovoF;
     }
     // convergenza: loss che smette di scendere o passi piccolissimi
+    lossFinale = loss;
     if (maxDelta < 0.002) break;
     if (iter > 8 && loss > prevLoss * 0.999) break;
     prevLoss = loss;
@@ -279,6 +283,38 @@ export function scalaPastiGiorno(pastiDelGiorno, target, personaBase) {
 
   const totFin = totali();
   const round = (o) => ({ kcal:Math.round(o.kcal), p:Math.round(o.p), c:Math.round(o.c), g:Math.round(o.g) });
+
+  // ── LOG diagnostico scaling/sostituzione (dedup per insieme di ricette) ──
+  // Mostra target, totali finali e scostamento %, più gli ingredienti finiti
+  // CONTRO un limite (clamp): spesso è lì la causa di una sostituzione che
+  // "non torna" (un ingrediente non può scalare oltre un certo punto, quindi
+  // i macro restano fuori target).
+  try {
+    const ricetteIds = pastiDelGiorno.filter(Boolean).map(r => r.id);
+    const scost = (att, tgt) => tgt > 0 ? Math.round(((att - tgt) / tgt) * 100) : 0;
+    const clampati = [];
+    for (const it of items) {
+      const f = it.sharedFattore ? it.sharedFattore.fattore : it.fattore;
+      const gIdeale = it.gBase * f;
+      const gReale = grammiDi(it);
+      if (Math.abs(gReale - gIdeale) > 0.5) {
+        clampati.push({ ricetta: it.ricettaId, ing: it.ingId,
+          gIdeale: Math.round(gIdeale), gReale: Math.round(gReale),
+          motivo: it.lim && (gReale <= it.lim.min + 0.5 || gReale >= it.lim.max - 0.5) ? "limite ingrediente" : "elasticità" });
+      }
+    }
+    logCalc("scale", ricetteIds.join(","),
+      `Scaling giorno (${ricetteIds.length} ricette) · ${round(totFin).kcal} kcal`, {
+      target: { kcal: target.kcal, p: target.p, c: target.c, g: target.g },
+      tagliaBase: personaBase,
+      iterazioni: iterEseguite,
+      lossFinale: lossFinale != null ? Math.round(lossFinale * 10000) / 10000 : null,
+      totaliBase: round(totBase),
+      totaliFinali: round(totFin),
+      scostamentoPct: { p: scost(totFin.p, target.p), c: scost(totFin.c, target.c), g: scost(totFin.g, target.g) },
+      ingredientiAlLimite: clampati.length ? clampati : "nessuno",
+    });
+  } catch {}
 
   return { perRicetta, totali: round(totFin), totaliBase: round(totBase), tagliaBase: personaBase };
 }
@@ -860,6 +896,29 @@ export function calcTargetAdattivo(p, misurePersona) {
   } else {
     confidenza = CONFIDENZA.BASSA;
   }
+
+  // ── LOG diagnostico (dedup per profilo): tracciamo input, passaggi e
+  // risultato del calcolo calorico. Utile per capire da dove arriva un kcal
+  // inatteso. La dedup evita di registrare la stessa identica computazione
+  // a ogni render.
+  try {
+    logCalc("calc", p.id || p.nome || "?", `Calcolo calorie · ${p.nome || "profilo"} → ${kcal} kcal`, {
+      input: { sesso, eta, peso, altezza, lavoro, allenamenti, obiettivo,
+               dietaIntensita: p.dietaIntensita ?? null, nMisure: recs.length },
+      step1_fabbisognoBase: isChild
+        ? { metodo: "Mifflin×stile", bmrMifflin: Math.round(bmrMifflin), mult, valore: tdeeMifflin }
+        : { metodo: "LARN/SINU", mb: larnInfo?.mb, laf: larnInfo?.laf, valore: larnInfo?.fabbisogno },
+      step2_katchMcArdle: usaKatchMcArdle
+        ? { applicato: true, pctGrasso, bmr: Math.round(bmr), fabbisognoRical: tdeeMifflin }
+        : { applicato: false, pctGrasso },
+      step3_tdeeAdattivo: usaTDEEAdattivo
+        ? { applicato: true, tdeeAdattivoClamped: adattivoInfo?.tdeeAdattivo, settimane: adattivoInfo?.settimane, tdeeFinale }
+        : { applicato: false, motivo: recs.length < 3 ? "meno di 3 misure" : "span < 14 giorni o dati insufficienti", tdeeFinale },
+      step4_obiettivo: { deficit, intensitaOffset, nota: noteObiettivo || "—" },
+      step5_macros: { kcal, proteine: prot, carboidrati: Math.max(50, carbo), grassi },
+      step6_confidenza: confidenza,
+    });
+  } catch {}
 
   return {
     kcal,

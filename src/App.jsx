@@ -467,6 +467,8 @@ export function App() {
     {key:"ingredienti", label:"Ingredienti", icon:"🥦", desc:"Cosa escludere dal piano"},
     {key:"gusti",       label:"Gusti",       icon:"❤️", desc:"Preferiti e non amati"},
     {key:"opzioni",     label:"Opzioni",     icon:"⚙️", desc:"Notifiche e promemoria pasti"},
+    {key:"test-sync",   label:"Test Sync",   icon:"🔬", desc:"Diagnostica sincronizzazione"},
+    {key:"synclog",     label:"Log Sync",    icon:"📡", desc:"Registro sincronizzazione (copiabile)"},
   ];
 
   // ── Primo accesso: nessuna persona → flusso di onboarding ──
