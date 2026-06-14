@@ -5,6 +5,7 @@
 import { SK_EXCL, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_OVERRIDES,
          SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA } from '@/core/constants';
 import { dataNascitaToEta, etaToDataNascita, getSession, supabase } from './cloud';
+import { logSync } from './synclog';
 
 const SK_CLOUD_ME = "pf-cloud-me";
 
@@ -16,8 +17,11 @@ let pianoLock = false;   // true mentre un push piano è in corso
 // pendingSpesa rimosso: il cloud è authoritative per la spesa
 let pullSpesaQueue = Promise.resolve();
 
-const emit       = (key, detail={}) => window.dispatchEvent(new CustomEvent("pf-cloud-update",{detail:{key,...detail}}));
-const emitStatus = (s) => window.dispatchEvent(new CustomEvent("pf-cloud-status",{detail:s}));
+// NOTA: window.CustomEvent (non il CustomEvent globale di Node) per restare
+// compatibili con eventuali test in jsdom: Node 22+ ha una propria CustomEvent
+// nativa, diversa da quella di jsdom, e window.dispatchEvent la rifiuterebbe.
+const emit       = (key, detail={}) => window.dispatchEvent(new window.CustomEvent("pf-cloud-update",{detail:{key,...detail}}));
+const emitStatus = (s) => window.dispatchEvent(new window.CustomEvent("pf-cloud-status",{detail:s}));
 
 const getLocal    = async (k,fb) => { try { const r=await window.storage.get(k); return JSON.parse(r.value); } catch { return fb; } };
 const getLocalRaw = async (k,fb) => { try { const r=await window.storage.get(k); return r.value; } catch { return fb; } };
@@ -52,7 +56,7 @@ const editable = (p) => !p._uid || p.id===me?.profiloId;
 
 async function pullProfili() {
   const {data,error}=await supabase.from("profili").select("*").eq("famiglia_id",me.famigliaId).order("created_at");
-  if (error||!data) return;
+  if (error||!data) { if(error) logSync("error","Pull profili: errore",{error:error.message}); return; }
   data.sort((a,b)=>(a.user_id===me.userId?0:a.user_id?1:2)-(b.user_id===me.userId?0:b.user_id?1:2));
   const locali=await getLocal(SK_PERSONAS,[]);
   const byId=Object.fromEntries(locali.map(p=>[p.id,p]));
@@ -60,39 +64,44 @@ async function pullProfili() {
   const soloLocali=await getLocal("pf-local-only",[]);
   for (const p of locali) if (soloLocali.includes(p.id)&&!personas.some(x=>x.id===p.id)) personas.push(p);
   await setLocalQuiet(SK_PERSONAS,JSON.stringify(personas));
+  logSync("pull","Profili aggiornati dal cloud",{n:personas.length});
   emit("personas");
 }
 
 async function pullMisure() {
   const {data,error}=await supabase.from("misure").select("*");
-  if (error||!data) return;
+  if (error||!data) { if(error) logSync("error","Pull misure: errore",{error:error.message}); return; }
   const misureApp={};
   for (const r of data) (misureApp[r.profilo_id]=misureApp[r.profilo_id]||[]).push({...r.valori,date:r.valori?.date||dataISO2IT(r.data)});
   for (const pid of Object.keys(misureApp)) misureApp[pid].sort((a,b)=>(dataIT2ISO(a.date)||"").localeCompare(dataIT2ISO(b.date)||""));
   const locale=await getLocal(SK_MISURE,{});
   for (const k of Object.keys(locale)) if (!misureApp[k]) misureApp[k]=locale[k];
   await setLocalQuiet(SK_MISURE,JSON.stringify(misureApp));
+  logSync("pull","Misure aggiornate dal cloud",{profili:Object.keys(misureApp).length,righe:data.length});
   emit("misure");
 }
 
 async function pullMealsLog() {
   const {data,error}=await supabase.from("profilo_dati").select("*").eq("chiave","meals_log");
-  if (error||!data) return;
+  if (error||!data) { if(error) logSync("error","Pull log pasti: errore",{error:error.message}); return; }
   const log=await getLocal(SK_MEALS_LOG,{});
   for (const r of data) log[r.profilo_id]=r.valore||{};
   await setLocalQuiet(SK_MEALS_LOG,JSON.stringify(log));
+  logSync("pull","Log pasti aggiornato dal cloud",{profili:data.length});
   emit("mealsLog");
 }
 
 async function pullPiano() {
   if (pianoLock) {
+    logSync("info","Pull piano: rinviato (push piano in corso)");
     clearTimeout(timers.__pullPianoRetry);
     timers.__pullPianoRetry=setTimeout(pullPiano,2500);
     return;
   }
   const {data,error}=await supabase.from("famiglia_dati").select("*")
     .eq("famiglia_id",me.famigliaId).eq("chiave","piano").maybeSingle();
-  if (error||!data?.valore) return;
+  if (error) { logSync("error","Pull piano: errore",{error:error.message}); return; }
+  if (!data?.valore) return;
   const {seed,overrides}=data.valore;
   if (!seed) return;
   const curSeed=await getLocalRaw(SK_SEED,null);
@@ -111,16 +120,17 @@ async function pullPiano() {
   }
   await setLocalQuiet(SK_SEED,String(seed));
   await setLocalQuiet(SK_OVERRIDES,newOvr);
+  logSync("pull","Piano aggiornato dal cloud",{seed:String(seed),seedPrecedente:curSeed});
   emit("piano",{seed:String(seed),overrides:overrides||{}});
 }
 
 async function pullAltriDatiFamiglia() {
   const {data,error}=await supabase.from("famiglia_dati").select("*")
     .eq("famiglia_id",me.famigliaId).in("chiave",["gusti","esclusioni"]);
-  if (error||!data) return;
+  if (error||!data) { if(error) logSync("error","Pull gusti/esclusioni: errore",{error:error.message}); return; }
   for (const r of data) {
-    if (r.chiave==="gusti")      {await setLocalQuiet(SK_PREFS,JSON.stringify(r.valore||{}));emit("prefs");}
-    if (r.chiave==="esclusioni") {await setLocalQuiet(SK_EXCL,JSON.stringify(r.valore||[]));emit("excluded");}
+    if (r.chiave==="gusti")      {await setLocalQuiet(SK_PREFS,JSON.stringify(r.valore||{}));logSync("pull","Preferenze (gusti) aggiornate dal cloud");emit("prefs");}
+    if (r.chiave==="esclusioni") {await setLocalQuiet(SK_EXCL,JSON.stringify(r.valore||[]));logSync("pull","Esclusioni aggiornate dal cloud",{n:(r.valore||[]).length});emit("excluded");}
   }
 }
 
@@ -134,22 +144,25 @@ function pullSpesa() {
     if (!seed) return;
     const {data,error}=await supabase.from("famiglia_spesa").select("*")
       .eq("famiglia_id",me.famigliaId).eq("settimana",String(seed));
-    if (error||!data) return;
+    if (error||!data) { if(error) logSync("error","Pull spesa: errore",{error:error.message}); return; }
     const wk={};
     for (const r of data) if (r.checked) wk[r.item_id]=true;
     const all=await getLocal(SK_SPESA,{});
     const prev=JSON.stringify(all[String(seed)]||{});
     if (JSON.stringify(wk)===prev) return;
     await setLocalQuiet(SK_SPESA,JSON.stringify({...all,[String(seed)]:wk}));
+    logSync("pull","Lista spesa aggiornata dal cloud",{seed:String(seed),spuntati:Object.keys(wk).length});
     emit("spesa");
-  }).catch(e=>console.warn("[sync] pullSpesa",e?.message));
+  }).catch(e=>{console.warn("[sync] pullSpesa",e?.message);logSync("error","Pull spesa: eccezione",{error:e?.message});});
   return pullSpesaQueue;
 }
 
 // === PUSH ===
 
 async function pushFamigliaDato(chiave,valore) {
-  await supabase.from("famiglia_dati").upsert({famiglia_id:me.famigliaId,chiave,valore},{onConflict:"famiglia_id,chiave"});
+  const {error}=await supabase.from("famiglia_dati").upsert({famiglia_id:me.famigliaId,chiave,valore},{onConflict:"famiglia_id,chiave"});
+  if (error) logSync("error",`Push dato famiglia "${chiave}": errore`,{error:error.message});
+  else logSync("push",`Dato famiglia "${chiave}" caricato sul cloud`);
 }
 
 async function pushPianoConLock() {
@@ -157,24 +170,29 @@ async function pushPianoConLock() {
   if (!seed) return;
   const overrides=await getLocal(SK_OVERRIDES,{});
   pianoLock=true;
-  try { await pushFamigliaDato("piano",{seed:String(seed),overrides}); console.log("[sync] piano pushato:",seed); }
+  try {
+    const {error}=await supabase.from("famiglia_dati").upsert({famiglia_id:me.famigliaId,chiave:"piano",valore:{seed:String(seed),overrides}},{onConflict:"famiglia_id,chiave"});
+    if (error) logSync("error","Push piano: errore",{error:error.message});
+    else { console.log("[sync] piano pushato:",seed); logSync("push","Piano caricato sul cloud",{seed:String(seed)}); }
+  }
   finally { pianoLock=false; }
 }
 
 async function pushPersonas() {
   const personas=await getLocal(SK_PERSONAS,[]);
-  const {data:cloud}=await supabase.from("profili").select("*").eq("famiglia_id",me.famigliaId);
-  if (!cloud) return;
+  const {data:cloud,error}=await supabase.from("profili").select("*").eq("famiglia_id",me.famigliaId);
+  if (error||!cloud) { if(error) logSync("error","Push profili: errore lettura cloud",{error:error.message}); return; }
   const cloudById=Object.fromEntries(cloud.map(c=>[c.id,c]));
   for (let i=0;i<personas.length;i++) {
     const p=personas[i];const c=cloudById[p.id];
     if (c) {
       if (!editable(profiloToPersona(c))) continue;
-      const upd=personaToProfilo(p);const cambia=Object.keys(upd).some(k=>String(c[k]??"")!==String(upd[k]??"")); if(cambia) await supabase.from("profili").update(upd).eq("id",p.id);
+      const upd=personaToProfilo(p);const cambia=Object.keys(upd).some(k=>String(c[k]??"")!==String(upd[k]??""));
+      if(cambia) { await supabase.from("profili").update(upd).eq("id",p.id); logSync("push","Profilo aggiornato sul cloud",{profilo:p.id,nome:p.nome}); }
     } else if (!p._uid) {
       const sl=await getLocal("pf-local-only",[]);if(sl.includes(p.id)) continue;
       const {data:nuovo}=await supabase.from("profili").insert({user_id:null,gestito_da:me.userId,famiglia_id:me.famigliaId,...personaToProfilo(p)}).select().single();
-      if(nuovo){await remapPersonaId(p.id,nuovo.id);personas[i]={...p,id:nuovo.id,_gestito:true};await setLocalQuiet(SK_PERSONAS,JSON.stringify(personas));emit("personas");}
+      if(nuovo){await remapPersonaId(p.id,nuovo.id);personas[i]={...p,id:nuovo.id,_gestito:true};await setLocalQuiet(SK_PERSONAS,JSON.stringify(personas));logSync("push","Nuovo profilo a carico creato sul cloud",{localId:p.id,cloudId:nuovo.id,nome:p.nome});emit("personas");}
     }
   }
 }
@@ -186,7 +204,7 @@ async function pushMisureSoloNuove() {
     const {data:cloud}=await supabase.from("misure").select("data").eq("profilo_id",p.id);
     const cloudDates=new Set((cloud||[]).map(c=>c.data?.slice(0,10)));
     const rows=recs.map(r=>({profilo_id:p.id,data:dataIT2ISO(r.date),valori:r})).filter(r=>r.data&&!cloudDates.has(r.data));
-    if(rows.length) await supabase.from("misure").upsert(rows,{onConflict:"profilo_id,data"});
+    if(rows.length) { await supabase.from("misure").upsert(rows,{onConflict:"profilo_id,data"}); logSync("push","Misure mancanti caricate sul cloud",{profilo:p.id,righe:rows.length}); }
   }
 }
 
@@ -195,7 +213,7 @@ async function pushMealsLogSoloVuoti() {
   for (const p of personas) {
     if(!editable(p)||!log[p.id]) continue;
     const {data}=await supabase.from("profilo_dati").select("chiave").eq("profilo_id",p.id).eq("chiave","meals_log");
-    if(!data?.length) await supabase.from("profilo_dati").upsert({profilo_id:p.id,chiave:"meals_log",valore:log[p.id]},{onConflict:"profilo_id,chiave"});
+    if(!data?.length) { await supabase.from("profilo_dati").upsert({profilo_id:p.id,chiave:"meals_log",valore:log[p.id]},{onConflict:"profilo_id,chiave"}); logSync("push","Log pasti mancante caricato sul cloud",{profilo:p.id}); }
   }
 }
 
@@ -210,12 +228,13 @@ export async function toggleSpesaItem(itemId, checked) {
     const {error} = await supabase.from("famiglia_spesa").upsert(
       {famiglia_id:me.famigliaId, settimana:String(seed), item_id:itemId, checked:true},
       {onConflict:"famiglia_id,settimana,item_id"});
-    if (error) throw new Error(error.message);
+    if (error) { logSync("error","Toggle spesa: errore",{itemId,error:error.message}); throw new Error(error.message); }
   } else {
     const {error} = await supabase.from("famiglia_spesa").delete()
       .eq("famiglia_id",me.famigliaId).eq("settimana",String(seed)).eq("item_id",itemId);
-    if (error) throw new Error(error.message);
+    if (error) { logSync("error","Toggle spesa: errore",{itemId,error:error.message}); throw new Error(error.message); }
   }
+  logSync("push",`Spesa: articolo ${checked?"spuntato":"rimosso"}`,{itemId});
   // Pull immediato: aggiorna lo stato locale con la verità del cloud
   await pullSpesa();
 }
@@ -225,7 +244,8 @@ export async function resetSpesaSeed(seed) {
   if (!supabase||!me) throw new Error("sync non pronto");
   const {error} = await supabase.from("famiglia_spesa").delete()
     .eq("famiglia_id",me.famigliaId).eq("settimana",String(seed));
-  if (error) throw new Error(error.message);
+  if (error) { logSync("error","Reset spesa: errore",{seed:String(seed),error:error.message}); throw new Error(error.message); }
+  logSync("push","Lista spesa azzerata sul cloud",{seed:String(seed)});
   await pullSpesa();
 }
 
@@ -237,32 +257,46 @@ function hookStorage() {
     const r=await orig(key,value);
     if (!me||isApplying(key)) return r;
     if (key===SK_SEED||key===SK_OVERRIDES) {
+      logSync("push-schedule","Push pianificato: piano");
       clearTimeout(timers.__pushPiano);
       timers.__pushPiano=setTimeout(async()=>{delete timers.__pushPiano;await pushPianoConLock();},2000);
     } else if (key===SK_PREFS) {
+      logSync("push-schedule","Push pianificato: gusti");
       clearTimeout(timers.__pushGusti);
       timers.__pushGusti=setTimeout(async()=>{delete timers.__pushGusti;await pushFamigliaDato("gusti",await getLocal(SK_PREFS,{}));},900);
     } else if (key===SK_EXCL) {
+      logSync("push-schedule","Push pianificato: esclusioni");
       clearTimeout(timers.__pushExcl);
       timers.__pushExcl=setTimeout(async()=>{delete timers.__pushExcl;await pushFamigliaDato("esclusioni",await getLocal(SK_EXCL,[]));},900);
     } else if (key===SK_PERSONAS) {
+      logSync("push-schedule","Push pianificato: profili");
       clearTimeout(timers.__pushPersonas);
       timers.__pushPersonas=setTimeout(pushPersonas,900);
     } else if (key===SK_MISURE) {
+      logSync("push-schedule","Push pianificato: misure");
       clearTimeout(timers.__pushMisure);
       timers.__pushMisure=setTimeout(async()=>{
         delete timers.__pushMisure;
         const misureApp=await getLocal(SK_MISURE,{});const ps=await getLocal(SK_PERSONAS,[]);
         const rows=[];for(const p of ps){if(!editable(p))continue;for(const r of(misureApp[p.id]||[])){const d=dataIT2ISO(r.date);if(d)rows.push({profilo_id:p.id,data:d,valori:r});}}
-        if(rows.length) await supabase.from("misure").upsert(rows,{onConflict:"profilo_id,data"});
+        if(rows.length) {
+          const {error}=await supabase.from("misure").upsert(rows,{onConflict:"profilo_id,data"});
+          if (error) logSync("error","Push misure: errore",{error:error.message});
+          else logSync("push","Misure caricate sul cloud",{righe:rows.length});
+        }
       },900);
     } else if (key===SK_MEALS_LOG) {
+      logSync("push-schedule","Push pianificato: log pasti");
       clearTimeout(timers.__pushLog);
       timers.__pushLog=setTimeout(async()=>{
         delete timers.__pushLog;
         const log=await getLocal(SK_MEALS_LOG,{});const ps=await getLocal(SK_PERSONAS,[]);
         const rows=ps.filter(p=>editable(p)&&log[p.id]).map(p=>({profilo_id:p.id,chiave:"meals_log",valore:log[p.id]}));
-        if(rows.length) await supabase.from("profilo_dati").upsert(rows,{onConflict:"profilo_id,chiave"});
+        if(rows.length) {
+          const {error}=await supabase.from("profilo_dati").upsert(rows,{onConflict:"profilo_id,chiave"});
+          if (error) logSync("error","Push log pasti: errore",{error:error.message});
+          else logSync("push","Log pasti caricato sul cloud",{profili:rows.length});
+        }
       },900);
     }
     return r;
@@ -278,25 +312,30 @@ function subscribeRealtime() {
   // non devono spegnersi a vicenda.
   if (channel && channel.__famId === me.famigliaId && channel.__stato === "SUBSCRIBED") {
     console.log("[sync] canale già attivo, skip subscribe");
+    logSync("realtime","Canale già attivo, sottoscrizione saltata");
     return;
   }
   if (channel){try{supabase.removeChannel(channel);}catch{}channel=null;}
   const famFilter=`famiglia_id=eq.${me.famigliaId}`;
   const devId=Math.random().toString(36).slice(2,10);
-  channel=supabase.channel("fam-"+devId);
+  const nomeCanale="fam-"+devId;
+  logSync("realtime","Sottoscrizione canale realtime",{canale:nomeCanale});
+  channel=supabase.channel(nomeCanale);
   channel.__famId = me.famigliaId;
   channel.__stato = "PENDING";
   channel
-    .on("postgres_changes",{event:"*",schema:"public",table:"profili"},()=>pullProfili())
-    .on("postgres_changes",{event:"*",schema:"public",table:"misure"},()=>pullMisure())
-    .on("postgres_changes",{event:"*",schema:"public",table:"profilo_dati"},()=>pullMealsLog())
+    .on("postgres_changes",{event:"*",schema:"public",table:"profili"},()=>{logSync("realtime","Evento ricevuto: profili");pullProfili();})
+    .on("postgres_changes",{event:"*",schema:"public",table:"misure"},()=>{logSync("realtime","Evento ricevuto: misure");pullMisure();})
+    .on("postgres_changes",{event:"*",schema:"public",table:"profilo_dati"},()=>{logSync("realtime","Evento ricevuto: log pasti");pullMealsLog();})
     .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_dati",filter:famFilter},(p)=>{
       const chiave=p?.new?.chiave||p?.old?.chiave;
+      logSync("realtime","Evento ricevuto: dati famiglia",{chiave});
       if(chiave==="piano") pullPiano(); else pullAltriDatiFamiglia();
     })
-    .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_spesa",filter:famFilter},()=>pullSpesa())
+    .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_spesa",filter:famFilter},()=>{logSync("realtime","Evento ricevuto: spesa");pullSpesa();})
     .subscribe((status)=>{
       if (channel) channel.__stato = status;
+      logSync("realtime",`Stato canale: ${status}`,{canale:nomeCanale});
       if(status==="SUBSCRIBED"){console.log("[sync] Realtime attivo");emitStatus({loggedIn:true,inFamily:true,me,realtime:"ok"});}
       else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status)){
         console.warn("[sync] Realtime",status,"→ retry 3s");
@@ -309,16 +348,22 @@ function subscribeRealtime() {
 // === Avvio ===
 
 export async function startSync() {
-  if (started||!supabase){if(!supabase)emitStatus({loggedIn:false,inFamily:false});return;}
+  if (started||!supabase){
+    if(!supabase){logSync("status","Cloud non configurato: sync non avviata");emitStatus({loggedIn:false,inFamily:false});}
+    return;
+  }
   started=true;
+  logSync("info","Avvio motore di sincronizzazione");
   hookStorage();
   const boot=async()=>{
     const session=await getSession();
-    if(!session){me=null;emitStatus({loggedIn:false,inFamily:false});return;}
-    const {data:mio}=await supabase.from("profili").select("id,famiglia_id").eq("user_id",session.user.id).maybeSingle();
-    if(!mio?.famiglia_id){me=null;emitStatus({loggedIn:true,inFamily:false});return;}
+    if(!session){me=null;logSync("status","Nessuna sessione: utente non collegato");emitStatus({loggedIn:false,inFamily:false});return;}
+    const {data:mio,error}=await supabase.from("profili").select("id,famiglia_id").eq("user_id",session.user.id).maybeSingle();
+    if(error) logSync("error","Boot: errore lettura profilo",{error:error.message});
+    if(!mio?.famiglia_id){me=null;logSync("status","Collegato, ma non in una famiglia",{userId:session.user.id});emitStatus({loggedIn:true,inFamily:false});return;}
     me={userId:session.user.id,profiloId:mio.id,famigliaId:mio.famiglia_id};
     await setLocalQuiet(SK_CLOUD_ME,JSON.stringify(me));
+    logSync("status","Collegato e in famiglia",{profiloId:me.profiloId,famigliaId:me.famigliaId});
     emitStatus({loggedIn:true,inFamily:true,me});
     await ancoraIdentitaAlCloud();
     await window.storage.set("pf-cloud-migrated","1");
@@ -338,12 +383,13 @@ export async function startSync() {
   // causando la sovrascrittura del canale Realtime.
   if (!window.__syncAuthListenerRegistered) {
     window.__syncAuthListenerRegistered = true;
-    supabase.auth.onAuthStateChange(()=>boot());
+    supabase.auth.onAuthStateChange(()=>{logSync("info","Stato autenticazione cambiato: nuovo boot");boot();});
   }
   if (!window.__syncVisListenerRegistered) {
     window.__syncVisListenerRegistered = true;
     document.addEventListener("visibilitychange",()=>{
       if(document.visibilityState==="visible"&&me){
+        logSync("info","App tornata in primo piano: riallineo");
         if(!pianoLock&&!timers.__pushPiano) pullPiano();
         pullSpesa();pullProfili();pullMisure();
         // subscribeRealtime controlla internamente se il canale è già attivo
@@ -357,20 +403,22 @@ async function ancoraIdentitaAlCloud() {
   const personas=await getLocal(SK_PERSONAS,[]);
   const myLocal=await getLocalRaw(SK_MY_PERSONA,null);
   const ioLocale=personas.find(p=>p.id===myLocal)||personas.find(p=>!p._uid)||personas[0];
-  if(ioLocale&&ioLocale.id!==me.profiloId) await remapPersonaId(ioLocale.id,me.profiloId);
+  if(ioLocale&&ioLocale.id!==me.profiloId) { logSync("info","Identità locale ancorata al profilo cloud",{da:ioLocale.id,a:me.profiloId}); await remapPersonaId(ioLocale.id,me.profiloId); }
   await setLocalQuiet(SK_MY_PERSONA,me.profiloId);
 }
 
 async function reconcile() {
+  logSync("info","Riconciliazione con il cloud: avvio");
   const {data:fd}=await supabase.from("famiglia_dati").select("chiave").eq("famiglia_id",me.famigliaId);
   const chiaviCloud=new Set((fd||[]).map(r=>r.chiave));
-  if(!chiaviCloud.has("piano")) await pushPianoConLock(); else await pullPiano();
-  if(!chiaviCloud.has("gusti"))      await pushFamigliaDato("gusti",await getLocal(SK_PREFS,{}));
-  if(!chiaviCloud.has("esclusioni")) await pushFamigliaDato("esclusioni",await getLocal(SK_EXCL,[]));
+  if(!chiaviCloud.has("piano")) { logSync("info","Riconciliazione: piano assente sul cloud, lo carico"); await pushPianoConLock(); } else await pullPiano();
+  if(!chiaviCloud.has("gusti"))      { logSync("info","Riconciliazione: gusti assenti sul cloud, li carico"); await pushFamigliaDato("gusti",await getLocal(SK_PREFS,{})); }
+  if(!chiaviCloud.has("esclusioni")) { logSync("info","Riconciliazione: esclusioni assenti sul cloud, le carico"); await pushFamigliaDato("esclusioni",await getLocal(SK_EXCL,[])); }
   await pullAltriDatiFamiglia();
   await pullProfili();await pullMisure();await pullMealsLog();
   await pushMisureSoloNuove();await pushMealsLogSoloVuoti();
   await pullSpesa();
+  logSync("info","Riconciliazione con il cloud: completata");
 }
 
 async function remapPersonaId(vecchioId,nuovoId) {
@@ -381,15 +429,18 @@ async function remapPersonaId(vecchioId,nuovoId) {
 }
 
 export async function finishMigration(mapping) {
+  logSync("info","Migrazione profili: avvio",{mapping});
   for(const m of mapping) await remapPersonaId(m.localId,m.cloudId);
   await setLocalQuiet(SK_MY_PERSONA,me.profiloId);
   await window.storage.set("pf-cloud-migrated","1");
   await reconcile();subscribeRealtime();
+  logSync("info","Migrazione profili: completata");
   emit("misure");emit("mealsLog");
 }
 
 export async function autoClaimSingle(persona) {
   if(!supabase||!me) throw new Error("cloud non pronto");
+  logSync("info","Associazione automatica profilo unico",{persona:persona.id,cloudProfilo:me.profiloId});
   await supabase.from("profili").update({nome:persona.nome,sesso:persona.sesso==="F"?"F":"M",data_nascita:persona.dataNascita||etaToDataNascita(persona.eta),peso:persona.peso??null,altezza:persona.altezza??null,lavoro:persona.lavoro||"sedentario",allenamenti:persona.allenamenti??3,obiettivo:persona.obiettivo||"mantenimento",color:persona.color||"#2563eb"}).eq("id",me.profiloId);
   await finishMigration([{localId:persona.id,cloudId:me.profiloId}]);
 }
@@ -397,6 +448,7 @@ export async function autoClaimSingle(persona) {
 export {remapPersonaId};
 
 export async function resetSyncState() {
+  logSync("status","Uscita dalla famiglia: stato di sincronizzazione azzerato");
   if(channel){try{supabase.removeChannel(channel);}catch{}channel=null;}
   clearInterval(timers.__poll);clearTimeout(timers.__rt);
   clearTimeout(timers.__pushPiano);clearTimeout(timers.__pullPianoRetry);
@@ -409,22 +461,30 @@ export async function resetSyncState() {
 }
 
 export async function riallineaForzato() {
-  if(!supabase) return {error:"Cloud non configurato"};
-  const session=await getSession();if(!session) return {error:"Non sei connesso"};
-  const {data:mio}=await supabase.from("profili").select("id,famiglia_id").eq("user_id",session.user.id).maybeSingle();
-  if(!mio) return {error:"Profilo cloud non trovato"};
+  logSync("info","Riallineamento forzato: richiesto");
+  if(!supabase) { logSync("error","Riallineamento forzato: cloud non configurato"); return {error:"Cloud non configurato"}; }
+  const session=await getSession();if(!session) { logSync("error","Riallineamento forzato: nessuna sessione"); return {error:"Non sei connesso"}; }
+  const {data:mio,error}=await supabase.from("profili").select("id,famiglia_id").eq("user_id",session.user.id).maybeSingle();
+  if(error) logSync("error","Riallineamento forzato: errore lettura profilo",{error:error.message});
+  if(!mio) { logSync("error","Riallineamento forzato: profilo cloud non trovato"); return {error:"Profilo cloud non trovato"}; }
   me={userId:session.user.id,profiloId:mio.id,famigliaId:mio.famiglia_id};
-  if(!mio.famiglia_id){try{await window.storage.delete("pf-cloud-migrated");}catch{}return{ok:true,inFamily:false};}
+  if(!mio.famiglia_id){try{await window.storage.delete("pf-cloud-migrated");}catch{} logSync("info","Riallineamento forzato: completato (nessuna famiglia)"); return{ok:true,inFamily:false};}
   await ancoraIdentitaAlCloud();
   await pullPiano();await pullAltriDatiFamiglia();
   await pullProfili();await pullMisure();await pullMealsLog();await pullSpesa();
   await window.storage.set("pf-cloud-migrated","1");
   subscribeRealtime();
   emit("personas");emit("misure");emit("mealsLog");emit("spesa");
+  logSync("info","Riallineamento forzato: completato");
   return {ok:true,inFamily:true};
 }
 
 export async function deleteMisuraCloud(profiloId,dataISO) {
   if(!supabase||!me) return;
-  try{await supabase.from("misure").delete().eq("profilo_id",profiloId).eq("data",dataISO);}catch{}
+  try{
+    await supabase.from("misure").delete().eq("profilo_id",profiloId).eq("data",dataISO);
+    logSync("push","Misura eliminata dal cloud",{profiloId,data:dataISO});
+  }catch(e){
+    logSync("error","Eliminazione misura dal cloud: errore",{profiloId,data:dataISO,error:e?.message});
+  }
 }

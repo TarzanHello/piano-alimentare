@@ -1,0 +1,184 @@
+import React from 'react';
+const { useState, useEffect, useMemo } = React;
+import { getSyncLog, clearSyncLog, onSyncLogChange } from '@/db/synclog';
+import { getCloudMe, riallineaForzato } from '@/db/sync';
+
+const LEVEL_META = {
+  info:            { icon: "ℹ️" },
+  status:          { icon: "🔌" },
+  update:          { icon: "📥" },
+  push:            { icon: "⬆️" },
+  "push-schedule": { icon: "⏳" },
+  pull:            { icon: "⬇️" },
+  realtime:        { icon: "📡" },
+  warn:            { icon: "⚠️" },
+  error:           { icon: "⛔" },
+};
+
+const FILTERS = [
+  { key: "all",      label: "Tutto" },
+  { key: "realtime", label: "Realtime" },
+  { key: "sync",     label: "Push / Pull" },
+  { key: "problemi", label: "Avvisi / Errori" },
+];
+
+function matchesFilter(entry, filter) {
+  switch (filter) {
+    case "realtime": return entry.level === "realtime";
+    case "sync":      return ["push", "pull", "push-schedule", "update"].includes(entry.level);
+    case "problemi":  return ["warn", "error"].includes(entry.level);
+    default:          return true;
+  }
+}
+
+function fmtTime(t) {
+  const d = new Date(t);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  const ms = String(d.getMilliseconds()).padStart(3, "0");
+  return `${hh}:${mm}:${ss}.${ms}`;
+}
+
+function entryToLine(e) {
+  let line = `[${fmtTime(e.t)}] ${(e.level || "info").toUpperCase()} — ${e.msg}`;
+  if (e.data !== undefined) {
+    try { line += " " + JSON.stringify(e.data); } catch {}
+  }
+  return line;
+}
+
+export function SyncLogPage({ cloudStatus }) {
+  const [logs, setLogs] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const me = getCloudMe();
+
+  const reload = async () => { const l = await getSyncLog(); setLogs(l); };
+
+  useEffect(() => {
+    reload();
+    return onSyncLogChange(reload);
+  }, []);
+
+  const filtered = useMemo(() => logs.filter(e => matchesFilter(e, filter)), [logs, filter]);
+  const ordered = useMemo(() => [...filtered].reverse(), [filtered]); // più recenti in alto
+
+  const fullText = useMemo(() => {
+    const header = [
+      "Piano Alimentare Familiare — Log sincronizzazione",
+      `Generato: ${new Date().toLocaleString("it-IT")}`,
+      `Stato: collegato=${cloudStatus?.loggedIn ? "sì" : "no"}  in famiglia=${cloudStatus?.inFamily ? "sì" : "no"}`,
+      me ? `Profilo: ${me.profiloId}` : null,
+      me ? `Famiglia: ${me.famigliaId}` : null,
+      "─".repeat(48),
+    ].filter(Boolean).join("\n");
+    const body = logs.length ? logs.map(entryToLine).join("\n") : "(nessun evento registrato)";
+    return header + "\n" + body;
+  }, [logs, cloudStatus, me]);
+
+  const copyAll = async () => {
+    try {
+      await navigator.clipboard.writeText(fullText);
+      setMsg("✓ Copiato negli appunti");
+    } catch {
+      try {
+        const ta = document.getElementById("pf-synclog-textarea");
+        ta.focus(); ta.select();
+        if (ta.setSelectionRange) ta.setSelectionRange(0, ta.value.length);
+        document.execCommand("copy");
+        setMsg("✓ Copiato negli appunti");
+      } catch {
+        setMsg("✗ Copia automatica non riuscita: seleziona il testo qui sotto e copia manualmente");
+      }
+    }
+    setTimeout(() => setMsg(""), 2500);
+  };
+
+  const onClear = async () => {
+    await clearSyncLog();
+    setMsg("Registro svuotato");
+    setTimeout(() => setMsg(""), 1500);
+  };
+
+  const onRiallinea = async () => {
+    setBusy(true);
+    try { await riallineaForzato(); } catch {}
+    setBusy(false);
+  };
+
+  return (
+    <div>
+      <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #e2e8f0", padding: "16px", marginBottom: 14, boxShadow: "0 2px 10px #0000000a" }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", marginBottom: 4 }}>📡 Log sincronizzazione</div>
+        <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.6, marginBottom: 10 }}>
+          Traccia in tempo reale cosa fa la sincronizzazione con il cloud (login, push, pull, eventi realtime).
+          Utile per confrontare due dispositivi: apri questa pagina su entrambi e osserva cosa succede quando
+          modifichi qualcosa su uno dei due.
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, fontSize: 11, fontWeight: 700 }}>
+          <span style={{ padding: "4px 9px", borderRadius: 7, background: cloudStatus?.loggedIn ? "#f0fdf4" : "#fef2f2", color: cloudStatus?.loggedIn ? "#16a34a" : "#dc2626" }}>
+            {cloudStatus?.loggedIn ? "✓ Collegato" : "✗ Non collegato"}
+          </span>
+          <span style={{ padding: "4px 9px", borderRadius: 7, background: cloudStatus?.inFamily ? "#f0fdf4" : "#f1f5f9", color: cloudStatus?.inFamily ? "#16a34a" : "#94a3b8" }}>
+            {cloudStatus?.inFamily ? "✓ In famiglia" : "Nessuna famiglia"}
+          </span>
+          {me && <span style={{ padding: "4px 9px", borderRadius: 7, background: "#eff6ff", color: "#2563eb", fontFamily: "monospace" }}>profilo {String(me.profiloId).slice(0, 8)}…</span>}
+          {me && <span style={{ padding: "4px 9px", borderRadius: 7, background: "#eff6ff", color: "#2563eb", fontFamily: "monospace" }}>famiglia {String(me.famigliaId).slice(0, 8)}…</span>}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+        <button onClick={copyAll} style={{ flex: "1 1 auto", padding: "10px 14px", borderRadius: 10, border: "none", background: "#2563eb", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+          📋 Copia tutto
+        </button>
+        <button onClick={onRiallinea} disabled={busy || !cloudStatus?.inFamily}
+          style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #bfdbfe", background: "#eff6ff", color: "#2563eb", fontWeight: 800, fontSize: 12, cursor: "pointer", opacity: (busy || !cloudStatus?.inFamily) ? 0.5 : 1 }}>
+          {busy ? "⏳ …" : "🔄 Riallinea ora"}
+        </button>
+        <button onClick={onClear} style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #fed7aa", background: "#fff7ed", color: "#c2410c", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+          🗑️ Svuota
+        </button>
+      </div>
+      {msg && <div style={{ fontSize: 11, fontWeight: 700, color: msg.startsWith("✓") ? "#16a34a" : "#b91c1c", marginBottom: 10 }}>{msg}</div>}
+
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        {FILTERS.map(f => (
+          <button key={f.key} onClick={() => setFilter(f.key)}
+            style={{ padding: "5px 11px", borderRadius: 20, border: "1.5px solid " + (filter === f.key ? "#2563eb" : "#e2e8f0"), background: filter === f.key ? "#eff6ff" : "#fff", color: filter === f.key ? "#2563eb" : "#64748b", fontWeight: 700, fontSize: 10.5, cursor: "pointer" }}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #e2e8f0", overflow: "hidden", marginBottom: 14 }}>
+        {ordered.length === 0 ? (
+          <div style={{ padding: "20px", textAlign: "center", fontSize: 12, color: "#94a3b8" }}>Nessun evento registrato finora.</div>
+        ) : ordered.map((e, i) => {
+          const meta = LEVEL_META[e.level] || { icon: "•" };
+          return (
+            <div key={i} style={{ padding: "9px 14px", borderBottom: i < ordered.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                <span style={{ fontSize: 13, flexShrink: 0 }}>{meta.icon}</span>
+                <span style={{ fontSize: 10, fontFamily: "monospace", color: "#94a3b8", flexShrink: 0 }}>{fmtTime(e.t)}</span>
+                <span style={{ fontSize: 11.5, color: "#1e293b", fontWeight: 600, flex: 1, minWidth: 0 }}>{e.msg}</span>
+              </div>
+              {e.data !== undefined && (
+                <pre style={{ margin: "4px 0 0 30px", fontSize: 10, color: "#64748b", background: "#f8fafc", borderRadius: 6, padding: "6px 8px", overflowX: "auto", fontFamily: "monospace" }}>
+                  {JSON.stringify(e.data, null, 1)}
+                </pre>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>
+        Testo completo (per copia manuale)
+      </div>
+      <textarea id="pf-synclog-textarea" readOnly value={fullText} onFocus={e => e.target.select()}
+        style={{ width: "100%", minHeight: 160, padding: "10px", borderRadius: 10, border: "1.5px solid #e2e8f0", fontFamily: "monospace", fontSize: 10.5, color: "#475569", resize: "vertical", boxSizing: "border-box" }} />
+    </div>
+  );
+}

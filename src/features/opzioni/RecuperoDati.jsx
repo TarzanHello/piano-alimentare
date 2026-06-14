@@ -49,7 +49,7 @@ export function RecuperoDati({ personas }) {
       m[dest] = unite;
       delete m[key];
       await window.storage.set(SK_MISURE, JSON.stringify(m));
-      window.dispatchEvent(new CustomEvent("pf-cloud-update", { detail: { key: "misure" } }));
+      window.dispatchEvent(new window.CustomEvent("pf-cloud-update", { detail: { key: "misure" } }));
       setFatto(`✓ ${orfane.length} misurazioni riassegnate`);
       setTimeout(() => setFatto(""), 2500);
       scan();

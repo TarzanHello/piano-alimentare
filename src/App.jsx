@@ -14,6 +14,7 @@ import { startSync, autoClaimSingle } from '@/db/sync';
 import { Onboarding } from '@/features/onboarding/Onboarding';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SyncTestPage } from '@/features/test/SyncTestPage';
+import { SyncLogPage } from '@/features/log/SyncLogPage';
 import { cloudEnabled } from '@/db/cloud';
 import { MealCard, TotaleBar, WaterTracker } from '@/features/piano/MealParts';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
@@ -460,6 +461,7 @@ export function App() {
     {key:"gusti",       label:"Gusti",       icon:"❤️", desc:"Preferiti e non amati"},
     {key:"opzioni",     label:"Opzioni",     icon:"⚙️", desc:"Notifiche e promemoria pasti"},
     {key:"test-sync",   label:"Test Sync",   icon:"🔬", desc:"Diagnostica sincronizzazione"},
+    {key:"synclog",     label:"Log Sync",    icon:"📡", desc:"Registro sincronizzazione (copiabile)"},
   ];
 
   // ── Primo accesso: nessuna persona → flusso di onboarding ──
@@ -780,6 +782,7 @@ export function App() {
         {!showHistory&&page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
         {!showHistory&&page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
         {!showHistory&&page==="test-sync"&&<SyncTestPage/>}
+        {!showHistory&&page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}
         {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed}/>}
         {!showHistory&&page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={setMisureApp} mealsLog={mealsLog}/>}
         {!showHistory&&page==="utente"&&(
