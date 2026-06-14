@@ -3,7 +3,7 @@
 // delle librerie esterne (React, Babel) al primo caricamento online.
 // Così l'app funziona davvero offline dopo la prima apertura.
 
-const CACHE = "piano-alimentare-v40";
+const CACHE = "piano-alimentare-v41";
 
 // Asset locali dell'app
 const LOCAL_ASSETS = [
@@ -45,14 +45,37 @@ self.addEventListener("fetch", e => {
   // Gestiamo solo le richieste GET
   if (req.method !== "GET") return;
 
+  let url;
+  try { url = new URL(req.url); } catch { return; }
+
+  // ── REGOLA CRITICA: mai cachare le chiamate di rete dinamiche ──
+  // Le richieste cross-origin (Supabase REST/Auth/Realtime, qualsiasi API)
+  // devono SEMPRE andare in rete. Cacharle significava servire per sempre
+  // la prima risposta: il dispositivo leggeva un piano/spesa "congelato" e
+  // non vedeva più gli aggiornamenti del cloud, pur ricevendo gli eventi
+  // realtime via WebSocket. Risultato: "dal PC non sincronizza col telefono".
+  // Trattiamo come cacheable SOLO gli asset same-origin dell'app.
+  const sameOrigin = url.origin === self.location.origin;
+  const isApi = !sameOrigin
+    || url.hostname.endsWith("supabase.co")
+    || url.pathname.startsWith("/rest/")
+    || url.pathname.startsWith("/auth/")
+    || url.pathname.startsWith("/realtime/");
+
+  if (isApi) {
+    // Network-only: nessuna cache, né lettura né scrittura.
+    e.respondWith(fetch(req));
+    return;
+  }
+
   e.respondWith(
     caches.match(req).then(cached => {
       if (cached) return cached;
 
       return fetch(req)
         .then(res => {
-          // Cacha dinamicamente le risposte valide (incluse le librerie CDN)
-          if (res && res.ok && (res.type === "basic" || res.type === "cors")) {
+          // Cacha dinamicamente solo asset locali validi
+          if (res && res.ok && res.type === "basic") {
             const copy = res.clone();
             caches.open(CACHE).then(cache => cache.put(req, copy)).catch(() => {});
           }

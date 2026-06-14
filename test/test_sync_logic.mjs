@@ -186,6 +186,19 @@ const ok = (name, cond) => { results.push({ name, pass: !!cond }); };
   // Stesso seed = nessuna operazione (gestito a monte dal confronto overrides).
   ok("stesso seed: nessuna operazione di rollback",
      decidi({ seedCloud: nuovo, seedLocale: nuovo, lastPushed: nuovo }) === "noop");
+
+  // Riconciliazione: piano locale più recente del cloud (orfano mai pushato)
+  // → deve essere PUSHATO, non scartato né sovrascritto col valore vecchio.
+  const reconcilePiano = ({ localSeed, cloudSeed }) => {
+    const l = Number(localSeed), c = Number(cloudSeed || 0);
+    return (Number.isFinite(l) && l > c) ? "push" : "pull";
+  };
+  // Scenario telefono: locale 911116 orfano, cloud 727071 → push (propaga).
+  ok("reconcile: piano locale orfano più recente → push",
+     reconcilePiano({ localSeed: 1781419911116, cloudSeed: 1781419727071 }) === "push");
+  // Cloud più recente (altro device ha pubblicato) → pull.
+  ok("reconcile: cloud più recente → pull",
+     reconcilePiano({ localSeed: 1781419727071, cloudSeed: 1781420000514 }) === "pull");
 }
 
 let allPass = true;

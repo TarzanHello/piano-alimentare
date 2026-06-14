@@ -446,9 +446,29 @@ async function ancoraIdentitaAlCloud() {
 
 async function reconcile() {
   logSync("info","Riconciliazione con il cloud: avvio");
-  const {data:fd}=await supabase.from("famiglia_dati").select("chiave").eq("famiglia_id",me.famigliaId);
-  const chiaviCloud=new Set((fd||[]).map(r=>r.chiave));
-  if(!chiaviCloud.has("piano")) { logSync("info","Riconciliazione: piano assente sul cloud, lo carico"); await pushPianoConLock(); } else await pullPiano();
+  const {data:fd}=await supabase.from("famiglia_dati").select("chiave,valore").eq("famiglia_id",me.famigliaId);
+  const righe=fd||[];
+  const chiaviCloud=new Set(righe.map(r=>r.chiave));
+  if(!chiaviCloud.has("piano")) {
+    logSync("info","Riconciliazione: piano assente sul cloud, lo carico");
+    await pushPianoConLock();
+  } else {
+    // Decidi push o pull confrontando la freschezza dei seed (Date.now).
+    // Se il piano LOCALE è più recente di quello sul cloud — tipicamente un
+    // piano rigenerato mentre la PWA si è ricaricata prima che scattasse il
+    // push, oppure offline — va PROPAGATO, non scartato né sovrascritto.
+    // Senza questo, un piano locale "orfano" più nuovo del cloud non
+    // raggiungeva mai gli altri dispositivi.
+    const pianoRow=righe.find(r=>r.chiave==="piano");
+    const localSeedNum=Number(await getLocalRaw(SK_SEED,"0"));
+    const cloudSeedNum=Number(pianoRow?.valore?.seed||0);
+    if (Number.isFinite(localSeedNum) && localSeedNum>cloudSeedNum) {
+      logSync("info","Riconciliazione: piano locale più recente del cloud, lo carico",{seedLocale:String(localSeedNum),seedCloud:String(cloudSeedNum)});
+      await pushPianoConLock();
+    } else {
+      await pullPiano();
+    }
+  }
   if(!chiaviCloud.has("gusti"))      { logSync("info","Riconciliazione: gusti assenti sul cloud, li carico"); await pushFamigliaDato("gusti",await getLocal(SK_PREFS,{})); }
   if(!chiaviCloud.has("esclusioni")) { logSync("info","Riconciliazione: esclusioni assenti sul cloud, le carico"); await pushFamigliaDato("esclusioni",await getLocal(SK_EXCL,[])); }
   await pullAltriDatiFamiglia();
