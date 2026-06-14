@@ -4,7 +4,6 @@ import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIV
 import { SwipeContainer } from '@/components/shared';
 import { FamigliaPage } from '@/features/famiglia/FamigliaPage';
 import { GustiPage } from '@/features/gusti/GustiPage';
-import { DietaPage } from '@/features/dieta/DietaPage';
 import { IngredientiPage } from '@/features/ingredienti/IngredientiPage';
 import { MisurePage } from '@/features/misure/MisurePage';
 import { OpzioniPage } from '@/features/opzioni/OpzioniPage';
@@ -460,7 +459,6 @@ export function App() {
     {key:"famiglia",    label:"Famiglia",    icon:"👥", desc:"Crea e gestisci la famiglia, profili"},
     {key:"ingredienti", label:"Ingredienti", icon:"🥦", desc:"Cosa escludere dal piano"},
     {key:"gusti",       label:"Gusti",       icon:"❤️", desc:"Preferiti e non amati"},
-    {key:"dieta",       label:"Dieta",       icon:"🥧", desc:"Sbilancia i macronutrienti"},
     {key:"opzioni",     label:"Opzioni",     icon:"⚙️", desc:"Notifiche e promemoria pasti"},
   ];
 
@@ -781,7 +779,6 @@ export function App() {
         {!showHistory&&page==="spesa"&&<ShoppingPage plan={applyOverrides(plan, overrides)} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa}/>}
         {!showHistory&&page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
         {!showHistory&&page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
-        {!showHistory&&page==="dieta"&&<DietaPage persona={persona} misure={misureApp[persona?.id]} onUpdatePersona={handleUpdatePersona}/>}
         {!showHistory&&page==="test-sync"&&<SyncTestPage/>}
         {!showHistory&&page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}
         {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed}/>}
