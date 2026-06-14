@@ -16,8 +16,8 @@ let pianoLock = false;   // true mentre un push piano è in corso
 // pendingSpesa rimosso: il cloud è authoritative per la spesa
 let pullSpesaQueue = Promise.resolve();
 
-const emit       = (key, detail={}) => window.dispatchEvent(new window.CustomEvent("pf-cloud-update",{detail:{key,...detail}}));
-const emitStatus = (s) => window.dispatchEvent(new window.CustomEvent("pf-cloud-status",{detail:s}));
+const emit       = (key, detail={}) => window.dispatchEvent(new CustomEvent("pf-cloud-update",{detail:{key,...detail}}));
+const emitStatus = (s) => window.dispatchEvent(new CustomEvent("pf-cloud-status",{detail:s}));
 
 const getLocal    = async (k,fb) => { try { const r=await window.storage.get(k); return JSON.parse(r.value); } catch { return fb; } };
 const getLocalRaw = async (k,fb) => { try { const r=await window.storage.get(k); return r.value; } catch { return fb; } };
