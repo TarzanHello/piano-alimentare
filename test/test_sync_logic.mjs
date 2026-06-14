@@ -150,6 +150,44 @@ const ok = (name, cond) => { results.push({ name, pass: !!cond }); };
   ok("due boot: vecchio canale rimosso al cambio famiglia", canaliRimossi === 1);
 }
 
+// ─── H. Eco realtime "vecchio" non annulla la modifica appena pushata ───
+// Bug osservato sul telefono: il device rigenera il piano (seed nuovo), lo
+// pusha, e ~250ms dopo un evento realtime in coda fa un pullPiano che rilegge
+// dal cloud il seed VECCHIO, sovrascrivendo la modifica appena fatta.
+// La difesa è il confronto numerico dei seed (sono Date.now(), monotòni).
+{
+  // Replica la logica decisionale di pullPiano: applicare o scartare?
+  const decidi = ({ seedCloud, seedLocale, lastPushed }) => {
+    if (String(seedCloud) === String(seedLocale)) return "noop"; // identico
+    const seedNum = Number(seedCloud);
+    if (Number.isFinite(seedNum)) {
+      const curSeedNum = Number(seedLocale);
+      const soglia = Math.max(lastPushed || 0, Number.isFinite(curSeedNum) ? curSeedNum : 0);
+      if (soglia && seedNum < soglia) return "scarta"; // eco vecchio
+    }
+    return "applica";
+  };
+
+  // Scenario reale del telefono: ho appena pushato 1781419089061,
+  // il locale è già a quel seed, e arriva un eco col vecchio 1781388503644.
+  const nuovo = 1781419089061, vecchio = 1781388503644;
+  ok("eco vecchio: pull col seed precedente viene scartato",
+     decidi({ seedCloud: vecchio, seedLocale: nuovo, lastPushed: nuovo }) === "scarta");
+
+  // Un piano genuinamente più recente di un ALTRO device deve passare.
+  const piuRecente = 1781419101771;
+  ok("piano più recente di altro device: applicato",
+     decidi({ seedCloud: piuRecente, seedLocale: nuovo, lastPushed: nuovo }) === "applica");
+
+  // Primo pull dopo login (nessun push fatto, nessun seed locale): si applica.
+  ok("primo pull senza storico: applicato",
+     decidi({ seedCloud: nuovo, seedLocale: null, lastPushed: 0 }) === "applica");
+
+  // Stesso seed = nessuna operazione (gestito a monte dal confronto overrides).
+  ok("stesso seed: nessuna operazione di rollback",
+     decidi({ seedCloud: nuovo, seedLocale: nuovo, lastPushed: nuovo }) === "noop");
+}
+
 let allPass = true;
 for (const r of results) { console.log((r.pass?'✓':'✗')+' '+r.name); if(!r.pass) allPass=false; }
 console.log(allPass ? '\nTEST 2: TUTTO OK' : '\nTEST 2: FALLITO');

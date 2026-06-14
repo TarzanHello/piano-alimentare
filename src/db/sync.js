@@ -14,6 +14,14 @@ let me        = null;
 let channel   = null;
 let timers    = {};
 let pianoLock = false;   // true mentre un push piano è in corso
+// Seed dell'ultimo piano che QUESTO dispositivo ha scritto sul cloud.
+// Serve a scartare gli echi realtime "vecchi": un pull che riporta un
+// seed più vecchio di quello appena pushato verrebbe altrimenti applicato,
+// annullando la modifica locale appena fatta (bug osservato: il device
+// rigenera il piano, lo pusha, e 250ms dopo un evento in coda glielo
+// riscarica al valore precedente). Confronto numerico: il seed È un
+// timestamp Date.now(), quindi monotòno crescente.
+let lastPushedPianoSeed = 0;
 // pendingSpesa rimosso: il cloud è authoritative per la spesa
 let pullSpesaQueue = Promise.resolve();
 
@@ -108,6 +116,21 @@ async function pullPiano() {
   const curOvr=await getLocalRaw(SK_OVERRIDES,"{}");
   const newOvr=JSON.stringify(overrides||{});
   if (String(seed)===curSeed&&newOvr===curOvr) return;
+  // Scarta gli echi "vecchi": se il seed dal cloud è numericamente più
+  // vecchio di quello che ho appena pushato (o di quello locale), è un
+  // evento realtime in coda che NON deve sovrascrivere la mia modifica.
+  // Il seed è un Date.now(): più grande = più recente. Confronto solo se
+  // entrambi sono numerici e i seed differiscono (per stesso seed con
+  // overrides diversi il confronto non si applica: vince comunque il pull).
+  const seedNum = Number(seed);
+  if (String(seed) !== curSeed && Number.isFinite(seedNum)) {
+    const curSeedNum = Number(curSeed);
+    const soglia = Math.max(lastPushedPianoSeed || 0, Number.isFinite(curSeedNum) ? curSeedNum : 0);
+    if (soglia && seedNum < soglia) {
+      logSync("info","Pull piano: eco vecchio ignorato",{seedCloud:String(seed),seedLocale:curSeed,ultimoPushato:String(lastPushedPianoSeed||"")});
+      return;
+    }
+  }
   if (curSeed&&String(seed)!==curSeed) {
     try {
       const hist=await getLocal("pf-history",[]);
@@ -169,13 +192,27 @@ async function pushPianoConLock() {
   const seed=await getLocalRaw(SK_SEED,null);
   if (!seed) return;
   const overrides=await getLocal(SK_OVERRIDES,{});
+  // Registra subito il seed come "il più recente che conosco": anche se
+  // un eco realtime arriva mentre l'upsert è ancora in volo, pullPiano lo
+  // confronterà con questo valore e scarterà gli stati più vecchi.
+  const seedNum = Number(seed);
+  if (Number.isFinite(seedNum)) lastPushedPianoSeed = Math.max(lastPushedPianoSeed, seedNum);
   pianoLock=true;
+  clearTimeout(timers.__pianoLockRelease);
   try {
     const {error}=await supabase.from("famiglia_dati").upsert({famiglia_id:me.famigliaId,chiave:"piano",valore:{seed:String(seed),overrides}},{onConflict:"famiglia_id,chiave"});
     if (error) logSync("error","Push piano: errore",{error:error.message});
     else { console.log("[sync] piano pushato:",seed); logSync("push","Piano caricato sul cloud",{seed:String(seed)}); }
   }
-  finally { pianoLock=false; }
+  finally {
+    // Non rilasciare il lock immediatamente: l'evento realtime di eco arriva
+    // tipicamente 200-500ms dopo la scrittura. Tenendo pianoLock attivo per
+    // un breve margine evitiamo che un pull scattato da quell'eco rilegga uno
+    // stato non ancora coerente. Il confronto-seed in pullPiano è la difesa
+    // principale; questo è una cintura aggiuntiva per il caso "stesso seed,
+    // overrides diversi" che il solo confronto numerico non copre.
+    timers.__pianoLockRelease=setTimeout(()=>{pianoLock=false;delete timers.__pianoLockRelease;},1500);
+  }
 }
 
 async function pushPersonas() {
@@ -452,7 +489,8 @@ export async function resetSyncState() {
   if(channel){try{supabase.removeChannel(channel);}catch{}channel=null;}
   clearInterval(timers.__poll);clearTimeout(timers.__rt);
   clearTimeout(timers.__pushPiano);clearTimeout(timers.__pullPianoRetry);
-  me=null;pianoLock=false;
+  clearTimeout(timers.__pianoLockRelease);
+  me=null;pianoLock=false;lastPushedPianoSeed=0;
   // resetta i flag globali così un nuovo boot può ri-registrare i listener
   window.__syncAuthListenerRegistered = false;
   window.__syncVisListenerRegistered  = false;
