@@ -9,11 +9,46 @@ createRoot(document.getElementById('root')).render(<App />);
 if ('serviceWorker' in navigator) {
   if (import.meta.env.PROD) {
     // ── Produzione: registra il service worker (offline) ──
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(e => console.log('SW:', e));
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing) return; refreshing = true; window.location.reload();
+    // Aggiornamento MANUALE: il SW nuovo resta in attesa e l'app mostra un
+    // avviso "Nuova versione". Il reload avviene SOLO quando l'utente accetta.
+    // Questo elimina i riavvii spontanei della PWA (riapertura, sfratto dalla
+    // RAM, controlli di update di Chrome non causano più reload).
+    let refreshing = false;
+    // C'era già un SW a controllare la pagina all'avvio? Se no, siamo alla
+    // primissima installazione: la presa di controllo NON deve ricaricare.
+    const avevaController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing || !avevaController) return;
+      refreshing = true;
+      window.location.reload();
+    });
+
+    const proponiAggiornamento = (worker) => {
+      if (!worker) return;
+      window.__pfWaitingWorker = worker;
+      window.dispatchEvent(new window.CustomEvent('pf-sw-update'));
+    };
+
+    window.addEventListener('load', async () => {
+      const reg = await navigator.serviceWorker
+        .register(`${import.meta.env.BASE_URL}sw.js`)
+        .catch(e => { console.log('SW:', e); return null; });
+      if (!reg) return;
+
+      // Un aggiornamento è già pronto e in attesa al caricamento
+      if (reg.waiting && navigator.serviceWorker.controller) proponiAggiornamento(reg.waiting);
+
+      // Un aggiornamento arriva mentre l'app è aperta
+      reg.addEventListener('updatefound', () => {
+        const nuovo = reg.installing;
+        if (!nuovo) return;
+        nuovo.addEventListener('statechange', () => {
+          // "installed" + controller esistente = è un AGGIORNAMENTO (non la
+          // prima installazione) → proponi all'utente.
+          if (nuovo.state === 'installed' && navigator.serviceWorker.controller) {
+            proponiAggiornamento(nuovo);
+          }
+        });
       });
     });
   } else {

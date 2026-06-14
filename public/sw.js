@@ -3,7 +3,7 @@
 // delle librerie esterne (React, Babel) al primo caricamento online.
 // Così l'app funziona davvero offline dopo la prima apertura.
 
-const CACHE = "piano-alimentare-v41";
+const CACHE = "piano-alimentare-v42";
 
 // Asset locali dell'app
 const LOCAL_ASSETS = [
@@ -28,8 +28,21 @@ self.addEventListener("install", e => {
             .catch(() => {})
         )
       );
-    }).then(() => self.skipWaiting())
+    })
+    // NOTA: niente self.skipWaiting() qui. Un SW nuovo resta in stato
+    // "waiting" e NON prende il controllo da solo. Prima questa attivazione
+    // automatica (skipWaiting + clients.claim) + il reload-su-controllerchange
+    // in main.jsx causava un riavvio della PWA a ogni ciclo del SW: alla
+    // riapertura dell'app, dopo lo sfratto dalla RAM, o ai controlli di
+    // aggiornamento di Chrome. Ora l'attivazione avviene SOLO quando l'utente
+    // tocca "Aggiorna" (vedi il listener "message" sotto).
   );
+});
+
+// L'app invia questo messaggio quando l'utente accetta l'aggiornamento:
+// solo allora il SW in attesa si attiva e prende il controllo.
+self.addEventListener("message", e => {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", e => {

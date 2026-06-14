@@ -42,6 +42,7 @@ export function App() {
   const [prefs, setPrefs]             = useState({ recipes:{}, contextSwaps:[] });
   const [mealsLog, setMealsLog]       = useState({});
   const [notifSettings, setNotifSettings] = useState(DEFAULT_NOTIF);
+  const [swUpdate, setSwUpdate]       = useState(false); // nuova versione disponibile
 
   // ── Cloud sync: avvio, stato e applicazione degli aggiornamenti remoti ──
   useEffect(()=>{
@@ -80,6 +81,12 @@ export function App() {
     window.addEventListener("pf-cloud-status", onStatus);
     window.addEventListener("pf-cloud-update", onUpdate);
     return ()=>{ window.removeEventListener("pf-cloud-status", onStatus); window.removeEventListener("pf-cloud-update", onUpdate); };
+  },[]);
+  // Nuova versione del service worker pronta → mostra l'avviso "Aggiorna"
+  useEffect(()=>{
+    const onSwUpdate = ()=> setSwUpdate(true);
+    window.addEventListener("pf-sw-update", onSwUpdate);
+    return ()=> window.removeEventListener("pf-sw-update", onSwUpdate);
   },[]);
   // Auto-claim: se sul dispositivo c'è UNA sola persona, l'associazione
   // col profilo cloud avviene da sola, senza wizard
@@ -507,6 +514,25 @@ export function App() {
 
   return (
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%)",fontFamily:"'Segoe UI',system-ui,sans-serif",paddingBottom:80}}>
+      {/* AVVISO NUOVA VERSIONE */}
+      {swUpdate && (
+        <div style={{position:"sticky",top:0,zIndex:50,background:"#1d4ed8",color:"#fff",
+                     padding:"calc(10px + env(safe-area-inset-top,0px)) 16px 10px",
+                     display:"flex",alignItems:"center",justifyContent:"center",gap:12,fontSize:13}}>
+          <span>✨ È disponibile una nuova versione.</span>
+          <button
+            onClick={()=>{
+              try { window.__pfWaitingWorker?.postMessage({ type:"SKIP_WAITING" }); } catch {}
+              // Fallback: se per qualche motivo non scatta il controllerchange,
+              // ricarica comunque dopo un attimo.
+              setTimeout(()=>{ try { window.location.reload(); } catch {} }, 1500);
+            }}
+            style={{background:"#fff",color:"#1d4ed8",border:"none",borderRadius:8,
+                    padding:"6px 14px",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+            Aggiorna
+          </button>
+        </div>
+      )}
       {/* HEADER */}
       <div style={{background:"linear-gradient(90deg,#1e293b 0%,#334155 100%)",padding:"20px 20px 16px",paddingTop:"calc(20px + env(safe-area-inset-top,0px))"}}>
         <div style={{maxWidth:680,margin:"0 auto"}}>
