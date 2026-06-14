@@ -69,16 +69,29 @@ export function macroRicettaCalc(ricettaId, persona) {
 export function elasticitaIngrediente(ing) {
   if (!ing) return { min: 0.9, max: 1.15 };
   switch (ing.cat) {
-    case "🥩 Proteine":     return { min: 0.55, max: 1.8 };
+    // Proteine magre: tetto alto. L'ottimizzatore deve poter scalare
+    // generosamente carne/pesce/uova per centrare target proteici elevati
+    // (es. 170+ g/die in deficit). Con 1.8× restava sempre corto del 7-14%
+    // perché il petto di pollo si fermava a ~270 g pur volendone molto di più.
+    // NB: le categorie sono quelle REALI del DB (🍖/🐟/🍳/…), non "🥩 Proteine"
+    // che di fatto non esiste nei dati — prima carni e pesce cadevano nel
+    // default restrittivo.
+    case "🍖 Carni":        return { min: 0.55, max: 2.8 };
+    case "🐟 Pesce":        return { min: 0.55, max: 2.8 };
+    case "🍳 Uova":         return { min: 0.55, max: 2.2 };
+    case "🥓 Salumi":       return { min: 0.55, max: 1.8 };
+    case "🫀 Frattaglie":   return { min: 0.55, max: 2.2 };
+    case "🥩 Proteine":     return { min: 0.55, max: 2.8 };  // legacy, per sicurezza
     case "🥛 Latticini":    return { min: 0.55, max: 1.8 };
     case "🌾 Cereali":      return { min: 0.5,  max: 2.5 };
     case "🫘 Legumi":       return { min: 0.5,  max: 2.5 };
-    case "🥦 Verdure":      return { min: 0.6,  max: 1.6 };
+    case "🥦 Verdure":      return { min: 0.6,  max: 1.8 };
     case "🍎 Frutta":       return { min: 0.6,  max: 1.6 };
     case "🥜 Frutta secca": return { min: 0.5,  max: 1.5 };
+    case "🫒 Oli e grassi": return { min: 0.5,  max: 1.6 };
     case "🧂 Dispensa":     return { min: 0.85, max: 1.2 };
     case "🛒 Altro":        return { min: 0.85, max: 1.2 };
-    default:                return { min: 0.9,  max: 1.15 };
+    default:                return { min: 0.7,  max: 1.6 };
   }
 }
 
@@ -577,12 +590,29 @@ export function pesoStagionale(ricetta, mese) {
   return 0;                   // tre+ fuori → esclusa
 }
 
+// Bonus di densità proteica: una piccola spinta alle ricette intrinsecamente
+// proteiche, così il piano (condiviso in famiglia) tende ad avere abbastanza
+// "margine" proteico per i profili con target alto. Soft: non esclude nulla,
+// somma solo qualche copia in più nel pool. Calcolato sul macro intrinseco
+// (slot uomo), quindi indipendente dal profilo.
+function bonusProteico(ricetta) {
+  const u = ricetta.uomo;
+  if (!u || !u.kcal) return 0;
+  const ratio = (u.p * 4) / u.kcal;   // quota calorica da proteine
+  if (ratio >= 0.35) return 2;
+  if (ratio >= 0.28) return 1;
+  return 0;
+}
+
 export function buildWeightedPool(ricette, excludedIds, mese) {
   const pool = [];
   for (const r of ricette) {
     if (r.ingredients.some(id => excludedIds.includes(id))) continue;
     const w = pesoStagionale(r, mese);
-    if (w > 0) for (let i = 0; i < w; i++) pool.push(r);
+    if (w > 0) {
+      const tot = w + bonusProteico(r);
+      for (let i = 0; i < tot; i++) pool.push(r);
+    }
   }
   // fallback: se il pool è vuoto (tutti esclusi o fuori stagione) usa tutto
   return pool.length > 0 ? pool : ricette.filter(r => !r.ingredients.some(id => excludedIds.includes(id)));
@@ -971,7 +1001,9 @@ export function calcTargetAdattivo(p, misurePersona) {
       step3_tdeeAdattivo: usaTDEEAdattivo
         ? { applicato: true, tdeeAdattivoClamped: adattivoInfo?.tdeeAdattivo, settimane: adattivoInfo?.settimane, tdeeFinale }
         : { applicato: false, motivo: recs.length < 3 ? "meno di 3 misure" : "span < 14 giorni o dati insufficienti", tdeeFinale },
-      step4_obiettivo: { deficit, intensitaOffset, nota: noteObiettivo || "—" },
+      step4_obiettivo: intensitaOffset !== null
+        ? { applicato: "intensità", intensitaOffset, deficitObiettivoIgnorato: deficit, nota: noteObiettivo || "—" }
+        : { applicato: "obiettivo", deficit, nota: noteObiettivo || "—" },
       step5_macros: { kcal, proteine: prot, carboidrati: Math.max(50, carbo), grassi },
       step6_confidenza: confidenza,
     });
