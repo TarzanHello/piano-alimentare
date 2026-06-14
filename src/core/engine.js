@@ -449,7 +449,17 @@ export function findAlternatives(mealKey, currentMeal, minPrep, maxPrep, exclude
   const currentKcal = currentMeal[personaSlot]?.kcal || 500;
   const m = meseCorrente();
 
-  return DB[cat]
+  // Diagnostica: contiamo perché i candidati vengono scartati.
+  let scartFascia = 0, scartEscl = 0, scartStag = 0, scartStessa = 0, ammessi = 0;
+  for (const r of DB[cat]) {
+    if (r.id === currentMeal.id) { scartStessa++; continue; }
+    if (!((r.prep || 0) >= minPrep && (r.prep || 0) <= maxPrep)) { scartFascia++; continue; }
+    if (r.ingredients.some(id => excludedIds.includes(id))) { scartEscl++; continue; }
+    if (pesoStagionale(r, m) <= 0) { scartStag++; continue; }
+    ammessi++;
+  }
+
+  const risultato = DB[cat]
     .filter(r =>
       r.id !== currentMeal.id &&                                      // non la stessa
       (r.prep || 0) >= minPrep && (r.prep || 0) <= maxPrep &&         // dentro la fascia
@@ -467,6 +477,20 @@ export function findAlternatives(mealKey, currentMeal, minPrep, maxPrep, exclude
       return a._kcalDiff - b._kcalDiff;
     })
     .slice(0, 6); // max 6 alternative da mostrare
+
+  try {
+    logCalc("swap", `${mealKey}|${currentMeal.id}|${minPrep}-${maxPrep}`,
+      `Alternative · ${mealKey} (${cat}) · ${risultato.length} proposte`, {
+      pastoCorrente: currentMeal.id, categoria: cat,
+      fasciaTempo: { min: minPrep, max: maxPrep }, kcalCorrente: currentKcal, slot: personaSlot,
+      totaliCategoria: DB[cat].length,
+      scartati: { stessaRicetta: scartStessa, fasciaTempo: scartFascia, esclusione: scartEscl, stagione: scartStag },
+      ammessi,
+      proposte: risultato.map(r => ({ id: r.id, kcalDiff: r._kcalDiff, giaInSettimana: r._inWeek })),
+    });
+  } catch {}
+
+  return risultato;
 }
 
 // ─── Giorno corrente automatico (0=Lun … 6=Dom) ───────────────────
@@ -568,6 +592,22 @@ export function generateWeekPlan(seed, excludedIds = [], mese) {
   const m = mese || meseCorrente();
   const rng = seededRng(seed);
 
+  // Diagnostica della selezione: per categoria registriamo dimensione del
+  // pool, ricette uniche disponibili, scartate per esclusione ingrediente o
+  // per stagionalità. Aiuta a capire "perché mi propone sempre lo stesso
+  // piatto" o "perché non compare mai X".
+  const diag = {};
+  const analizzaCat = (cat) => {
+    const tutte = DB[cat] || [];
+    let perEsclusione = 0, perStagione = 0, ammesse = 0;
+    for (const r of tutte) {
+      if (r.ingredients.some(id => excludedIds.includes(id))) { perEsclusione++; continue; }
+      if (pesoStagionale(r, m) <= 0) { perStagione++; continue; }
+      ammesse++;
+    }
+    diag[cat] = { totali: tutte.length, ammesse, scartate: { esclusione: perEsclusione, stagione: perStagione } };
+  };
+
   const pickSeven = (cat) => {
     const pool = buildWeightedPool(DB[cat], excludedIds, m);
     if (!pool.length) return DB[cat].slice(0, 7);
@@ -584,6 +624,8 @@ export function generateWeekPlan(seed, excludedIds = [], mese) {
     return picked.slice(0, 7);
   };
 
+  ["colazione","pranzo","cena","spuntino"].forEach(analizzaCat);
+
   const cols   = pickSeven("colazione");
   const pranzi = pickSeven("pranzo");
   const cene   = pickSeven("cena");
@@ -599,6 +641,21 @@ export function generateWeekPlan(seed, excludedIds = [], mese) {
     const src   = avail.length ? avail : spPool;
     spuntini.push(src[Math.floor(rng() * src.length)]);
   }
+
+  try {
+    const uniche = (arr) => new Set(arr.map(x=>x.id)).size;
+    logCalc("plan", String(seed), `Generazione piano · seed ${seed} · mese ${m}`, {
+      seed: String(seed), mese: m,
+      esclusiIngredienti: excludedIds.length ? excludedIds : "nessuno",
+      categorie: diag,
+      ricetteUniche: { colazione: uniche(cols), pranzo: uniche(pranzi), cena: uniche(cene), spuntino: uniche(spuntini) },
+      sceltePerGiorno: DAYS.map((day,i)=>({
+        giorno: day,
+        colazione: cols[i]?.id, pranzo: pranzi[i]?.id, cena: cene[i]?.id,
+        spuntino_m: spuntini[i*2]?.id, spuntino_p: spuntini[i*2+1]?.id,
+      })),
+    });
+  } catch {}
 
   return DAYS.map((day, i) => ({
     day,
@@ -1012,6 +1069,25 @@ export function pianoPersonalizzato(giornoPiano, persona, misurePersona) {
       perPasto[mk] = { kcal:0, p:0, c:0, g:0 };
     }
   }
+
+  // Diagnostica della pipeline per-persona-per-giorno: collega il target
+  // calorico al risultato effettivo nel piatto. È il punto dove calcolo
+  // calorie e scaling si combinano per il singolo profilo.
+  try {
+    const somma = { kcal:0, p:0, c:0, g:0 };
+    for (const mk of mealKeys) { const x = perPasto[mk]||{}; somma.kcal+=x.kcal||0; somma.p+=x.p||0; somma.c+=x.c||0; somma.g+=x.g||0; }
+    const scost = (att, tgt) => tgt > 0 ? Math.round(((att - tgt) / tgt) * 100) : 0;
+    logCalc("piano-persona", `${persona.id || persona.nome}|${giornoPiano?.day || "?"}`,
+      `Pipeline · ${persona.nome || "profilo"} · ${giornoPiano?.day || "giorno"} → ${Math.round(somma.kcal)} kcal`, {
+      profilo: persona.nome || persona.id, giorno: giornoPiano?.day || null,
+      target: { kcal: target.kcal, p: target.p, c: target.c, g: target.g },
+      pasti: mealKeys.map(mk => ({ pasto: mk, ricetta: giornoPiano?.[mk]?.id || null, macro: perPasto[mk] })),
+      totaleGiorno: { kcal: Math.round(somma.kcal), p: Math.round(somma.p), c: Math.round(somma.c), g: Math.round(somma.g) },
+      scostamentoVsTarget: { kcal: scost(somma.kcal, target.kcal), p: scost(somma.p, target.p), c: scost(somma.c, target.c), g: scost(somma.g, target.g) },
+      tagliaBase: res.tagliaBase,
+    });
+  } catch {}
+
   return {
     perPasto,
     quantita: res.perRicetta,

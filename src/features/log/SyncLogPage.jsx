@@ -13,6 +13,9 @@ const LEVEL_META = {
   realtime:        { icon: "📡" },
   calc:            { icon: "🧮" },
   scale:           { icon: "⚖️" },
+  plan:            { icon: "🎲" },
+  swap:            { icon: "🔄" },
+  "piano-persona": { icon: "🧩" },
   warn:            { icon: "⚠️" },
   error:           { icon: "⛔" },
 };
@@ -27,7 +30,7 @@ const FILTERS = [
 
 function matchesFilter(entry, filter) {
   switch (filter) {
-    case "motore":   return ["calc", "scale"].includes(entry.level);
+    case "motore":   return ["calc", "scale", "plan", "swap", "piano-persona"].includes(entry.level);
     case "realtime": return entry.level === "realtime";
     case "sync":      return ["push", "pull", "push-schedule", "update"].includes(entry.level);
     case "problemi":  return ["warn", "error"].includes(entry.level);

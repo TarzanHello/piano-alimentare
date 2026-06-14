@@ -76,7 +76,7 @@ export async function getSyncLog() {
 // Salviamo una voce solo quando la "firma" (chiave + riassunto) cambia rispetto
 // all'ultima per quella stessa chiave. Così vedi un evento per calcolo REALE,
 // non centinaia identici.
-//   categoria: "calc" (calorie) | "scale" (scaling ingredienti)
+//   categoria: "calc" | "scale" | "plan" | "swap" | "piano-persona"
 //   chiave:    identificatore stabile (es. id profilo, o profilo+giorno)
 //   msg:       descrizione breve
 //   data:      dettagli (input/step/risultato)
@@ -87,7 +87,7 @@ export function logCalc(categoria, chiave, msg, data) {
   catch { sig = categoria + "|" + chiave + "|" + String(data); }
   if (lastCalcSig[categoria + "|" + chiave] === sig) return; // dedup: nessun cambiamento
   lastCalcSig[categoria + "|" + chiave] = sig;
-  logSync(categoria === "scale" ? "scale" : "calc", msg, data);
+  logSync(categoria, msg, data);   // la categoria È il level (ha la sua icona)
 }
 
 export async function clearSyncLog() {
