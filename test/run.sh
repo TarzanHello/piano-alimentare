@@ -29,6 +29,12 @@ node ./.t3.mjs || FAIL=1
 rm -f ./.t3.mjs
 
 echo ""
+echo "▸ TEST 4 — Motore Dieta (ripartizione macro, redistribuzione, avvisi)"
+"$EB" test/test_dieta.mjs --bundle --format=esm --outfile=./.t4.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
+node ./.t4.mjs || FAIL=1
+rm -f ./.t4.mjs
+
+echo ""
 echo "▸ BUILD — verifica che il progetto compili"
 npm run build >/dev/null 2>&1 && echo "✓ build OK" || { echo "✗ build FALLITA"; FAIL=1; }
 

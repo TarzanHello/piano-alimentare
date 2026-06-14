@@ -2,6 +2,38 @@
 import { DB, ING_MAP, ING_QTY, PESO_PEZZO } from '@/data';
 import { CONFIDENZA, DAYS, LAF_TAB_LARN, LAVORI, LIMITI_SCALING, MB_COEFF_LARN, MEAL_HOUR, MEAL_KEYS, MEAL_META, PERSONAS_KEYS, PREF_WEIGHTS, STILE_LEGACY_ADULTI, STILE_LEGACY_BAMBINI, SWAP_CONTEXT_HOURS } from './constants';
 
+// ── Ripartizione macronutrienti (la "torta" della pagina Dieta) ───
+// Lo split è { p, c, g } in percentuali di calorie che sommano a 100.
+// Ritorna null se assente/non valido → il motore usa la ripartizione di
+// default (proteine fisiologiche, grassi 28%, carbo a riempire).
+export function normalizzaMacroSplit(split) {
+  if (!split) return null;
+  let { p, c, g } = split;
+  p = Number(p); c = Number(c); g = Number(g);
+  if (![p, c, g].every(Number.isFinite)) return null;
+  if (p < 0 || c < 0 || g < 0) return null;
+  const tot = p + c + g;
+  if (tot <= 0) return null;
+  // Normalizza a 100 (difende da arrotondamenti tipo 99 o 101).
+  const f = 100 / tot;
+  const np = p * f, nc = c * f, ng = g * f;
+  // Arrotonda mantenendo la somma esatta a 100 (il residuo va sui carbo).
+  const rp = Math.round(np), rg = Math.round(ng);
+  const rc = 100 - rp - rg;
+  return { p: rp, c: rc, g: rg };
+}
+
+// Ridistribuzione proporzionale: l'utente fissa UNA fetta a `valore`, le
+// altre due (`altraA`, `altraB`) si spartiscono il resto (100 - valore)
+// mantenendo il loro rapporto reciproco. Se erano entrambe a 0, il resto si
+// divide a metà. Ritorna le nuove percentuali delle due fette mosse.
+export function ridistribuisciMacro(valore, altraA, altraB) {
+  const resto = Math.max(0, 100 - valore);
+  const sommaAltre = altraA + altraB;
+  if (sommaAltre <= 0) return { a: resto / 2, b: resto / 2 };
+  return { a: resto * (altraA / sommaAltre), b: resto * (altraB / sommaAltre) };
+}
+
 export function nutriPerGrammi(ingId, grammi) {
   const n = (ING_MAP[ingId] || {}).nutri;
   if (!n || !grammi) return { p:0, c:0, z:0, g:0, f:0, kcal:0 };
@@ -836,17 +868,47 @@ export function calcTargetAdattivo(p, misurePersona) {
   // Proteine: dipendono da massa magra se disponibile, altrimenti da peso
   const sportivo = allenamenti >= 5 || lavoro === "sportivo";
   const protMultiplier = sportivo ? 2.2 : allenamenti >= 3 ? 2.0 : 1.8;
-  let prot;
+  let protFisiologico;
+  let lbmPerProt = null;
   if (!isChild && pctGrasso !== null && latestRec) {
     const pesoDaRec = !isNaN(parseFloat(latestRec.peso)) ? parseFloat(latestRec.peso) : peso;
-    const lbm = pesoDaRec * (1 - pctGrasso / 100);
+    lbmPerProt = pesoDaRec * (1 - pctGrasso / 100);
     // Proteine su massa magra: più preciso
-    prot = Math.round(lbm * (sportivo ? 2.6 : allenamenti >= 3 ? 2.4 : 2.2));
+    protFisiologico = Math.round(lbmPerProt * (sportivo ? 2.6 : allenamenti >= 3 ? 2.4 : 2.2));
   } else {
-    prot = isChild ? Math.round(peso*1.2) : Math.round(peso * protMultiplier);
+    protFisiologico = isChild ? Math.round(peso*1.2) : Math.round(peso * protMultiplier);
   }
-  const grassi = Math.round((kcal * 0.28) / 9);
-  const carbo  = Math.round((kcal - prot*4 - grassi*9) / 4);
+
+  // Minimo proteico "sano": soglia sotto la quale avvisiamo l'utente quando
+  // sbilancia la dieta. Su massa magra se nota (1.6 g/kg LBM), altrimenti
+  // 1.6 g/kg di peso corporeo. Per i bimbi resta legato al peso.
+  const pMinSano = isChild
+    ? Math.round(peso * 1.0)
+    : Math.round((lbmPerProt != null ? lbmPerProt : peso) * 1.6);
+
+  // Ripartizione: di default proteine fisiologiche, grassi 28%, carbo a
+  // riempire. Se l'utente ha impostato una torta personalizzata (macroSplit,
+  // percentuali kcal che sommano ~100), è la torta a comandare i grammi —
+  // le calorie totali NON cambiano, cambia solo come sono distribuite.
+  const split = normalizzaMacroSplit(p.macroSplit);
+  let prot, grassi, carbo, macroWarning = null;
+  if (split) {
+    prot   = Math.round((kcal * split.p / 100) / 4);
+    carbo  = Math.round((kcal * split.c / 100) / 4);
+    grassi = Math.round((kcal * split.g / 100) / 9);
+    if (prot < pMinSano) {
+      macroWarning = {
+        tipo: "proteine_basse",
+        proteineRichieste: prot,
+        proteineMinime: pMinSano,
+        messaggio: `Con questa ripartizione le proteine (${prot} g) scendono sotto il minimo consigliato di ${pMinSano} g (~1,6 g per kg). Va bene per brevi periodi, ma a lungo non è l'ideale per preservare la massa muscolare.`,
+      };
+    }
+  } else {
+    prot   = protFisiologico;
+    grassi = Math.round((kcal * 0.28) / 9);
+    carbo  = Math.round((kcal - prot*4 - grassi*9) / 4);
+  }
 
   // ── STEP 6: Confidenza ────────────────────────────────────────────
   let confidenza;
@@ -867,6 +929,10 @@ export function calcTargetAdattivo(p, misurePersona) {
     c: Math.max(50, carbo),
     g: grassi,
     confidenza,
+    // ripartizione macro
+    macroSplit: split,        // null se ripartizione di default
+    macroWarning,             // null se nessun avviso
+    pMinSano,                 // minimo proteico consigliato (g)
     // dati di debug/display
     tdeeMifflin,
     tdeeFinale,
