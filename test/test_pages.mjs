@@ -40,6 +40,14 @@ const clickByText = async (txt) => {
   return !!b;
 };
 
+// NOTA: se il cloud è configurato (supabaseConfig.js presente) ma non c'è
+// una sessione attiva — il caso normale in CI — l'app reindirizza al primo
+// avvio sulla pagina "Utente" (è l'unico punto in cui un utente scollegato
+// viene invitato ad accedere). Per verificare la home "Oggi" torniamo lì
+// esplicitamente tramite la bottom nav: il test controlla che la home sia
+// raggiungibile e si monti senza crash, non quale sia la pagina iniziale.
+await clickByText('Oggi');
+
 const html0 = document.body.innerHTML;
 ok('app monta (home Oggi)', /Buongiorno|Buon pomeriggio|Buonasera/.test(html0));
 
