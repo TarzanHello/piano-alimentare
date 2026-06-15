@@ -398,6 +398,41 @@ export function formattaPorzione(quantitaMap) {
   return pezzi.join(" · ");
 }
 
+// Converte una ricetta utente/famiglia (dal cloud, formato "ricette_utente":
+// {kcal,p,c,g} fissi + ingredienti:[{ing,g}]) in un oggetto "pasto" compatibile
+// con quelli del catalogo, così può essere usata per uno scambio (swap) dal
+// Ricettario. Stessa forma del customRecipe creato da RecipeEditorModal:
+// macro fissi uguali per ogni profilo, ING_QTY registrato per il ricalcolo
+// porzioni, baseId per ricollegarla al pasto che sta sostituendo.
+export function cloudRecipeToMeal(ricetta, baseMealId) {
+  const macro = { kcal: Math.round(ricetta.kcal||0), p: Math.round(ricetta.p||0), c: Math.round(ricetta.c||0), g: Math.round(ricetta.g||0) };
+  const ings = {};
+  for (const it of (ricetta.ingredienti || [])) {
+    if (!it?.ing) continue;
+    ings[it.ing] = { valore: Number(it.g)||0, unit: "g" };
+  }
+  const porzioneStr = formattaPorzione(ings);
+  const meal = {
+    id: "cloud_" + ricetta.id,
+    nome: ricetta.titolo || ricetta.nome || "Ricetta",
+    prep: ricetta.prep ?? null,
+    baseId: baseMealId || null,
+    isCustom: true,
+    uomo: macro, donna: macro, bimbo: macro,
+    porzioni: { uomo: porzioneStr, donna: porzioneStr, bimbo: porzioneStr },
+    _ingredienti: ings,
+    ingredients: Object.keys(ings),
+    tags: [],
+    stagioni: null,
+    _scope: ricetta.scope,
+    _isMine: ricetta.isMine,
+  };
+  const qtyEntry = { _scaled: true };
+  for (const [ingId, q] of Object.entries(ings)) qtyEntry[ingId] = { uomo: q.valore, donna: q.valore, bimbo: q.valore, unit: q.unit };
+  ING_QTY[meal.id] = qtyEntry;
+  return meal;
+}
+
 export function confrontoMacro(sogliaPct = 20, prefisso = "") {
   const righe = [];
   Object.values(DB).flat().forEach(r => {
@@ -481,12 +516,19 @@ export function getPrefEntry(prefs, recipeId) {
 // 2. simili per kcal al pasto corrente (slot personaSlot)
 // 3. non già usate nella settimana (weekMealIds)
 
+// Mappa mealKey ("colazione"|"pranzo"|"cena"|"spuntino_m"|"spuntino_p") →
+// categoria del DB ("colazione"|"pranzo"|"cena"|"spuntino"). Usata sia per
+// trovare alternative sia per aprire il Ricettario sulla categoria giusta.
+export function categoriaDaMealKey(mealKey) {
+  return mealKey === "spuntino_m" || mealKey === "spuntino_p" ? "spuntino"
+       : mealKey === "colazione" ? "colazione"
+       : mealKey === "pranzo"    ? "pranzo"
+       : "cena";
+}
+
 export function findAlternatives(mealKey, currentMeal, minPrep, maxPrep, excludedIds, weekMealIds, personaSlot) {
   // Mappa mealKey → categoria DB
-  const cat = mealKey === "spuntino_m" || mealKey === "spuntino_p" ? "spuntino"
-            : mealKey === "colazione" ? "colazione"
-            : mealKey === "pranzo"    ? "pranzo"
-            : "cena";
+  const cat = categoriaDaMealKey(mealKey);
 
   const currentKcal = currentMeal[personaSlot]?.kcal || 500;
   const m = meseCorrente();

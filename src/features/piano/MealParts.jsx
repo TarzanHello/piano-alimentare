@@ -1,7 +1,7 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { MEAL_KEYS, MEAL_META, PREP_SLOTS, SK_WATER, WATER_GOAL, WATER_MAX, WATER_ML, classifySwap, findAlternatives, formattaPorzione } from '@/core';
-import { ConsumedEditorModal, RecipeEditorModal } from '@/components/modals';
+import { ConsumedEditorModal, RecipeEditorModal, RicettarioModal } from '@/components/modals';
 import { MacroBadge, ProgressBar } from '@/components/shared';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
 
@@ -121,11 +121,12 @@ export function WaterTracker({ dayKey, personaColor }) {
 
 // Soglie tempo per i pulsanti del selettore
 
-export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, onToggleConsumed, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato }) {
+export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, onToggleConsumed, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato, cloudStatus }) {
   const [open, setOpen]               = useState(false);
   const [swapOpen, setSwapOpen]       = useState(false);
   const [editOpen, setEditOpen]       = useState(false);
   const [consumedEditOpen, setConsumedEditOpen] = useState(false);
+  const [ricettarioOpen, setRicettarioOpen] = useState(false);
   const [prepSlot, setPrepSlot]       = useState(null); // fascia di tempo selezionata (oggetto di PREP_SLOTS)
 
   // Se consumato e abbiamo macro reali dal log, mostriamo quelle; altrimenti le macro del piano
@@ -291,9 +292,16 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
               </div>
             );
           })()}
-          {/* Selettore tempo */}
-          <div style={{fontSize:10,fontWeight:800,color:"#1e293b",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
-            ⏱ Quanto tempo hai?
+          {/* Selettore tempo + accesso al ricettario completo */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,gap:8}}>
+            <div style={{fontSize:10,fontWeight:800,color:"#1e293b",textTransform:"uppercase",letterSpacing:0.8}}>
+              ⏱ Quanto tempo hai?
+            </div>
+            <button onClick={()=>setRicettarioOpen(true)}
+              title="Sfoglia tutte le ricette di questa categoria"
+              style={{flexShrink:0,display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:7,border:"1.5px solid #7c3aed30",background:"#f5f3ff",color:"#7c3aed",fontWeight:700,fontSize:11,cursor:"pointer",whiteSpace:"nowrap"}}>
+              📖 Ricettario
+            </button>
           </div>
           <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
             {PREP_SLOTS.map(s=>(
@@ -307,12 +315,13 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
           {/* Risultati */}
           {prepSlot === null ? (
             <div style={{textAlign:"center",padding:"12px 0",color:"#94a3b8",fontSize:12}}>
-              Seleziona il tempo disponibile per vedere le alternative
+              Seleziona il tempo disponibile per vedere le alternative,<br/>
+              oppure apri il <strong>📖 Ricettario</strong> per scegliere tra tutte le ricette
             </div>
           ) : alternatives.length === 0 ? (
             <div style={{textAlign:"center",padding:"12px 0",color:"#94a3b8",fontSize:12}}>
               Nessuna ricetta nella fascia {prepSlot.label} 😔<br/>
-              <span style={{fontSize:11}}>Prova un'altra fascia di tempo o riabilita qualche ingrediente</span>
+              <span style={{fontSize:11}}>Prova un'altra fascia di tempo, oppure apri il 📖 Ricettario per vedere tutte le ricette</span>
             </div>
           ) : (
             <div>
@@ -348,6 +357,18 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Modal Ricettario: tutte le ricette della categoria ── */}
+      {ricettarioOpen && (
+        <RicettarioModal
+          mealKey={mealKey}
+          currentMeal={meal}
+          personaKey={personaKey}
+          cloudStatus={cloudStatus}
+          onClose={()=>setRicettarioOpen(false)}
+          onPick={alt => { onSwap(alt); setRicettarioOpen(false); setSwapOpen(false); setPrepSlot(null); }}
+        />
       )}
     </div>
   );

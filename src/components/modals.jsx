@@ -1,6 +1,7 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DB, INGREDIENTS, ING_MAP, ING_QTY, PESO_PEZZO, UNIT_OPTIONS, calcMacroEditor, formattaPorzione, ingQtyToEditor, nutriPerGrammi, quantitaInGrammi, scalaPastiGiorno } from '@/core';
+import { DB, INGREDIENTS, ING_MAP, ING_QTY, PESO_PEZZO, UNIT_OPTIONS, calcMacroEditor, categoriaDaMealKey, cloudRecipeToMeal, formattaPorzione, ingQtyToEditor, nutriPerGrammi, quantitaInGrammi, scalaPastiGiorno } from '@/core';
+import { caricaRicette } from '@/db/ricetteCloud';
 import { MealCard, WaterTracker } from '@/features/piano/MealParts';
 
 export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, quantitaScalate }) {
@@ -604,3 +605,162 @@ export function ConsumedEditorModal({ meal, mealKey, personaKey, initialIngs, on
 // ─── MealCard ────────────────────────────────────────────────────────
 // ─── WaterTracker ─────────────────────────────────────────────────
 
+// ─── RicettarioModal ───────────────────────────────────────────────
+// Mostra TUTTE le ricette disponibili per una categoria (colazione,
+// pranzo, cena, spuntino): catalogo CRA-NUT + ricette mie + ricette di
+// famiglia, con il tempo di preparazione ben visibile su ognuna.
+// Usato dal drawer di scambio quando nessuna alternativa proposta
+// convince: l'utente può scorrere l'intero ricettario di quella
+// categoria e scegliere liberamente.
+const CAT_META = {
+  colazione: { label: "Colazione", icon: "🌅" },
+  pranzo:    { label: "Pranzo",    icon: "🍝" },
+  cena:      { label: "Cena",      icon: "🍽️" },
+  spuntino:  { label: "Spuntino",  icon: "🍎" },
+};
+
+function RicettarioCard({ r, personaKey, onPick, badge }) {
+  const m = r[personaKey] || r.uomo || { kcal:0, p:0, c:0, g:0 };
+  const prep = r.prep;
+  const prepColor = prep==null ? "#94a3b8" : prep <= 15 ? "#16a34a" : prep <= 30 ? "#d97706" : "#dc2626";
+  const prepBg    = prep==null ? "#f8fafc"  : prep <= 15 ? "#f0fdf4" : prep <= 30 ? "#fffbeb" : "#fef2f2";
+  const prepLabel = prep==null ? "—" : prep >= 60 ? `${prep/60}h` : `${prep}'`;
+  return (
+    <div onClick={()=>onPick(r)}
+      style={{background:"#fff",borderRadius:10,border:"1.5px solid #e2e8f0",padding:"10px 12px",marginBottom:7,cursor:"pointer",transition:"border-color 0.15s",display:"flex",alignItems:"center",gap:10}}
+      onMouseEnter={e=>e.currentTarget.style.borderColor="#7c3aed80"}
+      onMouseLeave={e=>e.currentTarget.style.borderColor="#e2e8f0"}>
+      <div style={{flexShrink:0,width:42,height:42,borderRadius:9,background:prepBg,border:`1.5px solid ${prepColor}30`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+        <span style={{fontSize:12,fontWeight:800,color:prepColor,lineHeight:1.1}}>⏱{prepLabel}</span>
+      </div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:12,fontWeight:700,color:"#1e293b",lineHeight:1.3,marginBottom:5}}>{r.nome}</div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#1e293b"}}>{m.kcal} kcal</span>
+          <span style={{fontSize:10,color:"#94a3b8"}}>P{m.p} C{m.c} G{m.g}</span>
+          {badge}
+        </div>
+      </div>
+      <div style={{flexShrink:0,width:28,height:28,borderRadius:"50%",background:"#7c3aed10",border:"1.5px solid #7c3aed30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>→</div>
+    </div>
+  );
+}
+
+export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onClose, cloudStatus }) {
+  const cat = categoriaDaMealKey(mealKey);
+  const meta = CAT_META[cat] || { label: cat, icon: "📖" };
+  const [mie, setMie] = useState([]);
+  const [diFamiglia, setDiFamiglia] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errore, setErrore] = useState("");
+
+  useEffect(() => {
+    let attivo = true;
+    if (!cloudStatus?.loggedIn) return;
+    setLoading(true);
+    caricaRicette().then(ricette => {
+      if (!attivo) return;
+      const dellaCategoria = ricette.filter(r => r.categoria === cat);
+      setMie(dellaCategoria.filter(r => r.isMine));
+      setDiFamiglia(dellaCategoria.filter(r => !r.isMine));
+    }).catch(() => { if (attivo) setErrore("Impossibile caricare le ricette di famiglia."); })
+      .finally(() => { if (attivo) setLoading(false); });
+    return () => { attivo = false; };
+  }, [cat, cloudStatus?.loggedIn]);
+
+  // Catalogo: tutte le ricette CRA-NUT della categoria, ordinate per tempo
+  // di preparazione (le più rapide prima), escludendo quella attuale.
+  const catalogo = useMemo(() => {
+    return (DB[cat] || [])
+      .filter(r => r.id !== currentMeal?.id)
+      .slice()
+      .sort((a,b) => (a.prep||0) - (b.prep||0));
+  }, [cat, currentMeal?.id]);
+
+  const handlePick = (r, isMineOrFamily) => {
+    const meal = isMineOrFamily ? cloudRecipeToMeal(r, currentMeal?.id) : r;
+    onPick(meal);
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"#00000055"}}
+      onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:480,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px #0000003a"}}>
+
+        {/* ── Header ── */}
+        <div style={{padding:"16px 18px 12px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+          <div>
+            <div style={{fontSize:11,color:"#94a3b8",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>
+              📖 Ricettario
+            </div>
+            <div style={{fontSize:15,fontWeight:800,color:"#1e293b"}}>{meta.icon} {meta.label}</div>
+          </div>
+          <button onClick={onClose}
+            style={{width:32,height:32,borderRadius:"50%",border:"none",background:"#f1f5f9",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            ✕
+          </button>
+        </div>
+
+        {/* ── Corpo scorrevole ── */}
+        <div style={{flex:1,overflowY:"auto",padding:"12px 18px 20px"}}>
+          <div style={{fontSize:10,color:"#94a3b8",marginBottom:8,fontWeight:600}}>
+            ⏱ il tempo di preparazione è indicato su ogni ricetta
+          </div>
+
+          {!cloudStatus?.loggedIn && (
+            <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:11,color:"#64748b",lineHeight:1.5}}>
+              ☁️ Accedi per vedere anche le tue ricette personalizzate e quelle della famiglia.
+            </div>
+          )}
+          {errore && <div style={{color:"#dc2626",fontSize:11,marginBottom:10}}>{errore}</div>}
+
+          {/* Ricette mie */}
+          {cloudStatus?.loggedIn && (
+            <>
+              <div style={{fontSize:10,fontWeight:800,color:"#1e293b",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
+                ✏️ Le mie ricette
+              </div>
+              {loading ? (
+                <div style={{fontSize:11,color:"#94a3b8",padding:"6px 0 12px"}}>Caricamento…</div>
+              ) : mie.length === 0 ? (
+                <div style={{fontSize:11,color:"#94a3b8",padding:"6px 0 12px"}}>Nessuna ricetta tua in questa categoria.</div>
+              ) : (
+                <div style={{marginBottom:14}}>
+                  {mie.map(r => (
+                    <RicettarioCard key={r.id} r={r} personaKey={personaKey} onPick={x=>handlePick(x,true)}
+                      badge={<span style={{fontSize:9,background:"#dbeafe",color:"#1d4ed8",borderRadius:4,padding:"1px 5px",fontWeight:700}}>mia</span>}/>
+                  ))}
+                </div>
+              )}
+
+              {/* Ricette di famiglia */}
+              <div style={{fontSize:10,fontWeight:800,color:"#1e293b",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
+                👨‍👩‍👧 Ricette di famiglia
+              </div>
+              {loading ? (
+                <div style={{fontSize:11,color:"#94a3b8",padding:"6px 0 12px"}}>Caricamento…</div>
+              ) : diFamiglia.length === 0 ? (
+                <div style={{fontSize:11,color:"#94a3b8",padding:"6px 0 12px"}}>Nessuna ricetta condivisa in questa categoria.</div>
+              ) : (
+                <div style={{marginBottom:14}}>
+                  {diFamiglia.map(r => (
+                    <RicettarioCard key={r.id} r={r} personaKey={personaKey} onPick={x=>handlePick(x,true)}
+                      badge={<span style={{fontSize:9,background:"#f5f3ff",color:"#7c3aed",borderRadius:4,padding:"1px 5px",fontWeight:700}}>famiglia</span>}/>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Catalogo */}
+          <div style={{fontSize:10,fontWeight:800,color:"#1e293b",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
+            {meta.icon} Catalogo {meta.label.toLowerCase()} · {catalogo.length} ricette
+          </div>
+          {catalogo.map(r => (
+            <RicettarioCard key={r.id} r={r} personaKey={personaKey} onPick={x=>handlePick(x,false)}/>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

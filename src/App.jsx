@@ -713,6 +713,7 @@ export function App() {
                             loggedMacros={(()=>{const e=selDayLog[mk];return e?.consumed&&(e.kcal||e._ingredienti)?{kcal:e.kcal||0,p:e.p||0,c:e.c||0,g:e.g||0}:null;})()}
                             loggedIngs={selDayLog[mk]?._ingredienti||null}
                             onEditConsumed={data=>handleEditConsumedMeal(persona.id,dateKeyForDayIdx(selDay),mk,data)}
+                            cloudStatus={cloudStatus}
                           />
                         );
                       })}
