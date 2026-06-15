@@ -53,8 +53,8 @@ load();
 //   level: "info" | "status" | "update" | "push" | "pull" | "realtime" | "warn" | "error"
 //   msg:   breve descrizione leggibile
 //   data:  oggetto opzionale con dettagli (verrà clonato in modo sicuro)
-export function logSync(level, msg, data) {
-  const entry = { t: Date.now(), level, msg };
+export function logSync(level, msg, data, t) {
+  const entry = { t: t || Date.now(), level, msg };
   if (data !== undefined) {
     try { entry.data = JSON.parse(JSON.stringify(data)); }
     catch { entry.data = String(data); }

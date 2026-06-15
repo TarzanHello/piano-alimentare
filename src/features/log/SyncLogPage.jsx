@@ -16,6 +16,7 @@ const LEVEL_META = {
   plan:            { icon: "🎲" },
   swap:            { icon: "🔄" },
   "piano-persona": { icon: "🧩" },
+  family:          { icon: "👨‍👩‍👧" },
   warn:            { icon: "⚠️" },
   error:           { icon: "⛔" },
 };
@@ -23,6 +24,7 @@ const LEVEL_META = {
 const FILTERS = [
   { key: "all",      label: "Tutto" },
   { key: "motore",   label: "Motore" },
+  { key: "family",   label: "Famiglia" },
   { key: "realtime", label: "Realtime" },
   { key: "sync",     label: "Push / Pull" },
   { key: "problemi", label: "Avvisi / Errori" },
@@ -31,6 +33,7 @@ const FILTERS = [
 function matchesFilter(entry, filter) {
   switch (filter) {
     case "motore":   return ["calc", "scale", "plan", "swap", "piano-persona"].includes(entry.level);
+    case "family":   return entry.level === "family";
     case "realtime": return entry.level === "realtime";
     case "sync":      return ["push", "pull", "push-schedule", "update"].includes(entry.level);
     case "problemi":  return ["warn", "error"].includes(entry.level);

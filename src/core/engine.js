@@ -1,7 +1,36 @@
 // ── Motore: calcolo macro, scaling, piano, lista spesa ────────────
-import { DB, ING_MAP, ING_QTY, PESO_PEZZO } from '@/data';
+import { DB, INGREDIENTS, ING_MAP, ING_QTY, PESO_PEZZO } from '@/data';
 import { CONFIDENZA, DAYS, LAF_TAB_LARN, LAVORI, LIMITI_SCALING, MB_COEFF_LARN, MEAL_HOUR, MEAL_KEYS, MEAL_META, PERSONAS_KEYS, PREF_WEIGHTS, STILE_LEGACY_ADULTI, STILE_LEGACY_BAMBINI, SWAP_CONTEXT_HOURS } from './constants';
 import { logCalc } from '@/db/synclog';
+
+// ── Ricerca ingredienti per tag/sottostringa ──────────────────────
+// "soia" → tutto ciò che contiene "soia" nel nome O nei tag.
+// Normalizza accenti e maiuscole. Ordina: prima i match nel nome, poi nei tag.
+function _norm(s) {
+  return (s || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+export function cercaIngredienti(query, sorgente, escludiIds) {
+  const lista = sorgente || INGREDIENTS;
+  const q = _norm(query).trim();
+  if (!q) return [];
+  const escl = escludiIds instanceof Set ? escludiIds : new Set(escludiIds || []);
+  const termini = q.split(/\s+/).filter(Boolean);   // "latte soia" → ["latte","soia"]
+  const out = [];
+  for (const ing of lista) {
+    if (escl.has(ing.id)) continue;
+    const nome = _norm(ing.nome);
+    const tags = (ing.tags || []).map(_norm);
+    // ogni termine deve comparire nel nome o in almeno un tag
+    const ok = termini.every(t => nome.includes(t) || tags.some(tag => tag.includes(t)));
+    if (!ok) continue;
+    // punteggio: nome che inizia con la query > nome che la contiene > solo tag
+    let score = 2;
+    if (nome.includes(q)) score = nome.startsWith(q) ? 0 : 1;
+    out.push({ ing, score });
+  }
+  out.sort((a, b) => a.score - b.score || a.ing.nome.length - b.ing.nome.length);
+  return out.map(o => o.ing);
+}
 
 export function nutriPerGrammi(ingId, grammi) {
   const n = (ING_MAP[ingId] || {}).nutri;
