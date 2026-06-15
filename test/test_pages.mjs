@@ -57,12 +57,45 @@ for (const [txt, marker] of [['Piano','piano'],['Spesa','Per quali giorni'],['Mi
   const h = document.body.innerHTML;
   ok(`pagina ${txt} non crasha`, !h.includes('Qualcosa si è inceppato') && h.length > 500);
 }
+
+// Piano: cliccare sul nome del piatto deve espandere la sezione "Porzione"
+await clickByText('Piano');
+await new Promise(r=>setTimeout(r,200));
+const beforeClick = document.body.innerHTML;
+const hadPorzioneBefore = /📏 Porzione/.test(beforeClick);
+const nameDivs = [...document.querySelectorAll('div')].filter(d =>
+  d.children.length === 0 && d.textContent.trim().length > 3 &&
+  d.getAttribute('style') && d.getAttribute('style').includes('cursor: pointer') &&
+  d.getAttribute('style').includes('font-weight: 600')
+);
+if (nameDivs[0]) nameDivs[0].click();
+await new Promise(r=>setTimeout(r,250));
+const afterClick = document.body.innerHTML;
+ok('click sul nome del piatto espande la porzione', !hadPorzioneBefore && /📏 Porzione/.test(afterClick) && nameDivs.length > 0);
+
 // menu → opzioni
 await clickByText('Menu');
 await new Promise(r=>setTimeout(r,200));
 const wentOpz = await clickByText('Opzioni') || await clickByText('Promemoria') || await clickByText('Notifiche');
 const hOpz = document.body.innerHTML;
 ok('pagina Opzioni non crasha', !hOpz.includes('Qualcosa si è inceppato'));
+
+// menu → ricette → tab Catalogo → espandi una categoria
+await clickByText('Menu');
+await new Promise(r=>setTimeout(r,200));
+const wentRicette = await clickByText('Ricette');
+const hRicette = document.body.innerHTML;
+ok('pagina Ricette non crasha', wentRicette && !hRicette.includes('Qualcosa si è inceppato'));
+
+await clickByText('Catalogo');
+await new Promise(r=>setTimeout(r,200));
+const hCatalogo = document.body.innerHTML;
+ok('tab Catalogo mostra le categorie', /Colazione|Pranzo|Cena|Spuntino/.test(hCatalogo) && !hCatalogo.includes('Qualcosa si è inceppato'));
+
+await clickByText('Colazione');
+await new Promise(r=>setTimeout(r,200));
+const hCatExpanded = document.body.innerHTML;
+ok('categoria Colazione del catalogo si espande con ricette', /kcal/.test(hCatExpanded) && !hCatExpanded.includes('Qualcosa si è inceppato'));
 
 console.error = origErr;
 ok('nessun errore React durante la navigazione', reactErrors.length === 0);

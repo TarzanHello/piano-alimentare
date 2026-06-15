@@ -169,7 +169,10 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
       {/* ── Corpo principale ── */}
       <div style={{padding:"10px 14px"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:8}}>
-          <div style={{fontSize:isSnack?12:13,fontWeight:600,color:"#1e293b",lineHeight:1.4,flex:1}}>{meal.nome}</div>
+          <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}
+            style={{fontSize:isSnack?12:13,fontWeight:600,color:"#1e293b",lineHeight:1.4,flex:1,cursor:"pointer",userSelect:"none"}}>
+            {meal.nome}
+          </div>
           <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
             {/* Bottone like */}
             <button

@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useMemo, useCallback } = React;
-import { INGREDIENTS, ING_MAP, calcMacroEditor, cercaIngredienti, nutriPerGrammi } from '@/core';
+import { DB, INGREDIENTS, ING_MAP, calcMacroEditor, cercaIngredienti, nutriPerGrammi } from '@/core';
 import { EmptyState } from '@/components/shared';
 import { caricaRicette, creaRicetta, aggiornaRicetta, eliminaRicetta, cambiaScopeRicetta } from '@/db/ricetteCloud';
 
@@ -168,8 +168,35 @@ function CardRicetta({ r, mine, onEdit, onDelete, onToggleScope }) {
   );
 }
 
+// ── Scheda ricetta del catalogo preimpostato (CRA-NUT) ──────────────
+// Mostra il tempo di preparazione ben in vista, come nel Ricettario
+// aperto dal cambio pasto. Macro di riferimento: taglia "uomo".
+function CardCatalogo({ r }) {
+  const m = r.uomo || { kcal: 0, p: 0, c: 0, g: 0 };
+  const prep = r.prep;
+  const prepColor = prep == null ? "#94a3b8" : prep <= 15 ? "#16a34a" : prep <= 30 ? "#d97706" : "#dc2626";
+  const prepBg    = prep == null ? "#f8fafc"  : prep <= 15 ? "#f0fdf4" : prep <= 30 ? "#fffbeb" : "#fef2f2";
+  const prepLabel = prep == null ? "—" : prep >= 60 ? `${prep / 60}h` : `${prep}'`;
+  return (
+    <div style={{ ...card, display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 7 }}>
+      <div style={{ flexShrink: 0, width: 42, height: 42, borderRadius: 9, background: prepBg, border: `1.5px solid ${prepColor}30`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: prepColor }}>⏱{prepLabel}</span>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, lineHeight: 1.3 }}>{r.nome}</div>
+        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 3 }}>
+          {Math.round(m.kcal)} kcal · P {Math.round(m.p)} · C {Math.round(m.c)} · G {Math.round(m.g)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export function RicettePage({ cloudStatus, overrides }) {
   const [vista, setVista]   = useState("lista");   // "lista" | "editor"
+  const [tab, setTab]       = useState("mie");     // "mie" | "catalogo"
+  const [catAperte, setCatAperte] = useState({});  // { [categoria]: bool }
   const [editing, setEditing] = useState(null);
   const [ricette, setRicette] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -218,49 +245,92 @@ export function RicettePage({ cloudStatus, overrides }) {
     <div style={{ padding: "16px 16px 100px", maxWidth: 600, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>📖 Ricette</h2>
-        {collegato && <button onClick={() => { setEditing(null); setVista("editor"); }} style={btnPrimary}>+ Nuova</button>}
+        {collegato && tab === "mie" && <button onClick={() => { setEditing(null); setVista("editor"); }} style={btnPrimary}>+ Nuova</button>}
       </div>
 
-      {!collegato && (
-        <EmptyState emoji="☁️" title="Collegati per le ricette"
-          text="Le ricette sono salvate sul cloud e condivise con la tua famiglia. Accedi col tuo account per crearle e vederle." />
-      )}
+      {/* ── Switcher: Le mie ricette / Catalogo ── */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <button onClick={() => setTab("mie")}
+          style={{ ...btnGhost, flex: 1, background: tab === "mie" ? "#dbeafe" : "#fff", borderColor: tab === "mie" ? "#2563eb" : "#cbd5e1", color: tab === "mie" ? "#1d4ed8" : "#475569" }}>
+          👤 Le mie ricette
+        </button>
+        <button onClick={() => setTab("catalogo")}
+          style={{ ...btnGhost, flex: 1, background: tab === "catalogo" ? "#dbeafe" : "#fff", borderColor: tab === "catalogo" ? "#2563eb" : "#cbd5e1", color: tab === "catalogo" ? "#1d4ed8" : "#475569" }}>
+          📚 Catalogo
+        </button>
+      </div>
 
-      {collegato && (
+      {tab === "mie" && (
         <>
-          {errore && <div style={{ color: "#dc2626", fontSize: 13, marginBottom: 10 }}>{errore}</div>}
-          {loading && <div style={{ color: "#94a3b8", fontSize: 14, padding: 20, textAlign: "center" }}>Caricamento…</div>}
+          {!collegato && (
+            <EmptyState emoji="☁️" title="Collegati per le ricette"
+              text="Le ricette sono salvate sul cloud e condivise con la tua famiglia. Accedi col tuo account per crearle e vederle." />
+          )}
 
-          {!loading && (
+          {collegato && (
             <>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#475569", margin: "8px 0" }}>Le mie ricette</h3>
-              {mie.length === 0
-                ? <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 14 }}>Nessuna ricetta tua. Tocca “+ Nuova” per crearne una come combinazione di ingredienti.</div>
-                : mie.map(r => (
-                    <CardRicetta key={r.id} r={r} mine
-                      onEdit={() => { setEditing(r); setVista("editor"); }}
-                      onDelete={async () => { if (confirm("Eliminare questa ricetta?")) { await eliminaRicetta(r.id); ricarica(); } }}
-                      onToggleScope={async () => { await cambiaScopeRicetta(r.id, r.scope === "privata" ? "famiglia" : "privata"); ricarica(); }} />
-                  ))}
+              {errore && <div style={{ color: "#dc2626", fontSize: 13, marginBottom: 10 }}>{errore}</div>}
+              {loading && <div style={{ color: "#94a3b8", fontSize: 14, padding: 20, textAlign: "center" }}>Caricamento…</div>}
 
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#475569", margin: "16px 0 8px" }}>Ricette di famiglia</h3>
-              {diFamiglia.length === 0
-                ? <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 14 }}>Nessuna ricetta condivisa dagli altri membri.</div>
-                : diFamiglia.map(r => <CardRicetta key={r.id} r={r} />)}
+              {!loading && (
+                <>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "#475569", margin: "8px 0" }}>Le mie ricette</h3>
+                  {mie.length === 0
+                    ? <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 14 }}>Nessuna ricetta tua. Tocca “+ Nuova” per crearne una come combinazione di ingredienti.</div>
+                    : mie.map(r => (
+                        <CardRicetta key={r.id} r={r} mine
+                          onEdit={() => { setEditing(r); setVista("editor"); }}
+                          onDelete={async () => { if (confirm("Eliminare questa ricetta?")) { await eliminaRicetta(r.id); ricarica(); } }}
+                          onToggleScope={async () => { await cambiaScopeRicetta(r.id, r.scope === "privata" ? "famiglia" : "privata"); ricarica(); }} />
+                      ))}
 
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#475569", margin: "16px 0 8px" }}>Personalizzazioni del piano</h3>
-              {personalizzazioni.length === 0
-                ? <div style={{ fontSize: 13, color: "#94a3b8" }}>Quando personalizzi un pasto nel piano, lo ritrovi qui.</div>
-                : personalizzazioni.map((p, i) => (
-                    <div key={p.chiave + i} style={card}>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>✏️ {p.nome}</div>
-                      <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
-                        {Math.round(p.macro.kcal || 0)} kcal · P {Math.round(p.macro.p || 0)} · C {Math.round(p.macro.c || 0)} · G {Math.round(p.macro.g || 0)}
-                      </div>
-                    </div>
-                  ))}
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "#475569", margin: "16px 0 8px" }}>Ricette di famiglia</h3>
+                  {diFamiglia.length === 0
+                    ? <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 14 }}>Nessuna ricetta condivisa dagli altri membri.</div>
+                    : diFamiglia.map(r => <CardRicetta key={r.id} r={r} />)}
+
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "#475569", margin: "16px 0 8px" }}>Personalizzazioni del piano</h3>
+                  {personalizzazioni.length === 0
+                    ? <div style={{ fontSize: 13, color: "#94a3b8" }}>Quando personalizzi un pasto nel piano, lo ritrovi qui.</div>
+                    : personalizzazioni.map((p, i) => (
+                        <div key={p.chiave + i} style={card}>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>✏️ {p.nome}</div>
+                          <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
+                            {Math.round(p.macro.kcal || 0)} kcal · P {Math.round(p.macro.p || 0)} · C {Math.round(p.macro.c || 0)} · G {Math.round(p.macro.g || 0)}
+                          </div>
+                        </div>
+                      ))}
+                </>
+              )}
             </>
           )}
+        </>
+      )}
+
+      {/* ── Catalogo preimpostato (CRA-NUT), diviso per pasto ── */}
+      {tab === "catalogo" && (
+        <>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12, lineHeight: 1.5 }}>
+            Tutte le ricette del catalogo, divise per pasto. Macro di riferimento per la taglia "uomo"; nel piano vengono adattate al profilo di ciascuno.
+          </div>
+          {CAT.map(c => {
+            const ricette = DB[c.key] || [];
+            const aperta = catAperte[c.key] ?? false;
+            return (
+              <div key={c.key} style={{ marginBottom: 10 }}>
+                <button onClick={() => setCatAperte(p => ({ ...p, [c.key]: !aperta }))}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14, color: "#1e293b" }}>
+                  <span>{c.icon} {c.label} <span style={{ color: "#94a3b8", fontWeight: 600, fontSize: 12 }}>· {ricette.length} ricette</span></span>
+                  <span style={{ color: "#cbd5e1", fontSize: 11 }}>{aperta ? "▲" : "▼"}</span>
+                </button>
+                {aperta && (
+                  <div style={{ marginTop: 8 }}>
+                    {ricette.map(r => <CardCatalogo key={r.id} r={r} />)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </>
       )}
     </div>
