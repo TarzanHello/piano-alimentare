@@ -34,6 +34,12 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
 
   const persona = personas.find(p=>p.id===selPid)||personas[0];
 
+  // Etichetta del campo "petto/seno" adattata al sesso della persona
+  // selezionata: "Petto" per gli uomini, "Seno" per le donne.
+  const campi = useMemo(() => TUTTI_FIELDS.map(f =>
+    f.key === "petto" ? { ...f, label: persona?.sesso === "F" ? "Seno" : "Petto" } : f
+  ), [persona?.sesso]);
+
   // ── apertura form ──
   const openNew = () => {
     setForm(emptyForm());
@@ -103,7 +109,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
         {/* Circonferenze 2 colonne */}
         <div style={{fontSize:10,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>Circonferenze (cm)</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
-          {TUTTI_FIELDS.filter(f=>f.key!=="peso").map(f=>(
+          {campi.filter(f=>f.key!=="peso").map(f=>(
             <div key={f.key}>
               <label style={{fontSize:10,fontWeight:700,color:f.color,textTransform:"uppercase",letterSpacing:0.8,display:"block",marginBottom:4}}>
                 {f.emoji} {f.label}
@@ -179,7 +185,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
           const massaGrassaKg = pctG!==null ? pesoVal*pctG/100 : null;
           const massaMagraKg  = pctG!==null ? pesoVal*(1-pctG/100) : null;
           const deficit = target.kcal - target.tdeeFinale;
-          const circonf = TUTTI_FIELDS.filter(f=>f.key!=="peso");
+          const circonf = campi.filter(f=>f.key!=="peso");
           const pesoRecs = allRecs.filter(r=>!isNaN(parseFloat(r.peso)));
 
           // ── Definizione delle 6 schede ──
@@ -297,7 +303,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
                 if (!conDati.length) return (
                   <div style={{textAlign:"center",color:"#94a3b8",fontSize:13,padding:"30px 10px"}}>
                     <div style={{fontSize:36,marginBottom:10}}>📏</div>
-                    Nessuna circonferenza registrata.<br/>Aggiungi vita, fianchi, petto… con ➕.
+                    Nessuna circonferenza registrata.<br/>Aggiungi vita, fianchi, petto/seno… con ➕.
                   </div>
                 );
                 return (
@@ -431,7 +437,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
                 </div>
                 {/* Griglia valori */}
                 <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
-                  {TUTTI_FIELDS.map(f=>{
+                  {campi.map(f=>{
                     const val = rec[f.key];
                     const hasVal = val!==""&&val!==undefined&&!isNaN(parseFloat(val));
                     const prevVal = prevRec ? parseFloat(prevRec[f.key]) : NaN;

@@ -51,12 +51,14 @@ function profiloToPersona(p) {
   return {id:p.id,nome:p.nome,sesso:p.sesso,eta:dataNascitaToEta(p.data_nascita)??30,
     dataNascita:p.data_nascita||null,peso:p.peso!=null?+p.peso:70,altezza:p.altezza!=null?+p.altezza:170,
     lavoro:p.lavoro||"sedentario",allenamenti:p.allenamenti??3,obiettivo:p.obiettivo||"mantenimento",
+    dietaIntensita:p.dieta_intensita??null,
     color:p.color||"#2563eb",_uid:p.user_id||null,_gestito:!p.user_id};
 }
 function personaToProfilo(p) {
   return {nome:p.nome,sesso:p.sesso==="F"?"F":"M",data_nascita:p.dataNascita||etaToDataNascita(p.eta),
     peso:p.peso??null,altezza:p.altezza??null,lavoro:p.lavoro||"sedentario",
-    allenamenti:p.allenamenti??3,obiettivo:p.obiettivo||"mantenimento",color:p.color||"#2563eb"};
+    allenamenti:p.allenamenti??3,obiettivo:p.obiettivo||"mantenimento",color:p.color||"#2563eb",
+    dieta_intensita:p.dietaIntensita??null};
 }
 const editable = (p) => !p._uid || p.id===me?.profiloId;
 
