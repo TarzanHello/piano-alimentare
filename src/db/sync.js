@@ -70,7 +70,19 @@ async function pullProfili() {
   data.sort((a,b)=>(a.user_id===me.userId?0:a.user_id?1:2)-(b.user_id===me.userId?0:b.user_id?1:2));
   const locali=await getLocal(SK_PERSONAS,[]);
   const byId=Object.fromEntries(locali.map(p=>[p.id,p]));
-  const personas=data.map(c=>({...(byId[c.id]||{}),...profiloToPersona(c)}));
+  const personas=data.map(c=>{
+    const locale=byId[c.id]||{};
+    const dalCloud=profiloToPersona(c);
+    // Non lasciare che un cloud "dieta_intensita: null" (riga non ancora
+    // aggiornata, o colonna non visibile per cache schema PostgREST non
+    // ricaricata dopo l'ALTER TABLE) azzeri un valore impostato in locale:
+    // finché il cloud non riporta un numero, manteniamo quello locale —
+    // verrà ripropagato dal prossimo push.
+    if (dalCloud.dietaIntensita===null && locale.dietaIntensita!=null) {
+      dalCloud.dietaIntensita=locale.dietaIntensita;
+    }
+    return {...locale,...dalCloud};
+  });
   const soloLocali=await getLocal("pf-local-only",[]);
   for (const p of locali) if (soloLocali.includes(p.id)&&!personas.some(x=>x.id===p.id)) personas.push(p);
   await setLocalQuiet(SK_PERSONAS,JSON.stringify(personas));
