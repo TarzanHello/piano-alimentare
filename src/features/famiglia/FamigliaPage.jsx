@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { COLORS, LAVORI, OBIETTIVI, SESSI, calcTarget, calcTargetAdattivo, decodeSeed, emojiBySesso, encodeSeed, normalizeAttivita } from '@/core';
+import { COLORS, LAVORI, OBIETTIVI, SESSI, calcTarget, calcTargetAdattivo, calcPesoObiettivo, decodeSeed, emojiBySesso, encodeSeed, normalizeAttivita } from '@/core';
 import { AccountCard } from './AccountCard';
 
 export function PersonaForm({ persona, onSave, onCancel, isNew }) {
@@ -71,6 +71,11 @@ export function PersonaForm({ persona, onSave, onCancel, isNew }) {
           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
             {OBIETTIVI.map(o=><button key={o.key} onClick={()=>set("obiettivo",o.key)} style={{padding:"6px 11px",borderRadius:7,border:"2px solid",borderColor:form.obiettivo===o.key?form.color:"#e2e8f0",background:form.obiettivo===o.key?form.color:"#fff",color:form.obiettivo===o.key?"#fff":"#64748b",fontWeight:700,fontSize:11,cursor:"pointer"}}>{o.label}</button>)}
           </div>
+        </div>
+      )}
+      {!isBambino && form.obiettivo !== "mantenimento" && (
+        <div style={{marginBottom:12}}>
+          <PesoTargetPicker persona={form} lastMisura={null} onUpdate={updated=>setForm(updated)}/>
         </div>
       )}
       <div style={{marginBottom:14}}>
@@ -295,3 +300,70 @@ export function IntensitaDieta({ persona, onUpdate }) {
     </div>
   );
 }
+
+// ─── PesoTargetPicker ────────────────────────────────────────────────
+// Widget inline per selezionare il peso obiettivo: automatico (formula)
+// oppure manuale con slider. Usato in UtentePage e PersonaForm.
+export function PesoTargetPicker({ persona, lastMisura, onUpdate }) {
+  const p = persona;
+  const isManuale = p.pesoTarget != null;
+  const autoResult = calcPesoObiettivo({ ...p, pesoTarget: null }, lastMisura ?? null);
+  const altM = (p.altezza || 170) / 100;
+  const bmiMin = Math.max(30, Math.round(18.5 * altM * altM * 2) / 2);
+  const bmiMax = Math.min(200, Math.round(30 * altM * altM * 2) / 2);
+  const pesoAttuale = lastMisura ? (parseFloat(lastMisura.peso) || parseFloat(p.peso) || 70) : (parseFloat(p.peso) || 70);
+  // Suggerisce un default ragionevole per il manuale: target automatico o peso attuale
+  const defaultManuale = Math.min(bmiMax, Math.max(bmiMin, autoResult.peso));
+  const valore = isManuale ? parseFloat(p.pesoTarget) : autoResult.peso;
+  const delta = pesoAttuale - valore;
+  const deltaColor = Math.abs(delta) < 0.3 ? "#16a34a" : delta > 0 ? "#2563eb" : "#d97706";
+  const deltaLabel = Math.abs(delta) < 0.3 ? "raggiunto" : (delta > 0 ? `−${delta.toFixed(1)} kg` : `+${Math.abs(delta).toFixed(1)} kg`);
+  return (
+    <div style={{marginTop:10,padding:"10px 12px",background:"#f8fafc",borderRadius:9,border:"1px solid #e2e8f0"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <span style={{fontSize:10,fontWeight:800,color:"#475569",textTransform:"uppercase",letterSpacing:0.5}}>🎯 Peso obiettivo</span>
+        <div style={{display:"flex",gap:4}}>
+          <button onClick={()=>onUpdate({...p,pesoTarget:null})}
+            style={{padding:"3px 9px",borderRadius:6,border:`1.5px solid ${!isManuale?"#2563eb":"#e2e8f0"}`,background:!isManuale?"#dbeafe":"#fff",color:!isManuale?"#1d4ed8":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+            Auto
+          </button>
+          <button onClick={()=>onUpdate({...p,pesoTarget:isManuale?p.pesoTarget:defaultManuale})}
+            style={{padding:"3px 9px",borderRadius:6,border:`1.5px solid ${isManuale?"#7c3aed":"#e2e8f0"}`,background:isManuale?"#ede9fe":"#fff",color:isManuale?"#6d28d9":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+            Manuale
+          </button>
+        </div>
+      </div>
+      {isManuale ? (
+        <>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+            <input type="range" min={bmiMin} max={bmiMax} step={0.5} value={parseFloat(p.pesoTarget)||defaultManuale}
+              onChange={e=>onUpdate({...p,pesoTarget:parseFloat(e.target.value)})}
+              style={{flex:1,margin:0}}/>
+            <input type="number" min={bmiMin} max={bmiMax} step={0.5}
+              value={parseFloat(p.pesoTarget)||defaultManuale}
+              onChange={e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>=30&&v<=200)onUpdate({...p,pesoTarget:v});}}
+              style={{width:60,padding:"4px 6px",border:"1.5px solid #7c3aed60",borderRadius:7,fontSize:13,fontWeight:700,fontFamily:"monospace",textAlign:"center",outline:"none",color:"#6d28d9"}}/>
+            <span style={{fontSize:11,color:"#64748b",flexShrink:0}}>kg</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#94a3b8"}}>
+            <span>BMI 18.5 → {bmiMin} kg</span>
+            <span style={{color:deltaColor,fontWeight:700}}>{deltaLabel}</span>
+            <span>BMI 30 → {bmiMax} kg</span>
+          </div>
+        </>
+      ) : (
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{flex:1}}>
+            <span style={{fontSize:16,fontWeight:900,fontFamily:"monospace",color:"#1e293b"}}>{autoResult.peso} </span>
+            <span style={{fontSize:11,color:"#64748b"}}>kg</span>
+            <span style={{marginLeft:8,fontSize:10,color:deltaColor,fontWeight:700}}>({deltaLabel})</span>
+          </div>
+          <div style={{fontSize:9,color:"#94a3b8",textAlign:"right",lineHeight:1.4}}>
+            {autoResult.metodo}<br/>{autoResult.descrizione}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

@@ -3,7 +3,8 @@
 // Regola unica: chi ha scritto per ultimo sul cloud ha ragione.
 
 import { SK_EXCL, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_OVERRIDES,
-         SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA } from '@/core/constants';
+         SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO } from '@/core/constants';
+import { calcTargetAdattivo } from '@/core/engine';
 import { dataNascitaToEta, etaToDataNascita, getSession, supabase } from './cloud';
 import { logSync } from './synclog';
 
@@ -52,13 +53,15 @@ function profiloToPersona(p) {
     dataNascita:p.data_nascita||null,peso:p.peso!=null?+p.peso:70,altezza:p.altezza!=null?+p.altezza:170,
     lavoro:p.lavoro||"sedentario",allenamenti:p.allenamenti??3,obiettivo:p.obiettivo||"mantenimento",
     dietaIntensita:p.dieta_intensita??null,
+    pesoTarget:p.peso_target!=null?+p.peso_target:null,
     color:p.color||"#2563eb",_uid:p.user_id||null,_gestito:!p.user_id};
 }
 function personaToProfilo(p) {
   return {nome:p.nome,sesso:p.sesso==="F"?"F":"M",data_nascita:p.dataNascita||etaToDataNascita(p.eta),
     peso:p.peso??null,altezza:p.altezza??null,lavoro:p.lavoro||"sedentario",
     allenamenti:p.allenamenti??3,obiettivo:p.obiettivo||"mantenimento",color:p.color||"#2563eb",
-    dieta_intensita:p.dietaIntensita??null};
+    dieta_intensita:p.dietaIntensita??null,
+    peso_target:p.pesoTarget??null};
 }
 const editable = (p) => !p._uid || p.id===me?.profiloId;
 
@@ -111,6 +114,56 @@ async function pullMealsLog() {
   await setLocalQuiet(SK_MEALS_LOG,JSON.stringify(log));
   logSync("pull","Log pasti aggiornato dal cloud",{profili:data.length});
   emit("mealsLog");
+}
+
+// Legge i target giornalieri pushati dai rispettivi owner e li salva in cache
+// locale indicizzata per profilo_id. Emette "targetGiornaliero" per aggiornare
+// l'App senza ricalcolo locale.
+async function pullTargetGiornaliero() {
+  const {data,error}=await supabase.from("profilo_dati").select("*").eq("chiave","target_giornaliero");
+  if (error||!data) { if(error) logSync("error","Pull target giornaliero: errore",{error:error.message}); return; }
+  const cache=await getLocal(SK_TARGET_GIORNALIERO,{});
+  for (const r of data) if (r.valore) cache[r.profilo_id]=r.valore;
+  await setLocalQuiet(SK_TARGET_GIORNALIERO,JSON.stringify(cache));
+  logSync("pull","Target giornalieri aggiornati dal cloud",{profili:data.length});
+  emit("targetGiornaliero");
+}
+
+// Push il target calcolato dall'owner su profilo_dati. Chiamato solo per le
+// persone editabili (il proprietario del profilo). Il target è la fonte di
+// verità per tutti gli altri dispositivi: sovrascrive il ricalcolo locale,
+// eliminando la finestra di disallineamento durante i drag in-flight.
+export async function pushTargetGiornaliero(persona, targetObj) {
+  if (!supabase||!me) return;
+  if (!editable(persona)) return;
+  if (!targetObj||!targetObj.kcal) return;
+  // Salva in cache locale immediatamente (nessun round-trip necessario)
+  const cache=await getLocal(SK_TARGET_GIORNALIERO,{});
+  cache[persona.id]=targetObj;
+  await setLocalQuiet(SK_TARGET_GIORNALIERO,JSON.stringify(cache));
+  emit("targetGiornaliero");
+  // Push cloud (fire-and-forget: l'errore non è critico, il fallback locale è sempre disponibile)
+  const {error}=await supabase.from("profilo_dati").upsert(
+    {profilo_id:persona.id, chiave:"target_giornaliero", valore:targetObj},
+    {onConflict:"profilo_id,chiave"}
+  );
+  if (error) logSync("error","Push target giornaliero: errore",{profilo:persona.id,error:error.message});
+  else logSync("push","Target giornaliero caricato sul cloud",{profilo:persona.id,kcal:targetObj.kcal});
+}
+
+// Calcola e pusha il target per tutte le persone editabili (chiamato da hookStorage
+// dopo SK_PERSONAS o SK_MISURE, con debounce 1200ms per attendere che i push
+// profili/misure abbiano già completato).
+async function pushTargetTuttiEditabili() {
+  const personas=await getLocal(SK_PERSONAS,[]);
+  const misureApp=await getLocal(SK_MISURE,{});
+  for (const p of personas) {
+    if (!editable(p)) continue;
+    try {
+      const t=calcTargetAdattivo(p, misureApp[p.id]||[]);
+      await pushTargetGiornaliero(p, t);
+    } catch {}
+  }
 }
 
 async function pullPiano() {
@@ -323,6 +376,11 @@ function hookStorage() {
       logSync("push-schedule","Push pianificato: profili");
       clearTimeout(timers.__pushPersonas);
       timers.__pushPersonas=setTimeout(pushPersonas,900);
+      // Dopo che il push profili ha completato (1200ms), ricalcola e pusha
+      // il target giornaliero per tutte le persone editabili, usando i dati
+      // definitivi appena scritti.
+      clearTimeout(timers.__pushTarget);
+      timers.__pushTarget=setTimeout(async()=>{delete timers.__pushTarget;await pushTargetTuttiEditabili();},1200);
     } else if (key===SK_MISURE) {
       logSync("push-schedule","Push pianificato: misure");
       clearTimeout(timers.__pushMisure);
@@ -335,6 +393,8 @@ function hookStorage() {
           if (error) logSync("error","Push misure: errore",{error:error.message});
           else logSync("push","Misure caricate sul cloud",{righe:rows.length});
         }
+        // Ricalcola il target dopo aggiornamento misure (le misure influenzano il TDEE adattivo)
+        await pushTargetTuttiEditabili();
       },900);
     } else if (key===SK_MEALS_LOG) {
       logSync("push-schedule","Push pianificato: log pasti");
@@ -377,7 +437,7 @@ function subscribeRealtime() {
   channel
     .on("postgres_changes",{event:"*",schema:"public",table:"profili"},()=>{logSync("realtime","Evento ricevuto: profili");pullProfili();})
     .on("postgres_changes",{event:"*",schema:"public",table:"misure"},()=>{logSync("realtime","Evento ricevuto: misure");pullMisure();})
-    .on("postgres_changes",{event:"*",schema:"public",table:"profilo_dati"},()=>{logSync("realtime","Evento ricevuto: log pasti");pullMealsLog();})
+    .on("postgres_changes",{event:"*",schema:"public",table:"profilo_dati"},()=>{logSync("realtime","Evento ricevuto: profilo_dati");pullMealsLog();pullTargetGiornaliero();})
     .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_dati",filter:famFilter},(p)=>{
       const chiave=p?.new?.chiave||p?.old?.chiave;
       logSync("realtime","Evento ricevuto: dati famiglia",{chiave});
@@ -486,8 +546,11 @@ async function reconcile() {
   if(!chiaviCloud.has("gusti"))      { logSync("info","Riconciliazione: gusti assenti sul cloud, li carico"); await pushFamigliaDato("gusti",await getLocal(SK_PREFS,{})); }
   if(!chiaviCloud.has("esclusioni")) { logSync("info","Riconciliazione: esclusioni assenti sul cloud, le carico"); await pushFamigliaDato("esclusioni",await getLocal(SK_EXCL,[])); }
   await pullAltriDatiFamiglia();
-  await pullProfili();await pullMisure();await pullMealsLog();
+  await pullProfili();await pullMisure();await pullMealsLog();await pullTargetGiornaliero();
   await pushMisureSoloNuove();await pushMealsLogSoloVuoti();
+  // Pusha il target calcolato per le persone editabili su questo dispositivo,
+  // così gli altri membri lo leggono subito senza ricalcolo locale
+  await pushTargetTuttiEditabili();
   await pullSpesa();
   logSync("info","Riconciliazione con il cloud: completata");
 }
@@ -523,7 +586,7 @@ export async function resetSyncState() {
   if(channel){try{supabase.removeChannel(channel);}catch{}channel=null;}
   clearInterval(timers.__poll);clearTimeout(timers.__rt);
   clearTimeout(timers.__pushPiano);clearTimeout(timers.__pullPianoRetry);
-  clearTimeout(timers.__pianoLockRelease);
+  clearTimeout(timers.__pianoLockRelease);clearTimeout(timers.__pushTarget);
   me=null;pianoLock=false;lastPushedPianoSeed=0;
   // resetta i flag globali così un nuovo boot può ri-registrare i listener
   window.__syncAuthListenerRegistered = false;
@@ -543,10 +606,10 @@ export async function riallineaForzato() {
   if(!mio.famiglia_id){try{await window.storage.delete("pf-cloud-migrated");}catch{} logSync("info","Riallineamento forzato: completato (nessuna famiglia)"); return{ok:true,inFamily:false};}
   await ancoraIdentitaAlCloud();
   await pullPiano();await pullAltriDatiFamiglia();
-  await pullProfili();await pullMisure();await pullMealsLog();await pullSpesa();
+  await pullProfili();await pullMisure();await pullMealsLog();await pullTargetGiornaliero();await pullSpesa();
   await window.storage.set("pf-cloud-migrated","1");
   subscribeRealtime();
-  emit("personas");emit("misure");emit("mealsLog");emit("spesa");
+  emit("personas");emit("misure");emit("mealsLog");emit("targetGiornaliero");emit("spesa");
   logSync("info","Riallineamento forzato: completato");
   return {ok:true,inFamily:true};
 }

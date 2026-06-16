@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, buildShoppingForDays, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
+import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO, buildShoppingForDays, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
 import { SwipeContainer } from '@/components/shared';
 import { FamigliaPage } from '@/features/famiglia/FamigliaPage';
 import { GustiPage } from '@/features/gusti/GustiPage';
@@ -11,7 +11,7 @@ import { OpzioniPage } from '@/features/opzioni/OpzioniPage';
 import { OggiPage } from '@/features/oggi/OggiPage';
 import { MigrationWizard } from '@/features/famiglia/MigrationWizard';
 import { UtentePage } from '@/features/utente/UtentePage';
-import { startSync, autoClaimSingle } from '@/db/sync';
+import { startSync, autoClaimSingle, pushTargetGiornaliero } from '@/db/sync';
 import { Onboarding } from '@/features/onboarding/Onboarding';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SyncTestPage } from '@/features/test/SyncTestPage';
@@ -44,6 +44,9 @@ export function App() {
   const [mealsLog, setMealsLog]       = useState({});
   const [notifSettings, setNotifSettings] = useState(DEFAULT_NOTIF);
   const [swUpdate, setSwUpdate]       = useState(false); // nuova versione disponibile
+  // Cache dei target giornalieri pushati dagli owner: { [profilo_id]: targetObj }
+  // Usato da personaTarget per i profili non-propri (fonte di verità cloud).
+  const [targetsCloud, setTargetsCloud] = useState({});
 
   // ── Cloud sync: avvio, stato e applicazione degli aggiornamenti remoti ──
   useEffect(()=>{
@@ -70,6 +73,7 @@ export function App() {
         case "excluded": { const v = await read(SK_EXCL, null); if (Array.isArray(v)) { setExcluded(v); } break; }
         case "spesa":    { const v = await read(SK_SPESA, null); if (v) setSpesaChecks(v); break; }
         case "history":  { const v = await read(SK_HISTORY, null); if (Array.isArray(v)) setHistory(v); break; }
+        case "targetGiornaliero": { const v = await read(SK_TARGET_GIORNALIERO, null); if (v) setTargetsCloud(v); break; }
         case "piano":    {
           const seedCloud = parseInt(e.detail.seed, 10), ovrCloud = e.detail.overrides || {};
           if (isNaN(seedCloud) || seedCloud <= 0) break;
@@ -245,13 +249,45 @@ export function App() {
   },[]);
 
   const handleUpdatePersona = useCallback((updated)=>{
-    setPersonas(prev=>{ const next=prev.map(p=>p.id===updated.id?updated:p); window.storage.set(SK_PERSONAS,JSON.stringify(next)).catch(()=>{}); return next; });
-  },[]);
+    setPersonas(prev=>{
+      const next=prev.map(p=>p.id===updated.id?updated:p);
+      window.storage.set(SK_PERSONAS,JSON.stringify(next)).catch(()=>{});
+      // Push immediato del target se il profilo aggiornato è dell'owner:
+      // evita la finestra di stale durante i drag in-flight (dietaIntensita, pesoTarget, ecc.)
+      if (updated.id === myPersonaId) {
+        try {
+          const t = calcTargetAdattivo(updated, (misureApp||{})[updated.id]||[]);
+          pushTargetGiornaliero(updated, t).catch(()=>{});
+        } catch {}
+      }
+      return next;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[myPersonaId, misureApp]);
 
   const handleAddPersona = useCallback((p)=>{
     setPersonas(prev=>{ const next=[...prev,p]; window.storage.set(SK_PERSONAS,JSON.stringify(next)).catch(()=>{}); return next; });
     setSelPersonaId(p.id);
   },[]);
+
+  // Wrapper per setMisureApp: dopo ogni aggiornamento misure, ricalcola e
+  // pusha il target dell'owner (le misure influenzano il TDEE adattivo).
+  const handleMisureChange = useCallback((nextMisure)=>{
+    setMisureApp(nextMisure);
+    if (myPersonaId) {
+      setPersonas(prev=>{
+        const owner=prev.find(p=>p.id===myPersonaId);
+        if (owner) {
+          try {
+            const t=calcTargetAdattivo(owner,(nextMisure||{})[myPersonaId]||[]);
+            pushTargetGiornaliero(owner,t).catch(()=>{});
+          } catch {}
+        }
+        return prev;
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[myPersonaId]);
 
   const handleDeletePersona = useCallback((id)=>{
     setPersonas(prev=>{ const next=prev.filter(p=>p.id!==id); window.storage.set(SK_PERSONAS,JSON.stringify(next)).catch(()=>{}); if(selPersonaId===id) setSelPersonaId(next[0]?.id||null); return next; });
@@ -449,7 +485,19 @@ export function App() {
   };
   const swipeAvanti   = () => cambiaPersona(+1);
   const swipeIndietro = () => cambiaPersona(-1);
-  const personaTarget = persona ? calcTargetAdattivo(persona, misureApp[persona?.id]) : null;
+  // Target calorico giornaliero:
+  // - Per il profilo proprio (owner): sempre ricalcolato localmente → fonte di verità,
+  //   pushato su cloud via pushTargetGiornaliero ogni volta che cambia.
+  // - Per i profili altrui (non-owner): si legge prima dal cloud (pushato dall'owner),
+  //   con fallback al calcolo locale (già corretto una volta che profili+misure sono
+  //   sincronizzati, ma potenzialmente stale durante i drag in-flight dell'owner).
+  const isOwnerPersona = persona?.id === myPersonaId;
+  const personaTargetLocale = persona ? calcTargetAdattivo(persona, misureApp[persona?.id]) : null;
+  const personaTarget = persona
+    ? (isOwnerPersona
+        ? personaTargetLocale
+        : (targetsCloud[persona.id] ?? personaTargetLocale))
+    : null;
   const personaSlot = persona ? slotForPersona(persona) : "uomo";
 
   // Navigazione: 3 voci principali nella bottom-nav (Piano · Spesa · Menu).
@@ -814,7 +862,7 @@ export function App() {
         {!showHistory&&page==="test-sync"&&<SyncTestPage/>}
         {!showHistory&&page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}
         {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed}/>}
-        {!showHistory&&page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={setMisureApp} mealsLog={mealsLog}/>}
+        {!showHistory&&page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={handleMisureChange} mealsLog={mealsLog}/>}
         {!showHistory&&page==="utente"&&(
           <UtentePage personas={personas} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} onGoFamiglia={()=>setPage("famiglia")} onUpdatePersona={handleUpdatePersona} misureApp={misureApp} cloudStatus={cloudStatus}/>
         )}

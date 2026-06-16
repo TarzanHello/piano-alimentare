@@ -47,7 +47,7 @@ export const MEAL_META = {
   cena:       { label:"🍽️ Cena",               isSnack:false },
 };
 
-export const SK_SEED="pf-seed", SK_HISTORY="pf-history", SK_EXCL="pf-excluded", SK_PERSONAS="pf-personas", SK_MY_PERSONA="pf-my-persona", SK_MISURE="pf-misure", SK_OVERRIDES="pf-overrides", SK_WATER="pf-water", SK_PREFS="pf-prefs", SK_MEALS_LOG="pf-meals-log", SK_NOTIF="pf-notif", SK_SPESA="pf-spesa-checks";
+export const SK_SEED="pf-seed", SK_HISTORY="pf-history", SK_EXCL="pf-excluded", SK_PERSONAS="pf-personas", SK_MY_PERSONA="pf-my-persona", SK_MISURE="pf-misure", SK_OVERRIDES="pf-overrides", SK_WATER="pf-water", SK_PREFS="pf-prefs", SK_MEALS_LOG="pf-meals-log", SK_NOTIF="pf-notif", SK_SPESA="pf-spesa-checks", SK_TARGET_GIORNALIERO="pf-target-giornaliero";
 
 // ═══════════════════════════════════════════════════════════════════
 // SISTEMA PREFERENZE — accumulo segnali sui gusti

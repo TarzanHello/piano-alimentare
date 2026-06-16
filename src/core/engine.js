@@ -593,13 +593,24 @@ export function dateKeyForDayIdx(dayIdx) {
 
 // ─── SVG Line Chart ────────────────────────────────────────────────
 
-export function calcPesoObiettivo(persona, lastMisura) {
+export function calcPesoObiettivo(persona, lastMisura, pesoTargetManuale) {
   const { sesso="M", eta=30, altezza=170, obiettivo="mantenimento" } = persona;
   const pesoAttualeRaw = lastMisura ? parseFloat(lastMisura.peso) : parseFloat(persona.peso);
   const pesoAttuale = isNaN(pesoAttualeRaw) ? (parseFloat(persona.peso)||70) : pesoAttualeRaw;
   if (eta < 18) return { peso: pesoAttuale, metodo: "n/a", descrizione: "Non applicabile sotto i 18 anni" };
   if (obiettivo === "mantenimento") return { peso: pesoAttuale, metodo: "attuale", descrizione: "Obiettivo: mantenere il peso attuale" };
+  // Override manuale: se presente e fisiologicamente plausibile, usalo direttamente
+  const manuale = pesoTargetManuale ?? persona.pesoTarget ?? null;
   const altM = altezza / 100;
+  const bmiMinKg = Math.round(18.5 * altM * altM * 2) / 2;
+  const bmiMaxKg = Math.round(30   * altM * altM * 2) / 2;
+  if (manuale !== null && manuale !== undefined) {
+    const m = parseFloat(manuale);
+    if (!isNaN(m) && m >= 30 && m <= 200) {
+      return { peso: Math.round(m * 2) / 2, metodo: "manuale", descrizione: "Peso obiettivo impostato manualmente", bmiMin: bmiMinKg, bmiMax: bmiMaxKg };
+    }
+  }
+  const meta = { bmiMin: bmiMinKg, bmiMax: bmiMaxKg };
   const pctGrasso = stimaGrasso(persona, lastMisura);
   if (pctGrasso !== null) {
     const lbm = pesoAttuale * (1 - pctGrasso / 100);
@@ -609,16 +620,16 @@ export function calcPesoObiettivo(persona, lastMisura) {
     if (obiettivo === "aumento") {
       const lbmTarget = lbm * 1.05;
       const pesoTarget = Math.round(lbmTarget / (1 - pctTarget / 100) * 2) / 2;
-      return { peso: Math.min(pesoTarget, Math.round(25*altM*altM*2)/2), metodo: "LBM+ACSM", descrizione: `Massa magra +5%, %grasso target ${pctTarget}% (ACSM)` };
+      return { peso: Math.min(pesoTarget, Math.round(25*altM*altM*2)/2), metodo: "LBM+ACSM", descrizione: `Massa magra +5%, %grasso target ${pctTarget}% (ACSM)`, ...meta };
     }
     const pesoTarget = Math.round(lbm / (1 - pctTarget / 100) * 2) / 2;
-    return { peso: Math.max(pesoTarget, Math.round(18.5*altM*altM*2)/2), metodo: "LBM+ACSM", descrizione: `%grasso target ${pctTarget}% (ACSM)` };
+    return { peso: Math.max(pesoTarget, Math.round(18.5*altM*altM*2)/2), metodo: "LBM+ACSM", descrizione: `%grasso target ${pctTarget}% (ACSM)`, ...meta };
   }
   const baseH = 152.4, kgPer254 = sesso==="M"?2.7:2.2, baseKg = sesso==="M"?48.0:45.5;
   const hamwi = altezza>=baseH ? baseKg+kgPer254*((altezza-baseH)/2.54) : baseKg-kgPer254*((baseH-altezza)/2.54);
   const hamwiR = Math.round(hamwi*2)/2;
-  if (obiettivo === "perdita") return { peso: Math.max(hamwiR, Math.round(18.5*altM*altM*2)/2), metodo: "Hamwi", descrizione: "Formula Hamwi" };
-  return { peso: Math.min(Math.round(hamwiR*1.05*2)/2, Math.round(25*altM*altM*2)/2), metodo: "Hamwi+5%", descrizione: "Formula Hamwi +5%" };
+  if (obiettivo === "perdita") return { peso: Math.max(hamwiR, Math.round(18.5*altM*altM*2)/2), metodo: "Hamwi", descrizione: "Formula Hamwi", ...meta };
+  return { peso: Math.min(Math.round(hamwiR*1.05*2)/2, Math.round(25*altM*altM*2)/2), metodo: "Hamwi+5%", descrizione: "Formula Hamwi +5%", ...meta };
 }
 
 // ─── WeightProgressChart ─────────────────────────────────────────────

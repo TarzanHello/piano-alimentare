@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { emojiBySesso } from '@/core';
 import { cloudEnabled, getMyFamily, getSession, onAuthChange, signInWithGoogle, signOut } from '@/db/cloud';
-import { IntensitaDieta, PersonaForm } from '@/features/famiglia/FamigliaPage';
+import { IntensitaDieta, PersonaForm, PesoTargetPicker } from '@/features/famiglia/FamigliaPage';
 import { calcTargetAdattivo } from '@/core';
 
 // ── Pagina Utente ─────────────────────────────────────────────
@@ -72,6 +72,12 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
                 )}
               </div>
               {myPersona.eta>=12 && myPersona.obiettivo!=="mantenimento" && <IntensitaDieta persona={myPersona} onUpdate={onUpdatePersona}/>}
+              {myPersona.eta>=12 && myPersona.obiettivo!=="mantenimento" && (
+                <PesoTargetPicker
+                  persona={myPersona}
+                  lastMisura={(misureApp?.[myPersona.id]||[]).slice(-1)[0] ?? null}
+                  onUpdate={onUpdatePersona}/>
+              )}
               <button onClick={()=>setEditing(true)} style={{marginTop:10,padding:"9px 16px",borderRadius:10,border:"1.5px solid #e2e8f0",background:"#f8fafc",color:"#475569",fontWeight:800,fontSize:12,cursor:"pointer"}}>
                 ✏️ Modifica la scheda
               </button>

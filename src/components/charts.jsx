@@ -93,7 +93,7 @@ export function WeightProgressChart({ records, persona }) {
   if (realPts.length < 1) return null;
   const pesoAttuale = realPts[realPts.length-1].v;
   const lastMisura = records.length>0?records[records.length-1]:null;
-  const obResult = calcPesoObiettivo(persona, lastMisura);
+  const obResult = calcPesoObiettivo(persona, lastMisura, persona.pesoTarget ?? null);
   const pesoObiettivo = obResult.peso;
   const metodoLabel = obResult.metodo;
   const needsProjection = persona.obiettivo !== "mantenimento" && Math.abs(pesoObiettivo-pesoAttuale)>0.3;
