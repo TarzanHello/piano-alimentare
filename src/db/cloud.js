@@ -143,30 +143,39 @@ export async function joinFamily(codice) {
   return { data, error: null };
 }
 
+export async function removeMember(profiloId) {
+  if (!supabase) return { error: 'Cloud non configurato' };
+  const { error } = await supabase.rpc('remove_member', { p_profilo_id: profiloId });
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
 export async function leaveFamily() {
   if (!supabase) return { error: 'Cloud non configurato' };
   const { error } = await supabase.rpc('leave_family');
   if (error) return { error: error.message };
-  // Dopo l'uscita, azzero lo stato di sync locale: il device non deve più
-  // comportarsi come "in famiglia" (altrimenti il tasto sembra non funzionare).
+  // Resetta il motore di sync (svuota me, channel, timers, started=false)
+  // e poi lo riavvia subito: boot() rilegge famiglia_id=null dal cloud e
+  // emette {loggedIn:true, inFamily:false} in modo definitivo.
+  // Senza il riavvio, onAuthStateChange non scatterebbe e l'App resterebbe
+  // bloccata sull'ultimo stato "in famiglia" (uscita "fittizia" nel log).
   try {
-    const { resetSyncState } = await import('./sync');
+    const { resetSyncState, startSync } = await import('./sync');
     await resetSyncState();
+    await startSync(); // re-boot: now started=false so it runs
   } catch {}
   return { error: null };
 }
 
 export async function getMyFamily() {
   if (!supabase) return null;
-  // Passo dal mio profilo → famiglia, evitando maybeSingle() su famiglie
-  // (che fallisce se le RLS lasciassero intravedere più righe).
   const session = await getSession();
   if (!session) return null;
   const { data: mio } = await supabase.from('profili')
     .select('famiglia_id').eq('user_id', session.user.id).maybeSingle();
   if (!mio?.famiglia_id) return null;
   const { data } = await supabase.from('famiglie')
-    .select('*').eq('id', mio.famiglia_id).limit(1);
+    .select('id, nome, invite_code, created_by, capo_id, created_at').eq('id', mio.famiglia_id).limit(1);
   return (data && data[0]) || null;
 }
 
@@ -175,6 +184,6 @@ export async function getFamilyMembers() {
   const { data } = await supabase
     .from('profili').select('*')
     .not('famiglia_id', 'is', null)
-    .order('created_at');
+    .order('created_at');  // ordine di entrata in famiglia
   return data || [];
 }

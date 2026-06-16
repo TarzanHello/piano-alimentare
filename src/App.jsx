@@ -74,6 +74,17 @@ export function App() {
         case "spesa":    { const v = await read(SK_SPESA, null); if (v) setSpesaChecks(v); break; }
         case "history":  { const v = await read(SK_HISTORY, null); if (Array.isArray(v)) setHistory(v); break; }
         case "targetGiornaliero": { const v = await read(SK_TARGET_GIORNALIERO, null); if (v) setTargetsCloud(v); break; }
+        case "cloudMe": {
+          // Il cloud ha confermato l'identità dell'utente (profiloId corretto).
+          // Aggiorna myPersonaId e selPersonaId subito, senza aspettare la fine
+          // della reconcile: evita il "flash" del profilo default all'avvio.
+          const pid = e.detail?.myPersonaId || e.detail?.profiloId;
+          if (pid) {
+            setMyPersonaId(pid);
+            setSelPersonaId(prev => prev || pid); // non sovrascrive se già selezionato
+          }
+          break;
+        }
         case "piano":    {
           const seedCloud = parseInt(e.detail.seed, 10), ovrCloud = e.detail.overrides || {};
           if (isNaN(seedCloud) || seedCloud <= 0) break;
@@ -776,6 +787,7 @@ export function App() {
                   );
                 })()}
                 <div style={{marginTop:14,background:"#fff",borderRadius:12,border:"1.5px solid #e2e8f0",padding:"12px 16px"}}>
+                  {personaTarget && <>
                   {/* Intestazione con badge confidenza */}
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                     <div style={{fontSize:10,fontWeight:700,color:"#64748b",letterSpacing:1,textTransform:"uppercase"}}>
@@ -845,6 +857,7 @@ export function App() {
                       <div style={{marginTop:4,color:"#0891b2",fontWeight:700}}>💪 Ricomposizione rilevata — deficit ridotto al minimo</div>
                     )}
                   </div>
+                  </>}
                 </div>
                 <div style={{marginTop:14,fontSize:10,color:"#94a3b8",textAlign:"center",lineHeight:1.8}}>
                   DB: {DB.colazione.length} colazioni · {DB.pranzo.length} pranzi · {DB.cena.length} cene · {DB.spuntino.length} spuntini<br/>

@@ -137,12 +137,17 @@ export async function pushTargetGiornaliero(persona, targetObj) {
   if (!supabase||!me) return;
   if (!editable(persona)) return;
   if (!targetObj||!targetObj.kcal) return;
-  // Salva in cache locale immediatamente (nessun round-trip necessario)
+  // Evita push ridondanti: confronta con il valore già in cache prima di
+  // scrivere sul cloud. Su ogni reconcile potrebbero esserci 3-4 push
+  // identici consecutivi, che caricano Supabase inutilmente.
   const cache=await getLocal(SK_TARGET_GIORNALIERO,{});
+  const prev=cache[persona.id];
+  const changed = !prev || prev.kcal!==targetObj.kcal || prev.p!==targetObj.p ||
+                  prev.c!==targetObj.c || prev.g!==targetObj.g || prev.tdeeFinale!==targetObj.tdeeFinale;
   cache[persona.id]=targetObj;
   await setLocalQuiet(SK_TARGET_GIORNALIERO,JSON.stringify(cache));
   emit("targetGiornaliero");
-  // Push cloud (fire-and-forget: l'errore non è critico, il fallback locale è sempre disponibile)
+  if (!changed) return; // valore identico: aggiorna solo la cache locale, non il cloud
   const {error}=await supabase.from("profilo_dati").upsert(
     {profilo_id:persona.id, chiave:"target_giornaliero", valore:targetObj},
     {onConflict:"profilo_id,chiave"}
@@ -477,6 +482,10 @@ export async function startSync() {
     logSync("status","Collegato e in famiglia",{profiloId:me.profiloId,famigliaId:me.famigliaId});
     emitStatus({loggedIn:true,inFamily:true,me});
     await ancoraIdentitaAlCloud();
+    // Propaga l'identità corretta (profiloId cloud) all'App non appena disponibile,
+    // senza aspettare la fine della reconcile. Questo risolve il caso "all'avvio
+    // l'App mostra il profilo default finché il cloud non ha completato il boot".
+    emit("cloudMe", { profiloId: me.profiloId, myPersonaId: await getLocalRaw(SK_MY_PERSONA, null) });
     await window.storage.set("pf-cloud-migrated","1");
     await reconcile();
     subscribeRealtime();
@@ -587,6 +596,16 @@ export async function resetSyncState() {
   clearInterval(timers.__poll);clearTimeout(timers.__rt);
   clearTimeout(timers.__pushPiano);clearTimeout(timers.__pullPianoRetry);
   clearTimeout(timers.__pianoLockRelease);clearTimeout(timers.__pushTarget);
+  // Timer debounce dei push: devono essere azzerati all'uscita per evitare
+  // che un push programmato prima dell'uscita esegua dopo il reset, su me=null.
+  clearTimeout(timers.__pushPersonas);clearTimeout(timers.__pushMisure);
+  clearTimeout(timers.__pushGusti);clearTimeout(timers.__pushExcl);
+  clearTimeout(timers.__pushLog);
+  // CRITICO: resetta started così il prossimo boot() (via onAuthStateChange)
+  // può ri-eseguire correttamente. Senza questo, startSync() ritorna subito
+  // per il flag già true e boot() non rileva che famiglia_id è ora null —
+  // causando l'uscita "fittizia" osservata nel log (3× STATUS Uscita).
+  started = false;
   me=null;pianoLock=false;lastPushedPianoSeed=0;
   // resetta i flag globali così un nuovo boot può ri-registrare i listener
   window.__syncAuthListenerRegistered = false;
@@ -607,6 +626,7 @@ export async function riallineaForzato() {
   await ancoraIdentitaAlCloud();
   await pullPiano();await pullAltriDatiFamiglia();
   await pullProfili();await pullMisure();await pullMealsLog();await pullTargetGiornaliero();await pullSpesa();
+  await pushTargetTuttiEditabili();
   await window.storage.set("pf-cloud-migrated","1");
   subscribeRealtime();
   emit("personas");emit("misure");emit("mealsLog");emit("targetGiornaliero");emit("spesa");
