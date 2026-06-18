@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL as RAW_URL, SUPABASE_ANON_KEY as RAW_KEY } from './supabaseConfig';
+import { logSync } from './synclog';
 
 // Pulizia difensiva dei valori incollati a mano: spazi, a-capo,
 // barre finali o percorsi extra dopo il dominio non rompono più nulla.
@@ -24,21 +25,21 @@ export const supabase = cloudEnabled
 
 export async function signInWithGoogle() {
   if (!supabase) return { error: 'Cloud non configurato' };
-  // redirectTo: torna esattamente alla pagina corrente dell'app
-  // (origin + pathname: robusto su GitHub Pages in sottocartella,
-  // in locale e dentro Capacitor; NON usare BASE_URL che con base
-  // relativa './' produce un URL malformato)
+  logSync("auth", "Login Google avviato");
   const redirectTo = window.location.origin + window.location.pathname;
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo },
   });
+  if (error) logSync("error", `Login Google: errore`, { error: error.message });
   return { error: error?.message || null };
 }
 
 export async function signOut() {
   if (!supabase) return;
+  logSync("auth", "Logout in corso");
   await supabase.auth.signOut();
+  logSync("auth", "Logout completato");
 }
 
 export async function getSession() {
@@ -122,47 +123,51 @@ export async function addManagedProfile(campi) {
 
 export async function createFamily(nome) {
   if (!supabase) return { error: 'Cloud non configurato' };
+  logSync("family", `Creazione famiglia: "${nome}"`);
   await ensureMyProfile(null);
   const { data, error } = await supabase.rpc('create_family', { p_nome: nome });
+  if (error) logSync("error", `Creazione famiglia fallita`, { error: error.message });
+  else logSync("family", `Famiglia creata con successo: "${nome}"`);
   return { data, error: error?.message || null };
 }
 
 export async function joinFamily(codice) {
   if (!supabase) return { error: 'Cloud non configurato' };
-  // Garantisce che il profilo cloud di chi entra esista, altrimenti la
-  // funzione non avrebbe nessuna riga da agganciare alla famiglia.
-  await ensureMyProfile(null);
   const code = (codice || "").trim().toUpperCase().replace(/\s+/g, "");
+  logSync("family", `Tentativo accesso famiglia con codice: ${code}`);
+  await ensureMyProfile(null);
   const { data, error } = await supabase.rpc('join_family', { p_code: code });
-  if (error) return { error: error.message };
-  // Verifica reale: il mio profilo ora ha la famiglia?
+  if (error) { logSync("error", `Accesso famiglia fallito`, { error: error.message }); return { error: error.message }; }
   const session = await getSession();
   const { data: mio } = await supabase.from('profili')
     .select('famiglia_id').eq('user_id', session.user.id).maybeSingle();
-  if (!mio?.famiglia_id) return { error: 'Accoppiamento non riuscito, riprova' };
+  if (!mio?.famiglia_id) {
+    logSync("error", `Accoppiamento famiglia non riuscito`, { code });
+    return { error: 'Accoppiamento non riuscito, riprova' };
+  }
+  logSync("family", `Entrato nella famiglia con codice: ${code}`, { famigliaId: mio.famiglia_id });
   return { data, error: null };
 }
 
 export async function removeMember(profiloId) {
   if (!supabase) return { error: 'Cloud non configurato' };
+  logSync("family", `Rimozione membro dalla famiglia`, { profiloId: profiloId?.slice(0,8) });
   const { error } = await supabase.rpc('remove_member', { p_profilo_id: profiloId });
-  if (error) return { error: error.message };
+  if (error) { logSync("error", `Rimozione membro fallita`, { error: error.message }); return { error: error.message }; }
+  logSync("family", `Membro rimosso con successo`, { profiloId: profiloId?.slice(0,8) });
   return { error: null };
 }
 
 export async function leaveFamily() {
   if (!supabase) return { error: 'Cloud non configurato' };
+  logSync("family", "Uscita dalla famiglia richiesta");
   const { error } = await supabase.rpc('leave_family');
-  if (error) return { error: error.message };
-  // Resetta il motore di sync (svuota me, channel, timers, started=false)
-  // e poi lo riavvia subito: boot() rilegge famiglia_id=null dal cloud e
-  // emette {loggedIn:true, inFamily:false} in modo definitivo.
-  // Senza il riavvio, onAuthStateChange non scatterebbe e l'App resterebbe
-  // bloccata sull'ultimo stato "in famiglia" (uscita "fittizia" nel log).
+  if (error) { logSync("error", `Uscita dalla famiglia fallita`, { error: error.message }); return { error: error.message }; }
+  logSync("family", "Uscita dalla famiglia completata — reset motore sync");
   try {
     const { resetSyncState, startSync } = await import('./sync');
     await resetSyncState();
-    await startSync(); // re-boot: now started=false so it runs
+    await startSync();
   } catch {}
   return { error: null };
 }

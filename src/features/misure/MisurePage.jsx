@@ -3,6 +3,7 @@ const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { SK_MISURE, TUTTI_FIELDS, calcTargetAdattivo, dateToLabel, dateToSort, emojiBySesso, stimaGrasso } from '@/core';
 import { CalorieChart, WeightProgressChart } from '@/components/charts';
 import { SwipeContainer } from '@/components/shared';
+import { logSync } from '@/db/synclog';
 
 export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) {
   const [misure, setMisure]   = useState({});
@@ -61,14 +62,17 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
     if (editRec) {
       const idx = cur.findIndex(r=>JSON.stringify(r)===JSON.stringify(editRec));
       if (idx>=0) cur[idx]=entry; else cur.push(entry);
+      logSync("misure", `Misurazione modificata: ${formDate}`, { profiloId: selPid?.slice(0,8), peso: entry.peso, bmi: entry.bmi });
     } else {
       cur.push(entry);
+      logSync("misure", `Nuova misurazione inserita: ${formDate}`, { profiloId: selPid?.slice(0,8), peso: entry.peso, nMisure: cur.length });
     }
     await persist({...misure,[selPid]:cur});
     setView("stats");
   };
 
   const handleDelete = async rec => {
+    logSync("misure", `Misurazione eliminata: ${rec.date}`, { profiloId: selPid?.slice(0,8), peso: rec.peso });
     const cur = (misure[selPid]||[]).filter(r=>JSON.stringify(r)!==JSON.stringify(rec));
     await persist({...misure,[selPid]:cur});
   };

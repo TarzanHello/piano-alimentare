@@ -7,21 +7,25 @@ import { getCloudMe } from './sync';
 import { logSync } from './synclog';
 
 // Log dedicato alla famiglia/ricette: categoria "family".
-function logFamily(msg, data) { logSync("family", msg, data); }
+function logFamily(msg, data) { logSync("ricetta", msg, data); }
 
 // Converte una riga del cloud nella forma usata dall'app.
 function rowToRicetta(r) {
   return {
     id: r.id,
     titolo: r.titolo,
-    nome: r.titolo,                 // alias per compatibilità con la UI ricette
+    nome: r.titolo,
     descrizione: r.descrizione || "",
     categoria: r.categoria,
+    prep: r.prep ?? null,
+    // Formato nuovo (quantita) ha la precedenza sul vecchio (ingredienti flat)
+    quantita: r.quantita || null,
     ingredienti: Array.isArray(r.ingredienti) ? r.ingredienti : [],
     kcal: Number(r.kcal) || 0,
     p: Number(r.p) || 0,
     c: Number(r.c) || 0,
     g: Number(r.g) || 0,
+    esclusa: r.esclusa || false,
     scope: r.scope,
     stato: r.stato,
     autoreId: r.autore_id,
@@ -57,23 +61,28 @@ export async function creaRicetta(ricetta) {
   if (!supabase) throw new Error("Cloud non configurato");
   const me = getCloudMe();
   if (!me) throw new Error("Devi essere collegato per creare ricette");
-  const scope = ricetta.scope === "pubblica" ? "famiglia" : (ricetta.scope || "famiglia"); // "pubblica" disabilitata
+  // Privacy sempre "famiglia" — la scelta è nascosta all'utente per ora
   const payload = {
     autore_id: me.userId,
     famiglia_id: me.famigliaId || null,
     titolo: (ricetta.titolo || "").trim(),
     descrizione: ricetta.descrizione || null,
     categoria: ricetta.categoria,
+    prep: ricetta.prep ?? null,
+    // Nuovo formato: quantita {ing_id:{uomo,donna,bimbo,unit}}
+    quantita: ricetta.quantita || null,
+    // Vecchio formato: ingredienti [{ing,g}] — mantenuto per retrocompatibilità
     ingredienti: ricetta.ingredienti || [],
     kcal: Math.round(ricetta.kcal || 0),
     p: Math.round(ricetta.p || 0),
     c: Math.round(ricetta.c || 0),
     g: Math.round(ricetta.g || 0),
-    scope,
+    esclusa: false,
+    scope: "famiglia",
   };
   const { data, error } = await supabase.from("ricette_utente").insert(payload).select().single();
   if (error) { logFamily("Ricetta: errore creazione", { titolo: payload.titolo, error: error.message }); throw new Error(error.message); }
-  logFamily("Ricetta creata", { id: data.id, titolo: data.titolo, scope: data.scope, categoria: data.categoria });
+  logFamily("Ricetta creata", { id: data.id, titolo: data.titolo, categoria: data.categoria });
   return rowToRicetta(data);
 }
 
@@ -81,7 +90,8 @@ export async function creaRicetta(ricetta) {
 export async function aggiornaRicetta(id, patch) {
   if (!supabase) throw new Error("Cloud non configurato");
   const upd = { ...patch };
-  if (upd.scope === "pubblica") upd.scope = "famiglia";   // "pubblica" disabilitata
+  // scope sempre famiglia
+  upd.scope = "famiglia";
   if (upd.titolo) upd.titolo = upd.titolo.trim();
   ["kcal","p","c","g"].forEach(k => { if (upd[k] != null) upd[k] = Math.round(upd[k]); });
   const { data, error } = await supabase.from("ricette_utente").update(upd).eq("id", id).select().single();
@@ -90,11 +100,14 @@ export async function aggiornaRicetta(id, patch) {
   return rowToRicetta(data);
 }
 
-// Cambia la condivisione (privata <-> famiglia).
-export async function cambiaScopeRicetta(id, scope) {
-  const s = scope === "pubblica" ? "famiglia" : scope;   // "pubblica" disabilitata
-  logFamily("Ricetta: cambio condivisione", { id, scope: s });
-  return aggiornaRicetta(id, { scope: s });
+// Toggle escludi/includi la ricetta nel sorteggio del piano.
+export async function toggleEsclusaRicetta(id, esclusa) {
+  if (!supabase) throw new Error("Cloud non configurato");
+  const { data, error } = await supabase.from("ricette_utente")
+    .update({ esclusa: Boolean(esclusa) }).eq("id", id).select().single();
+  if (error) { logFamily("Ricetta: errore toggle esclusa", { id, error: error.message }); throw new Error(error.message); }
+  logFamily(esclusa ? "Ricetta esclusa dal piano" : "Ricetta inclusa nel piano", { id });
+  return rowToRicetta(data);
 }
 
 // Elimina una ricetta (solo l'autore).

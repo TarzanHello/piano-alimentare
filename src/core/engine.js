@@ -526,51 +526,58 @@ export function categoriaDaMealKey(mealKey) {
        : "cena";
 }
 
-export function findAlternatives(mealKey, currentMeal, minPrep, maxPrep, excludedIds, weekMealIds, personaSlot) {
-  // Mappa mealKey → categoria DB
+export function findAlternatives(mealKey, currentMeal, minPrep, maxPrep, excludedIds, weekMealIds, personaSlot, ricetteUtente = []) {
   const cat = categoriaDaMealKey(mealKey);
-
   const currentKcal = currentMeal[personaSlot]?.kcal || 500;
   const m = meseCorrente();
 
-  // Diagnostica: contiamo perché i candidati vengono scartati.
+  // Pool unificato: ricette utente della categoria + catalogo
+  const utenteConvertite = (ricetteUtente || [])
+    .filter(r => r.categoria === cat && !r.esclusa)
+    .map(r => { try { return ricettaUtenteToMealObj(r); } catch { return null; } })
+    .filter(Boolean);
+
+  const tuttiCandidati = [...utenteConvertite, ...(DB[cat] || [])];
+
   let scartFascia = 0, scartEscl = 0, scartStag = 0, scartStessa = 0, ammessi = 0;
-  for (const r of DB[cat]) {
+  for (const r of tuttiCandidati) {
     if (r.id === currentMeal.id) { scartStessa++; continue; }
     if (!((r.prep || 0) >= minPrep && (r.prep || 0) <= maxPrep)) { scartFascia++; continue; }
     if (r.ingredients.some(id => excludedIds.includes(id))) { scartEscl++; continue; }
-    if (pesoStagionale(r, m) <= 0) { scartStag++; continue; }
+    if (pesoStagionale(r, m) <= 0 && r.fonte !== "utente" && r.fonte !== "famiglia") { scartStag++; continue; }
     ammessi++;
   }
 
-  const risultato = DB[cat]
+  const risultato = tuttiCandidati
     .filter(r =>
-      r.id !== currentMeal.id &&                                      // non la stessa
-      (r.prep || 0) >= minPrep && (r.prep || 0) <= maxPrep &&         // dentro la fascia
-      !r.ingredients.some(id => excludedIds.includes(id)) &&          // no esclusi
-      pesoStagionale(r, m) > 0                                        // di stagione
+      r.id !== currentMeal.id &&
+      (r.prep || 0) >= minPrep && (r.prep || 0) <= maxPrep &&
+      !r.ingredients.some(id => excludedIds.includes(id)) &&
+      (r.fonte === "utente" || r.fonte === "famiglia" || pesoStagionale(r, m) > 0)
     )
     .map(r => ({
       ...r,
       _kcalDiff: Math.abs((r[personaSlot]?.kcal || 0) - currentKcal),
       _inWeek:   weekMealIds.has(r.id),
+      // Le ricette utente vengono mostrate prima
+      _priority: (r.fonte === "utente" || r.fonte === "famiglia") ? 0 : 1,
     }))
     .sort((a, b) => {
-      // prima le non già in settimana, poi per kcal più simili
+      if (a._priority !== b._priority) return a._priority - b._priority;
       if (a._inWeek !== b._inWeek) return a._inWeek ? 1 : -1;
       return a._kcalDiff - b._kcalDiff;
     })
-    .slice(0, 6); // max 6 alternative da mostrare
+    .slice(0, 6);
 
   try {
     logCalc("swap", `${mealKey}|${currentMeal.id}|${minPrep}-${maxPrep}`,
       `Alternative · ${mealKey} (${cat}) · ${risultato.length} proposte`, {
       pastoCorrente: currentMeal.id, categoria: cat,
       fasciaTempo: { min: minPrep, max: maxPrep }, kcalCorrente: currentKcal, slot: personaSlot,
-      totaliCategoria: DB[cat].length,
+      totaliCategoria: tuttiCandidati.length,
       scartati: { stessaRicetta: scartStessa, fasciaTempo: scartFascia, esclusione: scartEscl, stagione: scartStag },
       ammessi,
-      proposte: risultato.map(r => ({ id: r.id, kcalDiff: r._kcalDiff, giaInSettimana: r._inWeek })),
+      proposte: risultato.map(r => ({ id: r.id, fonte: r.fonte || "catalogo", kcalDiff: r._kcalDiff, giaInSettimana: r._inWeek })),
     });
   } catch {}
 
@@ -658,6 +665,144 @@ export function seededRng(seed) {
 
 export function meseCorrente() { return new Date().getMonth() + 1; } // 1–12
 
+// ═══════════════════════════════════════════════════════════════════
+// RICETTARIO UNIFICATO — pool globale catalogo + ricette utente
+// ═══════════════════════════════════════════════════════════════════
+
+// Ratio medi uomo→donna e uomo→bimbo nel catalogo CRA-NUT.
+// Usati per inferire gli slot quando l'utente inserisce solo le quantità "uomo".
+const RATIO_DONNA = 0.74;
+const RATIO_BIMBO = 0.41;
+
+// Arrotonda alla granularità naturale dell'ingrediente per lo slot inferito:
+// - pz/cucchiaio → 0.5 (mezzo cucchiaio, mezza porzione)
+// - g/ml → 5g
+function arrotondaSlot(valore, unit) {
+  if (unit === "g" || unit === "ml") return Math.max(5, Math.round(valore / 5) * 5);
+  return Math.round(valore * 2) / 2;
+}
+
+// Converte una ricetta dal formato cloud (rowToRicetta) nel formato
+// interno del motore (stesso schema delle ricette catalogo in DB[cat]).
+// Supporta sia il vecchio formato {ingredienti:[{ing,g}]} che il nuovo
+// {quantita:{ing_id:{uomo,donna,bimbo,unit}}}.
+// Registra ING_QTY[id] con slot separati (no _scaled) → gradient descent completo.
+export function ricettaUtenteToMealObj(ricetta) {
+  const id = "usr_" + ricetta.id;
+
+  // ── Costruisci quantita nel formato unificato ──────────────────
+  let quantita = {};
+  if (ricetta.quantita && typeof ricetta.quantita === "object") {
+    // Formato nuovo: {ing_id:{uomo,donna,bimbo,unit}} — usalo direttamente
+    quantita = ricetta.quantita;
+  } else {
+    // Formato vecchio: [{ing, g}] — inferisci slot donna/bimbo dal ratio medio
+    for (const it of (ricetta.ingredienti || [])) {
+      if (!it?.ing || !(it.g > 0)) continue;
+      const unit = it.unit || "g";
+      const uomo = it.g;
+      quantita[it.ing] = {
+        uomo,
+        donna: arrotondaSlot(uomo * RATIO_DONNA, unit),
+        bimbo: arrotondaSlot(uomo * RATIO_BIMBO, unit),
+        unit,
+      };
+    }
+  }
+
+  // ── Calcola macro per slot da ingredienti (cache) ──────────────
+  const macroSlot = (persona) => {
+    const tot = { kcal:0, p:0, c:0, g:0 };
+    for (const [ingId, v] of Object.entries(quantita)) {
+      const grams = quantitaInGrammi(ingId, v[persona] ?? v.uomo, v.unit);
+      const n = nutriPerGrammi(ingId, grams);
+      tot.kcal += n.kcal; tot.p += n.p; tot.c += n.c; tot.g += n.g;
+    }
+    return { kcal: Math.round(tot.kcal), p: Math.round(tot.p),
+             c: Math.round(tot.c), g: Math.round(tot.g) };
+  };
+
+  const macroUomo  = macroSlot("uomo");
+  const macroDonna = macroSlot("donna");
+  const macroBimbo = macroSlot("bimbo");
+
+  // ── Porzioni leggibili ──────────────────────────────────────────
+  const porzStr = (persona) => {
+    const pezzi = [];
+    for (const [ingId, v] of Object.entries(quantita)) {
+      const qty = v[persona] ?? v.uomo;
+      const ing = ING_MAP[ingId];
+      const nome = ing ? ing.nome.toLowerCase() : ingId;
+      let qta;
+      const unit = v.unit || "g";
+      if (unit === "g" || unit === "ml") qta = Math.round(qty) + unit;
+      else if (unit === "cucchiaio") qta = (qty === 0.5 ? "½" : qty) + " cucchiaio" + (qty > 1 ? "i" : "");
+      else if (unit === "pz") qta = (qty === 0.5 ? "½" : qty) + " pz";
+      else qta = qty + " " + unit;
+      pezzi.push(qta + " " + nome);
+    }
+    return pezzi.join(" · ");
+  };
+
+  // ── Registra in ING_QTY senza _scaled (path gradient descent) ──
+  // Deep copy: ogni slot {uomo,donna,bimbo,unit} viene copiato per valore
+  // così una successiva mutazione di quantita non tocca ING_QTY[id].
+  const iqEntry = {};
+  for (const [k, v] of Object.entries(quantita)) {
+    iqEntry[k] = { ...v };  // copia shallow dell'oggetto slot (primitivi = by value)
+  }
+  ING_QTY[id] = iqEntry;
+
+  return {
+    id,
+    nome: ricetta.titolo || ricetta.nome || "Ricetta",
+    categoria: ricetta.categoria,
+    prep: ricetta.prep ?? null,
+    fonte: ricetta.isMine ? "utente" : "famiglia",
+    autoreId: ricetta.autoreId || null,
+    esclusa: ricetta.esclusa || false,
+    stagioni: ricetta.stagioni || null,
+    uomo:  macroUomo,
+    donna: macroDonna,
+    bimbo: macroBimbo,
+    porzioni: {
+      uomo:  porzStr("uomo"),
+      donna: porzStr("donna"),
+      bimbo: porzStr("bimbo"),
+    },
+    ingredients: Object.keys(quantita),
+    tags: ricetta.tags || [],
+    // Mantieni riferimento al cloud per operazioni CRUD
+    _cloudId: ricetta.id,
+    _scope: ricetta.scope,
+    _isMine: ricetta.isMine,
+  };
+}
+
+// Pool unificato per categoria: catalogo + ricette utente convertite.
+// Le ricette utente hanno peso 3× nel sorteggio, così vengono favorite.
+// Le ricette escluse (esclusa=true) non entrano nel pool.
+// Registra anche ING_QTY per ogni ricetta utente (effetto collaterale idempotente).
+export function buildMergedPool(categoria, ricetteUtente, excludedIds, mese) {
+  const catalogo = buildWeightedPool(DB[categoria] || [], excludedIds, mese);
+  // Converti ricette utente della categoria e costruisci pool pesato
+  const utente = (ricetteUtente || [])
+    .filter(r => r.categoria === categoria && !r.esclusa)
+    .map(r => {
+      try { return ricettaUtenteToMealObj(r); } catch { return null; }
+    })
+    .filter(Boolean)
+    .filter(r => !r.ingredients.some(id => (excludedIds||[]).includes(id)));
+
+  if (!utente.length) return catalogo;
+
+  // Peso 3× per le ricette utente (3 copie nel pool pesato)
+  const poolUtente = [];
+  for (const r of utente) for (let i = 0; i < 3; i++) poolUtente.push(r);
+
+  return [...poolUtente, ...catalogo];
+}
+
 export function pesoStagionale(ricetta, mese) {
   // Conta quanti ingredienti della ricetta sono fuori stagione
   let fuori = 0;
@@ -700,29 +845,26 @@ export function buildWeightedPool(ricette, excludedIds, mese) {
   return pool.length > 0 ? pool : ricette.filter(r => !r.ingredients.some(id => excludedIds.includes(id)));
 }
 
-export function generateWeekPlan(seed, excludedIds = [], mese) {
+export function generateWeekPlan(seed, excludedIds = [], mese, ricetteUtente = []) {
   const m = mese || meseCorrente();
   const rng = seededRng(seed);
 
-  // Diagnostica della selezione: per categoria registriamo dimensione del
-  // pool, ricette uniche disponibili, scartate per esclusione ingrediente o
-  // per stagionalità. Aiuta a capire "perché mi propone sempre lo stesso
-  // piatto" o "perché non compare mai X".
   const diag = {};
   const analizzaCat = (cat) => {
-    const tutte = DB[cat] || [];
+    const tutteDB = DB[cat] || [];
+    const tutteUtente = (ricetteUtente||[]).filter(r => r.categoria === cat && !r.esclusa);
     let perEsclusione = 0, perStagione = 0, ammesse = 0;
-    for (const r of tutte) {
+    for (const r of tutteDB) {
       if (r.ingredients.some(id => excludedIds.includes(id))) { perEsclusione++; continue; }
       if (pesoStagionale(r, m) <= 0) { perStagione++; continue; }
       ammesse++;
     }
-    diag[cat] = { totali: tutte.length, ammesse, scartate: { esclusione: perEsclusione, stagione: perStagione } };
+    diag[cat] = { totali: tutteDB.length + tutteUtente.length, ammesse: ammesse + tutteUtente.length, scartate: { esclusione: perEsclusione, stagione: perStagione } };
   };
 
   const pickSeven = (cat) => {
-    const pool = buildWeightedPool(DB[cat], excludedIds, m);
-    if (!pool.length) return DB[cat].slice(0, 7);
+    const pool = buildMergedPool(cat, ricetteUtente, excludedIds, m);
+    if (!pool.length) return (DB[cat]||[]).slice(0, 7);
     const picked = [], usedIds = new Set();
     let attempts = 0;
     while (picked.length < 7 && attempts < 300) {
@@ -742,15 +884,14 @@ export function generateWeekPlan(seed, excludedIds = [], mese) {
   const pranzi = pickSeven("pranzo");
   const cene   = pickSeven("cena");
 
-  // Spuntini: pool pesato, no due uguali consecutivi
-  const spPool = buildWeightedPool(DB.spuntino, excludedIds, m).length
-    ? buildWeightedPool(DB.spuntino, excludedIds, m)
-    : DB.spuntino;
+  // Spuntini: pool unificato, no due uguali consecutivi
+  const spPool = buildMergedPool("spuntino", ricetteUtente, excludedIds, m);
+  const spFallback = buildMergedPool("spuntino", ricetteUtente, [], m);
   const spuntini = [];
   for (let i = 0; i < 14; i++) {
     const excl = spuntini.slice(-2).map(s => s.id);
     const avail = spPool.filter(s => !excl.includes(s.id));
-    const src   = avail.length ? avail : spPool;
+    const src   = avail.length ? avail : (spFallback.length ? spFallback : spPool);
     spuntini.push(src[Math.floor(rng() * src.length)]);
   }
 

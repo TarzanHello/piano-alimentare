@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO, buildShoppingForDays, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
+import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO, buildShoppingForDays, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, ricettaUtenteToMealObj, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
 import { SwipeContainer } from '@/components/shared';
 import { FamigliaPage } from '@/features/famiglia/FamigliaPage';
 import { GustiPage } from '@/features/gusti/GustiPage';
@@ -12,6 +12,8 @@ import { OggiPage } from '@/features/oggi/OggiPage';
 import { MigrationWizard } from '@/features/famiglia/MigrationWizard';
 import { UtentePage } from '@/features/utente/UtentePage';
 import { startSync, autoClaimSingle, pushTargetGiornaliero } from '@/db/sync';
+import { caricaRicette } from '@/db/ricetteCloud';
+import { logSync } from '@/db/synclog';
 import { Onboarding } from '@/features/onboarding/Onboarding';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SyncTestPage } from '@/features/test/SyncTestPage';
@@ -47,6 +49,8 @@ export function App() {
   // Cache dei target giornalieri pushati dagli owner: { [profilo_id]: targetObj }
   // Usato da personaTarget per i profili non-propri (fonte di verità cloud).
   const [targetsCloud, setTargetsCloud] = useState({});
+  // Ricette personali/famiglia caricate dal cloud — alimentano il pool del piano
+  const [ricetteUtente, setRicetteUtente] = useState([]);
 
   // ── Cloud sync: avvio, stato e applicazione degli aggiornamenti remoti ──
   useEffect(()=>{
@@ -60,6 +64,12 @@ export function App() {
       if (primoStatus) {
         primoStatus = false;
         if (!s.loggedIn) setPage("utente");
+      }
+      // Carica le ricette utente non appena connesso (alimentano il pool del piano)
+      if (s.loggedIn) {
+        caricaRicette().then(rs => setRicetteUtente(rs)).catch(()=>{});
+      } else {
+        setRicetteUtente([]);
       }
     };
     const onUpdate = async (e)=>{
@@ -88,7 +98,7 @@ export function App() {
         case "piano":    {
           const seedCloud = parseInt(e.detail.seed, 10), ovrCloud = e.detail.overrides || {};
           if (isNaN(seedCloud) || seedCloud <= 0) break;
-          const np = generateWeekPlan(seedCloud, excludedRef.current || []);
+          const np = generateWeekPlan(seedCloud, excludedRef.current || [], undefined, ricetteUtente);
           setSeed(seedCloud); setPlan(np); setOverrides(ovrCloud); setRegenNeeded(false);
           break;
         }
@@ -120,8 +130,8 @@ export function App() {
   // Spesa: aggiornamento ottimistico locale + scrittura cloud come fonte di verità.
   // Il cloud è authoritative: lo stato locale viene sempre sostitiuito dal pull.
   const handleToggleSpesa = useCallback(async (itemId)=>{
-    // Aggiornamento ottimistico immediato per la UI
     const nuovoStato = !((spesaChecks[String(seed)]||{})[itemId]);
+    logSync("spesa", `${nuovoStato ? "Articolo spuntato" : "Spunta rimossa"}: ${itemId}`, { itemId, seed: String(seed).slice(-6) });
     setSpesaChecks(prev=>{
       const wk = { ...(prev[String(seed)]||{}) };
       if (nuovoStato) wk[itemId]=true; else delete wk[itemId];
@@ -150,7 +160,7 @@ export function App() {
     }
   },[seed, spesaChecks]);
   const handleResetSpesa = useCallback(async ()=>{
-    // Ottimistico
+    logSync("spesa", "Lista spesa azzerata", { seed: String(seed).slice(-6) });
     setSpesaChecks(prev=>({ ...prev, [String(seed)]: {} }));
     if (cloudEnabled) {
       try {
@@ -168,6 +178,7 @@ export function App() {
 
   useEffect(()=>{
     async function load(){
+      logSync("info", "Avvio app: caricamento dati locali");
       try {
         const [sS,hS,eS,pS,mS,miS,ovS,prS,mlS,nfS,spS,cmS] = await Promise.allSettled([
           window.storage.get(SK_SEED), window.storage.get(SK_HISTORY), window.storage.get(SK_EXCL),
@@ -243,23 +254,29 @@ export function App() {
           restoreCustomING_QTY(ricetta);
         }
         setMisureApp(loadedMisu); setOverrides(loadedOvrd); setPrefs(loadedPrefs); setMealsLog(loadedMealsLog); setNotifSettings(loadedNotif);
-        setPlan(generateWeekPlan(loadedSeed, loadedExcl));
+        setPlan(generateWeekPlan(loadedSeed, loadedExcl, undefined, ricetteUtente));
+        logSync("info", "App avviata", { profili: loadedPers.length, seed: String(loadedSeed), overrides: Object.keys(loadedOvrd||{}).length, esclusi: loadedExcl.length });
         setBooted(true);
       } catch (err) {
+        logSync("error", "Errore caricamento dati locali", { error: err?.message });
         console.error("Errore caricamento dati:", err);
-        // Fallback prudente: NON sovrascrivere il seed salvato (e quindi il
-        // piano condiviso) per un errore transitorio di caricamento.
         let ns = Date.now();
         try { const r = await window.storage.get(SK_SEED); const p = parseInt(r.value,10); if (!isNaN(p)&&p>0) ns = p; } catch {}
         setSeed(ns); setPersonas([]);
-        setPlan(generateWeekPlan(ns,[]));
+        setPlan(generateWeekPlan(ns,[], undefined, ricetteUtente));
         setBooted(true);
       }
     }
     load();
   },[]);
 
+  const navigaA = useCallback((p) => {
+    logSync("nav", `Navigazione → ${p}`);
+    setPage(p);
+  }, []);
+
   const handleUpdatePersona = useCallback((updated)=>{
+    logSync("persona", `Profilo aggiornato: ${updated.nome}`, { id: updated.id?.slice(0,8), peso: updated.peso, obiettivo: updated.obiettivo, dietaIntensita: updated.dietaIntensita, pesoTarget: updated.pesoTarget });
     setPersonas(prev=>{
       const next=prev.map(p=>p.id===updated.id?updated:p);
       window.storage.set(SK_PERSONAS,JSON.stringify(next)).catch(()=>{});
@@ -277,6 +294,7 @@ export function App() {
   },[myPersonaId, misureApp]);
 
   const handleAddPersona = useCallback((p)=>{
+    logSync("persona", `Profilo aggiunto: ${p.nome}`, { id: p.id?.slice(0,8), sesso: p.sesso, eta: p.eta });
     setPersonas(prev=>{ const next=[...prev,p]; window.storage.set(SK_PERSONAS,JSON.stringify(next)).catch(()=>{}); return next; });
     setSelPersonaId(p.id);
   },[]);
@@ -284,6 +302,9 @@ export function App() {
   // Wrapper per setMisureApp: dopo ogni aggiornamento misure, ricalcola e
   // pusha il target dell'owner (le misure influenzano il TDEE adattivo).
   const handleMisureChange = useCallback((nextMisure)=>{
+    // Conta le misurazioni totali per il log
+    const nTot = Object.values(nextMisure||{}).reduce((s,r)=>s+(Array.isArray(r)?r.length:0),0);
+    logSync("misure", `Misure aggiornate`, { profili: Object.keys(nextMisure||{}).length, righe: nTot });
     setMisureApp(nextMisure);
     if (myPersonaId) {
       setPersonas(prev=>{
@@ -301,10 +322,12 @@ export function App() {
   },[myPersonaId]);
 
   const handleDeletePersona = useCallback((id)=>{
+    logSync("persona", `Profilo eliminato`, { id: id?.slice(0,8) });
     setPersonas(prev=>{ const next=prev.filter(p=>p.id!==id); window.storage.set(SK_PERSONAS,JSON.stringify(next)).catch(()=>{}); if(selPersonaId===id) setSelPersonaId(next[0]?.id||null); return next; });
   },[selPersonaId]);
 
   const handleNotifChange = useCallback((next) => {
+    logSync("opzioni", "Impostazioni notifiche aggiornate");
     setNotifSettings(next); window.storage.set(SK_NOTIF, JSON.stringify(next)).catch(()=>{});
   }, []);
   const handleToggleMealLog = useCallback((personaId, dateKey, mealKey, macros) => {
@@ -312,11 +335,11 @@ export function App() {
       const pLog=prev[personaId]||{},dayLog=pLog[dateKey]||{},cur=dayLog[mealKey];
       let next;
       if (cur) {
-        // Toggle consumed: mantieni le macro già salvate (non aggiornare con quelle correnti)
         next = {...dayLog, [mealKey]: {...cur, consumed: !cur.consumed}};
+        logSync("pasto-log", `Pasto ${cur.consumed ? "non consumato" : "consumato"}: ${mealKey}`, { personaId: personaId?.slice(0,8), dateKey, mealKey });
       } else {
-        // Prima volta: salva le macro attuali e segna come consumato
         next = {...dayLog, [mealKey]: {consumed: true, ...macros}};
+        logSync("pasto-log", `Pasto consumato: ${mealKey}`, { personaId: personaId?.slice(0,8), dateKey, kcal: macros?.kcal });
       }
       const nextFull={...prev,[personaId]:{...pLog,[dateKey]:next}};
       window.storage.set(SK_MEALS_LOG,JSON.stringify(nextFull)).catch(()=>{}); return nextFull;
@@ -325,7 +348,7 @@ export function App() {
 
   // Aggiorna macro e ingredienti di un pasto già consumato con i valori reali
   const handleEditConsumedMeal = useCallback((personaId, dateKey, mealKey, data) => {
-    // data = { kcal, p, c, g, _ingredienti: { ingId: {valore, unit} } }
+    logSync("pasto-log", `Pasto consumato modificato: ${mealKey}`, { personaId: personaId?.slice(0,8), dateKey, kcal: data?.kcal });
     setMealsLog(prev => {
       const pLog=prev[personaId]||{}, dayLog=pLog[dateKey]||{}, cur=dayLog[mealKey];
       const { _ingredienti, ...macros } = data;
@@ -347,6 +370,7 @@ export function App() {
     return ()=>clearTimeout(t);
   },[notifSettings,plan,myPersonaId]);
   const handleSetMyPersona = useCallback((id)=>{
+    logSync("persona", `Profilo selezionato come "mio"`, { id: id?.slice(0,8) });
     setMyPersonaId(id);
     setSelPersonaId(id);
     window.storage.set(SK_MY_PERSONA, id).catch(()=>{});
@@ -402,6 +426,10 @@ export function App() {
   }, []);
 
   const handleSwap = useCallback(async(dayIdx, mealKey, oldMeal, newMeal) => {
+    logSync("swap", `Cambio pasto: ${mealKey} (giorno ${dayIdx})`, {
+      da: oldMeal?.id, a: newMeal?.id, nomeA: newMeal?.nome?.slice(0,30),
+      fonte: newMeal?.fonte || "catalogo",
+    });
     // Se è una ricetta custom, assicura che ING_QTY sia aggiornato prima di salvare
     restoreCustomING_QTY(newMeal);
     const key = `${dayIdx}-${mealKey}`;
@@ -415,11 +443,8 @@ export function App() {
     // Classifica lo swap: contesto (fretta) o gusto (valutazione).
     const tipo = classifySwap(dayIdx, mealKey);
     if (tipo === "contesto") {
-      // Vincolo pratico, non un giudizio: i gusti NON vengono toccati.
-      // Registriamo il dato grezzo per analisi future sulle fasce orarie.
       logContextSwap(dayIdx, mealKey, oldMeal, newMeal, hoursUntilMeal(dayIdx, mealKey));
     } else {
-      // Giudizio sulla ricetta: penalizza la scartata, premia la scelta.
       updatePref(oldMeal.id, e => ({ ...e, swapsOut: (e.swapsOut||0) + 1 }));
       updatePref(newMeal.id, e => ({ ...e, swapsIn:  (e.swapsIn ||0) + 1 }));
     }
@@ -436,8 +461,9 @@ export function App() {
   }, []);
 
   const handleApplySeed = useCallback(async(newSeed, newOverrides)=>{
+    logSync("piano", `Piano applicato da storico`, { seed: String(newSeed) });
     setSpinning(true); await new Promise(r=>setTimeout(r,400));
-    const np=generateWeekPlan(newSeed,excluded);
+    const np=generateWeekPlan(newSeed, excluded, undefined, ricetteUtente);
     const nh=[{seed,date:new Date().toLocaleDateString("it-IT"),label:`Piano del ${new Date().toLocaleDateString("it-IT")}`},...history].slice(0,5);
     const resolvedOverrides = newOverrides || {};
     setSeed(newSeed); setPlan(np); setHistory(nh); setSelDay(0); setRegenNeeded(false); setOverrides(resolvedOverrides);
@@ -447,11 +473,12 @@ export function App() {
       await window.storage.set(SK_OVERRIDES,JSON.stringify(resolvedOverrides));
     } catch{}
     setSpinning(false);
-  },[seed,history,excluded]);
+  },[seed,history,excluded,ricetteUtente]);
 
   const regenerate = useCallback(async()=>{
+    logSync("piano", "Piano rigenerato dall'utente", { ricetteUtente: ricetteUtente.length, esclusi: excluded.length });
     setSpinning(true); await new Promise(r=>setTimeout(r,500));
-    const ns=Date.now(), np=generateWeekPlan(ns,excluded);
+    const ns=Date.now(), np=generateWeekPlan(ns, excluded, undefined, ricetteUtente);
     const nh=[{seed,date:new Date().toLocaleDateString("it-IT"),label:`Piano del ${new Date().toLocaleDateString("it-IT")}`},...history].slice(0,5);
     setSeed(ns); setPlan(np); setHistory(nh); setSelDay(0); setRegenNeeded(false); setOverrides({});
     try {
@@ -460,21 +487,25 @@ export function App() {
       await window.storage.set(SK_OVERRIDES,"{}");
     } catch{}
     setSpinning(false);
-  },[seed,history,excluded]);
+  },[seed,history,excluded,ricetteUtente]);
 
   const loadHistory = useCallback(async(oldSeed)=>{
     setSpinning(true); await new Promise(r=>setTimeout(r,300));
-    setSeed(oldSeed); setPlan(generateWeekPlan(oldSeed,excluded)); setSelDay(0); setShowHistory(false);
+    setSeed(oldSeed); setPlan(generateWeekPlan(oldSeed, excluded, undefined, ricetteUtente)); setSelDay(0); setShowHistory(false);
     setOverrides({});
     try {
       await window.storage.set(SK_SEED,String(oldSeed));
       await window.storage.set(SK_OVERRIDES,"{}");
     } catch{}
     setSpinning(false);
-  },[excluded]);
+  },[excluded,ricetteUtente]);
 
   const toggleExcluded = useCallback(async(id)=>{
-    setExcluded(prev=>{ const next=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]; window.storage.set(SK_EXCL,JSON.stringify(next)).catch(()=>{}); return next; });
+    setExcluded(prev=>{
+      const next=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];
+      logSync("esclusione", next.includes(id) ? `Ingrediente escluso: ${id}` : `Ingrediente riammesso: ${id}`, { ingrediente: id, totaleEsclusi: next.length });
+      window.storage.set(SK_EXCL,JSON.stringify(next)).catch(()=>{}); return next;
+    });
     setRegenNeeded(true);
   },[]);
 
@@ -773,6 +804,7 @@ export function App() {
                             loggedIngs={selDayLog[mk]?._ingredienti||null}
                             onEditConsumed={data=>handleEditConsumedMeal(persona.id,dateKeyForDayIdx(selDay),mk,data)}
                             cloudStatus={cloudStatus}
+                            ricetteUtente={ricetteUtente}
                           />
                         );
                       })}
@@ -871,7 +903,7 @@ export function App() {
         {!showHistory&&page==="spesa"&&<ShoppingPage plan={applyOverrides(plan, overrides)} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa}/>}
         {!showHistory&&page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
         {!showHistory&&page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
-        {!showHistory&&page==="ricette"&&<RicettePage cloudStatus={cloudStatus} overrides={overrides}/>}
+        {!showHistory&&page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={()=>caricaRicette().then(rs=>setRicetteUtente(rs)).catch(()=>{})}/>}
         {!showHistory&&page==="test-sync"&&<SyncTestPage/>}
         {!showHistory&&page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}
         {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed}/>}
@@ -917,7 +949,7 @@ export function App() {
             <button key={tab.key}
               onClick={()=>{
                 if (tab.key==="menu") { setMenuOpen(true); return; }
-                setPage(tab.key); setShowHistory(false); setMenuOpen(false);
+                navigaA(tab.key); setShowHistory(false); setMenuOpen(false);
               }}
               style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 2px 8px",border:"none",background:"transparent",color:active?"#2563eb":"#94a3b8",cursor:"pointer",position:"relative",transition:"color 0.15s",gap:3,minWidth:0}}>
               {active && <div style={{position:"absolute",top:0,left:"30%",right:"30%",height:2,background:"#2563eb",borderRadius:"0 0 3px 3px"}}/>}
@@ -951,7 +983,7 @@ export function App() {
                 const itemBadge = item.key==="ingredienti" && excluded.length>0 ? excluded.length : 0;
                 return (
                   <button key={item.key}
-                    onClick={()=>{ setPage(item.key); setShowHistory(false); setMenuOpen(false); }}
+                    onClick={()=>{ navigaA(item.key); setShowHistory(false); setMenuOpen(false); }}
                     style={{display:"flex",alignItems:"center",gap:14,padding:"14px 20px",border:"none",background:isActive?"#eff6ff":"transparent",cursor:"pointer",textAlign:"left",borderLeft:isActive?"3px solid #2563eb":"3px solid transparent",transition:"background 0.12s"}}>
                     <div style={{fontSize:24,width:36,textAlign:"center"}}>{item.icon}</div>
                     <div style={{flex:1,minWidth:0}}>

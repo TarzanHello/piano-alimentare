@@ -4,40 +4,60 @@ import { getSyncLog, clearSyncLog, onSyncLogChange } from '@/db/synclog';
 import { getCloudMe, riallineaForzato } from '@/db/sync';
 
 const LEVEL_META = {
-  info:            { icon: "ℹ️" },
-  status:          { icon: "🔌" },
-  update:          { icon: "📥" },
-  push:            { icon: "⬆️" },
-  "push-schedule": { icon: "⏳" },
-  pull:            { icon: "⬇️" },
-  realtime:        { icon: "📡" },
-  calc:            { icon: "🧮" },
-  scale:           { icon: "⚖️" },
-  plan:            { icon: "🎲" },
-  swap:            { icon: "🔄" },
-  "piano-persona": { icon: "🧩" },
-  family:          { icon: "👨‍👩‍👧" },
-  warn:            { icon: "⚠️" },
-  error:           { icon: "⛔" },
+  // Sincronizzazione cloud
+  info:            { icon: "ℹ️",  color: "#64748b" },
+  status:          { icon: "🔌",  color: "#2563eb" },
+  update:          { icon: "📥",  color: "#7c3aed" },
+  push:            { icon: "⬆️",  color: "#0891b2" },
+  "push-schedule": { icon: "⏳",  color: "#94a3b8" },
+  pull:            { icon: "⬇️",  color: "#0891b2" },
+  realtime:        { icon: "📡",  color: "#7c3aed" },
+  // Motore nutrizionale
+  calc:            { icon: "🧮",  color: "#16a34a" },
+  scale:           { icon: "⚖️",  color: "#16a34a" },
+  plan:            { icon: "🎲",  color: "#16a34a" },
+  swap:            { icon: "🔄",  color: "#16a34a" },
+  "piano-persona": { icon: "🧩",  color: "#16a34a" },
+  // Azioni utente
+  "nav":           { icon: "🧭",  color: "#475569" },  // navigazione pagine
+  "persona":       { icon: "👤",  color: "#2563eb" },  // modifica/aggiunta/rimozione profili
+  "misure":        { icon: "📏",  color: "#7c3aed" },  // inserimento misurazioni
+  "pasto-log":     { icon: "✅",  color: "#16a34a" },  // segna pasto consumato
+  "acqua":         { icon: "💧",  color: "#0ea5e9" },  // tracciamento acqua
+  "spesa":         { icon: "🛒",  color: "#d97706" },  // lista spesa
+  "ricetta":       { icon: "📖",  color: "#db2777" },  // CRUD ricette
+  "esclusione":    { icon: "🚫",  color: "#dc2626" },  // ingredienti esclusi
+  "gusti":         { icon: "❤️",  color: "#f43f5e" },  // preferenze/like
+  "opzioni":       { icon: "⚙️",  color: "#475569" },  // impostazioni/notifiche
+  "storage":       { icon: "💾",  color: "#94a3b8" },  // lettura/scrittura locale
+  // Famiglia
+  family:          { icon: "👨‍👩‍👧", color: "#7c3aed" },
+  auth:            { icon: "🔐",  color: "#2563eb" },  // login/logout/sessione
+  // Problemi
+  warn:            { icon: "⚠️",  color: "#d97706" },
+  error:           { icon: "⛔",  color: "#dc2626" },
 };
 
 const FILTERS = [
   { key: "all",      label: "Tutto" },
+  { key: "azioni",   label: "Azioni utente" },
   { key: "motore",   label: "Motore" },
+  { key: "sync",     label: "Push / Pull" },
   { key: "family",   label: "Famiglia" },
   { key: "realtime", label: "Realtime" },
-  { key: "sync",     label: "Push / Pull" },
-  { key: "problemi", label: "Avvisi / Errori" },
+  { key: "problemi", label: "⚠️ Errori" },
 ];
 
 function matchesFilter(entry, filter) {
+  const l = entry.level;
   switch (filter) {
-    case "motore":   return ["calc", "scale", "plan", "swap", "piano-persona"].includes(entry.level);
-    case "family":   return entry.level === "family";
-    case "realtime": return entry.level === "realtime";
-    case "sync":      return ["push", "pull", "push-schedule", "update"].includes(entry.level);
-    case "problemi":  return ["warn", "error"].includes(entry.level);
-    default:          return true;
+    case "azioni":   return ["nav","persona","misure","pasto-log","acqua","spesa","ricetta","esclusione","gusti","opzioni","storage","auth"].includes(l);
+    case "motore":   return ["calc","scale","plan","swap","piano-persona"].includes(l);
+    case "sync":     return ["push","pull","push-schedule","update","info","status"].includes(l);
+    case "family":   return ["family","auth"].includes(l);
+    case "realtime": return l === "realtime";
+    case "problemi": return ["warn","error"].includes(l);
+    default:         return true;
   }
 }
 
@@ -166,16 +186,20 @@ export function SyncLogPage({ cloudStatus }) {
         {ordered.length === 0 ? (
           <div style={{ padding: "20px", textAlign: "center", fontSize: 12, color: "#94a3b8" }}>Nessun evento registrato finora.</div>
         ) : ordered.map((e, i) => {
-          const meta = LEVEL_META[e.level] || { icon: "•" };
+          const meta = LEVEL_META[e.level] || { icon: "•", color: "#94a3b8" };
           return (
-            <div key={i} style={{ padding: "9px 14px", borderBottom: i < ordered.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+            <div key={i} style={{ padding: "9px 14px", borderBottom: i < ordered.length - 1 ? "1px solid #f1f5f9" : "none",
+              borderLeft: `3px solid ${meta.color}20` }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                 <span style={{ fontSize: 13, flexShrink: 0 }}>{meta.icon}</span>
                 <span style={{ fontSize: 10, fontFamily: "monospace", color: "#94a3b8", flexShrink: 0 }}>{fmtTime(e.t)}</span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: meta.color, flexShrink: 0,
+                  textTransform: "uppercase", letterSpacing: 0.4 }}>{e.level}</span>
                 <span style={{ fontSize: 11.5, color: "#1e293b", fontWeight: 600, flex: 1, minWidth: 0 }}>{e.msg}</span>
               </div>
               {e.data !== undefined && (
-                <pre style={{ margin: "4px 0 0 30px", fontSize: 10, color: "#64748b", background: "#f8fafc", borderRadius: 6, padding: "6px 8px", overflowX: "auto", fontFamily: "monospace" }}>
+                <pre style={{ margin: "4px 0 0 30px", fontSize: 10, color: "#64748b", background: "#f8fafc",
+                  borderRadius: 6, padding: "6px 8px", overflowX: "auto", fontFamily: "monospace" }}>
                   {JSON.stringify(e.data, null, 1)}
                 </pre>
               )}

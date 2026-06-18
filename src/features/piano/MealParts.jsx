@@ -1,6 +1,7 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { MEAL_KEYS, MEAL_META, PREP_SLOTS, SK_WATER, WATER_GOAL, WATER_MAX, WATER_ML, classifySwap, findAlternatives, formattaPorzione } from '@/core';
+import { logSync } from '@/db/synclog';
 import { ConsumedEditorModal, RecipeEditorModal, RicettarioModal } from '@/components/modals';
 import { MacroBadge, ProgressBar } from '@/components/shared';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
@@ -28,12 +29,11 @@ export function WaterTracker({ dayKey, personaColor }) {
   };
 
   const handleGlassClick = (idx) => {
-    // Se clicco il bicchiere già pieno più alto → rimuovi (deseleziona)
-    // Se clicco un bicchiere → porta il contatore a idx+1
     const next = idx + 1 === glasses ? idx : idx + 1;
     setBounce(idx);
     setTimeout(() => setBounce(null), 300);
     setAndSave(next);
+    logSync("acqua", `Acqua aggiornata: ${next * WATER_ML} ml (${next} bicchieri)`, { bicchieri: next, ml: next * WATER_ML, giornoKey: dayKey });
   };
 
   const ml       = glasses * WATER_ML;
@@ -121,7 +121,7 @@ export function WaterTracker({ dayKey, personaColor }) {
 
 // Soglie tempo per i pulsanti del selettore
 
-export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, onToggleConsumed, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato, cloudStatus }) {
+export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, onToggleConsumed, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato, cloudStatus, ricetteUtente }) {
   const [open, setOpen]               = useState(false);
   const [swapOpen, setSwapOpen]       = useState(false);
   const [editOpen, setEditOpen]       = useState(false);
@@ -140,7 +140,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
 
   // Alternative calcolate al volo quando l'utente sceglie un filtro tempo
   const alternatives = prepSlot !== null
-    ? findAlternatives(mealKey, meal, prepSlot.min, prepSlot.max, excludedIds || [], weekMealIds || new Set(), personaKey)
+    ? findAlternatives(mealKey, meal, prepSlot.min, prepSlot.max, excludedIds || [], weekMealIds || new Set(), personaKey, ricetteUtente || [])
     : [];
 
   return (
@@ -176,14 +176,14 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
           <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
             {/* Bottone like */}
             <button
-              onClick={e=>{ e.stopPropagation(); onToggleLike && onToggleLike(); }}
+              onClick={e=>{ e.stopPropagation(); onToggleLike && (logSync("gusti", `${prefEntry?.liked?"Rimosso like":"Like"}: ${meal.nome?.slice(0,30)}`, {id:meal.id}), onToggleLike()); }}
               aria-label={prefEntry?.liked ? "Rimuovi preferito" : "Segna come preferito"}
               title={prefEntry?.liked ? "Tolta dai preferiti" : "Aggiungi ai preferiti"}
               style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${prefEntry?.liked?"#ef4444":"#e2e8f0"}`,background:prefEntry?.liked?"#fef2f2":"#f8fafc",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
               <span style={{filter:prefEntry?.liked?"none":"grayscale(1) opacity(0.55)"}}>{prefEntry?.liked?"❤️":"🤍"}</span>
             </button>
             {/* Bottone consumato */}
-            <button onClick={e=>{ e.stopPropagation(); onToggleConsumed&&onToggleConsumed(); }} title={consumed?"Segna come non consumato":"Segna come consumato"}
+            <button onClick={e=>{ e.stopPropagation(); logSync("pasto-log", `${consumed?"Rimarca non consumato":"Segna consumato"}: ${mealKey}`, {dayIdx, mealKey, pasto:meal?.nome?.slice(0,25)}); onToggleConsumed&&onToggleConsumed(); }} title={consumed?"Segna come non consumato":"Segna come consumato"}
               style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${consumed?"#16a34a":"#e2e8f0"}`,background:consumed?"#f0fdf4":"#f8fafc",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
               <span style={{filter:consumed?"none":"grayscale(1) opacity(0.4)"}}>{consumed?"✅":"☑️"}</span>
             </button>

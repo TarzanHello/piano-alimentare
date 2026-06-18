@@ -11,7 +11,7 @@
 // window.dispatchEvent.
 
 const SK_SYNC_LOG = "pf-sync-log";
-const MAX_ENTRIES = 300;
+const MAX_ENTRIES = 800;
 
 let buffer = [];
 let loaded = false;
