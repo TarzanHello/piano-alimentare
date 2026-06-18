@@ -133,27 +133,37 @@ async function pullTargetGiornaliero() {
 // persone editabili (il proprietario del profilo). Il target è la fonte di
 // verità per tutti gli altri dispositivi: sovrascrive il ricalcolo locale,
 // eliminando la finestra di disallineamento durante i drag in-flight.
+// Guard anti-loop: ricorda l'ultimo valore di target pushato sul cloud per ogni profilo.
+// Se il valore non è cambiato rispetto all'ultimo push andato a buon fine, non ripusha.
+const lastPushedTarget = {};  // { [profilo_id]: { kcal, p, c, g, tdeeFinale } }
+
 export async function pushTargetGiornaliero(persona, targetObj) {
   if (!supabase||!me) return;
   if (!editable(persona)) return;
   if (!targetObj||!targetObj.kcal) return;
-  // Evita push ridondanti: confronta con il valore già in cache prima di
-  // scrivere sul cloud. Su ogni reconcile potrebbero esserci 3-4 push
-  // identici consecutivi, che caricano Supabase inutilmente.
+  // Guard anti-loop a due livelli:
+  // 1. Confronto con il valore in cache locale (evita write storage ridondanti)
+  // 2. Confronto con l'ultimo push cloud andato a buon fine (evita round-trip cloud)
   const cache=await getLocal(SK_TARGET_GIORNALIERO,{});
   const prev=cache[persona.id];
+  const sig = `${targetObj.kcal}|${targetObj.p}|${targetObj.c}|${targetObj.g}|${targetObj.tdeeFinale}`;
   const changed = !prev || prev.kcal!==targetObj.kcal || prev.p!==targetObj.p ||
                   prev.c!==targetObj.c || prev.g!==targetObj.g || prev.tdeeFinale!==targetObj.tdeeFinale;
+  const alreadyPushed = lastPushedTarget[persona.id] === sig;
   cache[persona.id]=targetObj;
   await setLocalQuiet(SK_TARGET_GIORNALIERO,JSON.stringify(cache));
   emit("targetGiornaliero");
-  if (!changed) return; // valore identico: aggiorna solo la cache locale, non il cloud
+  // Non pusha se il valore è identico all'ultimo push cloud (anti-loop realtime)
+  if (!changed || alreadyPushed) return;
   const {error}=await supabase.from("profilo_dati").upsert(
     {profilo_id:persona.id, chiave:"target_giornaliero", valore:targetObj},
     {onConflict:"profilo_id,chiave"}
   );
   if (error) logSync("error","Push target giornaliero: errore",{profilo:persona.id,error:error.message});
-  else logSync("push","Target giornaliero caricato sul cloud",{profilo:persona.id,kcal:targetObj.kcal});
+  else {
+    lastPushedTarget[persona.id] = sig;  // aggiorna guard solo su successo
+    logSync("push","Target giornaliero caricato sul cloud",{profilo:persona.id,kcal:targetObj.kcal});
+  }
 }
 
 // Calcola e pusha il target per tutte le persone editabili (chiamato da hookStorage
@@ -557,9 +567,9 @@ async function reconcile() {
   await pullAltriDatiFamiglia();
   await pullProfili();await pullMisure();await pullMealsLog();await pullTargetGiornaliero();
   await pushMisureSoloNuove();await pushMealsLogSoloVuoti();
-  // Pusha il target calcolato per le persone editabili su questo dispositivo,
-  // così gli altri membri lo leggono subito senza ricalcolo locale
-  await pushTargetTuttiEditabili();
+  // NB: pushTargetTuttiEditabili NON viene chiamato qui per evitare loop:
+  // il target viene pushato solo da hookStorage (su cambio profilo/misure)
+  // e da App.jsx (su handleUpdatePersona/handleMisureChange).
   await pullSpesa();
   logSync("info","Riconciliazione con il cloud: completata");
 }
@@ -607,6 +617,8 @@ export async function resetSyncState() {
   // causando l'uscita "fittizia" osservata nel log (3× STATUS Uscita).
   started = false;
   me=null;pianoLock=false;lastPushedPianoSeed=0;
+  // Azzera il guard anti-loop del target così al prossimo login rifarà il push
+  for (const k of Object.keys(lastPushedTarget)) delete lastPushedTarget[k];
   // resetta i flag globali così un nuovo boot può ri-registrare i listener
   window.__syncAuthListenerRegistered = false;
   window.__syncVisListenerRegistered  = false;
@@ -626,7 +638,6 @@ export async function riallineaForzato() {
   await ancoraIdentitaAlCloud();
   await pullPiano();await pullAltriDatiFamiglia();
   await pullProfili();await pullMisure();await pullMealsLog();await pullTargetGiornaliero();await pullSpesa();
-  await pushTargetTuttiEditabili();
   await window.storage.set("pf-cloud-migrated","1");
   subscribeRealtime();
   emit("personas");emit("misure");emit("mealsLog");emit("targetGiornaliero");emit("spesa");
