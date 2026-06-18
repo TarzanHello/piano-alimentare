@@ -805,6 +805,27 @@ export function App() {
                             onEditConsumed={data=>handleEditConsumedMeal(persona.id,dateKeyForDayIdx(selDay),mk,data)}
                             cloudStatus={cloudStatus}
                             ricetteUtente={ricetteUtente}
+                            onSalvaRicetta={(meal) => {
+                              // Converti il pasto modificato nel formato editor ricette
+                              // e naviga alla pagina Ricette con l'editor pre-aperto
+                              const quantita = {};
+                              const qty = ING_QTY[meal.id];
+                              if (qty) {
+                                for (const [ingId, v] of Object.entries(qty)) {
+                                  if (ingId === '_scaled') continue;
+                                  quantita[ingId] = { g: v.uomo ?? v.g ?? 0, unit: v.unit || "g" };
+                                }
+                              }
+                              window.__ricetteDaAprire = {
+                                titolo: meal.nome || "",
+                                categoria: meal.categoria || mk.split("_")[0],
+                                prep: meal.prep || null,
+                                scope: "famiglia",
+                                quantita,
+                                ingredienti: Object.entries(quantita).map(([ing,v])=>({ing,g:v.g,unit:v.unit})),
+                              };
+                              navigaA("ricette");
+                            }}
                           />
                         );
                       })}

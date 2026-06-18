@@ -121,7 +121,7 @@ export function WaterTracker({ dayKey, personaColor }) {
 
 // Soglie tempo per i pulsanti del selettore
 
-export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, onToggleConsumed, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato, cloudStatus, ricetteUtente }) {
+export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, onToggleConsumed, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta }) {
   const [open, setOpen]               = useState(false);
   const [swapOpen, setSwapOpen]       = useState(false);
   const [editOpen, setEditOpen]       = useState(false);
@@ -240,10 +240,18 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
 
         {/* Reset override */}
         {isOverride && !swapOpen && (
-          <button onClick={e=>{ e.stopPropagation(); onReset(); }}
-            style={{marginTop:8,width:"100%",padding:"6px",borderRadius:7,border:"1px solid #7c3aed30",background:"#f5f3ff",color:"#7c3aed",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-            ↩ Ripristina originale
-          </button>
+          <div style={{display:"flex",gap:6,marginTop:8}}>
+            <button onClick={e=>{ e.stopPropagation(); onReset(); }}
+              style={{flex:1,padding:"6px",borderRadius:7,border:"1px solid #7c3aed30",background:"#f5f3ff",color:"#7c3aed",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+              ↩ Ripristina originale
+            </button>
+            {cloudStatus?.loggedIn && onSalvaRicetta && (
+              <button onClick={e=>{ e.stopPropagation(); onSalvaRicetta(meal); }}
+                style={{flex:1,padding:"6px",borderRadius:7,border:"1px solid #16a34a30",background:"#f0fdf4",color:"#16a34a",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                💾 Salva come ricetta
+              </button>
+            )}
+          </div>
         )}
       </div>
 
