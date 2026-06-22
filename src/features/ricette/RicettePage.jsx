@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useMemo, useCallback } = React;
-import { DB, INGREDIENTS, ING_MAP, cercaIngredienti, quantitaInGrammi, nutriPerGrammi } from '@/core';
+import { DB, ING_QTY, INGREDIENTS, ING_MAP, cercaIngredienti, quantitaInGrammi, nutriPerGrammi } from '@/core';
 import { EmptyState } from '@/components/shared';
 import { caricaRicette, creaRicetta, aggiornaRicetta, eliminaRicetta,
          toggleEsclusaRicetta } from '@/db/ricetteCloud';
@@ -365,15 +365,17 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
 // ── Card ricetta catalogo ─────────────────────────────────────────────────
 function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
   const [espanso, setEspanso] = useState(false);
-  // Macro del batch (slot uomo = quantità di riferimento)
+  // Le quantità del catalogo vivono in ING_QTY (DB le esclude dalle ricette).
+  // Slot uomo = batch di riferimento.
+  const quantitaRaw = ING_QTY[r.id] || {};
   const quantitaBatch = useMemo(() => {
     const out = {};
-    for (const [id, v] of Object.entries(r.quantita || {})) {
+    for (const [id, v] of Object.entries(quantitaRaw)) {
       if (id === '_scaled') continue;
       out[id] = { g: v.uomo ?? v.g ?? 0, unit: v.unit || "g" };
     }
     return out;
-  }, [r]);
+  }, [r.id]);
   const macro = useMemo(() => calcolaMacro(quantitaBatch), [quantitaBatch]);
   const prep = r.prep;
   const prepColor = !prep ? "#94a3b8" : prep<=15 ? "#16a34a" : prep<=30 ? "#d97706" : "#dc2626";
@@ -409,7 +411,7 @@ function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
       {/* Lista ingredienti espansa */}
       {espanso && (
         <div style={{ marginTop:8, paddingTop:8, borderTop:"1px solid #f1f5f9" }}>
-          {Object.entries(r.quantita || {}).filter(([id]) => id !== '_scaled').map(([id, v]) => {
+          {Object.entries(quantitaRaw).filter(([id]) => id !== '_scaled').map(([id, v]) => {
             const ing = ING_MAP[id];
             const qty = v.uomo ?? v.g ?? 0;
             const unit = v.unit || "g";
@@ -421,12 +423,15 @@ function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
               </div>
             );
           })}
+          {Object.keys(quantitaRaw).length === 0 && (
+            <div style={{ fontSize:12, color:"#94a3b8" }}>Ingredienti non disponibili</div>
+          )}
         </div>
       )}
 
       {/* Azioni */}
       <div style={{ display:"flex", gap:6, marginTop:8, flexWrap:"wrap" }}>
-        <button onClick={onDuplica} style={btnGhost}>📋 Duplica e personalizza</button>
+        <button onClick={() => onDuplica(quantitaRaw)} style={btnGhost}>📋 Duplica e personalizza</button>
         <button onClick={onToggleEsclusa}
           style={{ ...btnGhost,
                    background:  esclusa ? "#f0fdf4" : "#fff",
@@ -487,6 +492,8 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
       logSync("esclusione", `Catalogo: ricetta ${next.has(id)?"esclusa":"inclusa"}: ${id}`, { id });
       return next;
     });
+    // Notifica App: ricalcola esclusioni e segnala rigenerazione piano
+    setTimeout(() => onRicetteChange?.(), 0);
   };
 
   const salva = async (dati) => {
@@ -498,11 +505,10 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
     } catch (e) { setErrore(e.message || "Errore nel salvataggio."); }
   };
 
-  const duplica = async (r, catKey) => {
-    // r può essere una ricetta utente o una del catalogo
-    const quantita = r.quantita
-      ? normalizzaQuantita(r.quantita)
-      : {};
+  const duplica = async (r, catKey, quantitaCatalogo) => {
+    // r può essere una ricetta utente (ha r.quantita) o del catalogo (quantità da ING_QTY)
+    const fonte = quantitaCatalogo || r.quantita || {};
+    const quantita = normalizzaQuantita(fonte);
     const base = {
       titolo:      (r.titolo || r.nome || "") + " (copia)",
       descrizione: r.descrizione || "",
@@ -512,7 +518,6 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
       quantita,
       ingredienti: Object.entries(quantita).map(([ing, v]) => ({ ing, g: v.g, unit: v.unit })),
     };
-    // Apre direttamente l'editor con la ricetta pre-compilata
     setEditing(base);
     setVista("editor");
   };
@@ -623,7 +628,7 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
                     {rs.map(r => (
                       <CardCatalogo key={r.id} r={r} catKey={c.key}
                         esclusa={escluseCatalogo.has(r.id)}
-                        onDuplica={() => duplica(r, c.key)}
+                        onDuplica={(quantitaRaw) => duplica(r, c.key, quantitaRaw)}
                         onToggleEsclusa={() => toggleEsclusaCatalogo(r.id)}/>
                     ))}
                   </div>

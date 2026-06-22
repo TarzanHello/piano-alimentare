@@ -783,15 +783,19 @@ export function ricettaUtenteToMealObj(ricetta) {
 // Le ricette utente hanno peso 3× nel sorteggio, così vengono favorite.
 // Le ricette escluse (esclusa=true) non entrano nel pool.
 // Registra anche ING_QTY per ogni ricetta utente (effetto collaterale idempotente).
-export function buildMergedPool(categoria, ricetteUtente, excludedIds, mese) {
-  const catalogo = buildWeightedPool(DB[categoria] || [], excludedIds, mese);
-  // Converti ricette utente della categoria e costruisci pool pesato
+export function buildMergedPool(categoria, ricetteUtente, excludedIds, mese, ricetteEscluseIds) {
+  const escl = ricetteEscluseIds instanceof Set ? ricetteEscluseIds : new Set(ricetteEscluseIds || []);
+  // Catalogo: filtra ingredienti esclusi E ricette escluse per id
+  const catalogoFiltrato = (DB[categoria] || []).filter(r => !escl.has(r.id));
+  const catalogo = buildWeightedPool(catalogoFiltrato, excludedIds, mese);
+  // Ricette utente della categoria: escludi quelle con flag esclusa o id escluso
   const utente = (ricetteUtente || [])
     .filter(r => r.categoria === categoria && !r.esclusa)
     .map(r => {
       try { return ricettaUtenteToMealObj(r); } catch { return null; }
     })
     .filter(Boolean)
+    .filter(r => !escl.has(r.id) && !escl.has(r._cloudId))
     .filter(r => !r.ingredients.some(id => (excludedIds||[]).includes(id)));
 
   if (!utente.length) return catalogo;
@@ -845,13 +849,14 @@ export function buildWeightedPool(ricette, excludedIds, mese) {
   return pool.length > 0 ? pool : ricette.filter(r => !r.ingredients.some(id => excludedIds.includes(id)));
 }
 
-export function generateWeekPlan(seed, excludedIds = [], mese, ricetteUtente = []) {
+export function generateWeekPlan(seed, excludedIds = [], mese, ricetteUtente = [], ricetteEscluseIds) {
   const m = mese || meseCorrente();
   const rng = seededRng(seed);
+  const escl = ricetteEscluseIds instanceof Set ? ricetteEscluseIds : new Set(ricetteEscluseIds || []);
 
   const diag = {};
   const analizzaCat = (cat) => {
-    const tutteDB = DB[cat] || [];
+    const tutteDB = (DB[cat] || []).filter(r => !escl.has(r.id));
     const tutteUtente = (ricetteUtente||[]).filter(r => r.categoria === cat && !r.esclusa);
     let perEsclusione = 0, perStagione = 0, ammesse = 0;
     for (const r of tutteDB) {
@@ -863,7 +868,7 @@ export function generateWeekPlan(seed, excludedIds = [], mese, ricetteUtente = [
   };
 
   const pickSeven = (cat) => {
-    const pool = buildMergedPool(cat, ricetteUtente, excludedIds, m);
+    const pool = buildMergedPool(cat, ricetteUtente, excludedIds, m, escl);
     if (!pool.length) return (DB[cat]||[]).slice(0, 7);
     const picked = [], usedIds = new Set();
     let attempts = 0;
@@ -885,8 +890,8 @@ export function generateWeekPlan(seed, excludedIds = [], mese, ricetteUtente = [
   const cene   = pickSeven("cena");
 
   // Spuntini: pool unificato, no due uguali consecutivi
-  const spPool = buildMergedPool("spuntino", ricetteUtente, excludedIds, m);
-  const spFallback = buildMergedPool("spuntino", ricetteUtente, [], m);
+  const spPool = buildMergedPool("spuntino", ricetteUtente, excludedIds, m, escl);
+  const spFallback = buildMergedPool("spuntino", ricetteUtente, [], m, escl);
   const spuntini = [];
   for (let i = 0; i < 14; i++) {
     const excl = spuntini.slice(-2).map(s => s.id);
