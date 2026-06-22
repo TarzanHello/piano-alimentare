@@ -95,7 +95,6 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
   const [descr, setDescr]     = useState(iniziale?.descrizione || "");
   const [categoria, setCat]   = useState(iniziale?.categoria || "pranzo");
   const [prep, setPrep]       = useState(iniziale?.prep ?? "");
-  const [scope, setScope]     = useState(iniziale?.scope || "famiglia");
   const [query, setQuery]     = useState("");
   const [errore, setErrore]   = useState("");
 
@@ -156,7 +155,7 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
       descrizione: descr.trim(),
       categoria,
       prep: prep !== "" ? parseInt(prep) || null : null,
-      scope,
+      scope: "famiglia",
       quantita,
       ingredienti,
       kcal: macro.kcal, p: macro.p, c: macro.c, g: macro.g_,
@@ -195,31 +194,13 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
             </button>
           ))}
         </div>
-        {/* Prep + Scope */}
-        <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <span style={{ fontSize:13, color:"#64748b" }}>⏱</span>
-            <input type="number" value={prep} onChange={e => setPrep(e.target.value)} min={1} max={180}
-              placeholder="—" style={{ width:56, border:"1px solid #e2e8f0", borderRadius:8,
-                                       padding:"5px 8px", fontSize:13, textAlign:"right" }}/>
-            <span style={{ fontSize:12, color:"#94a3b8" }}>min</span>
-          </div>
-          <div style={{ display:"flex", gap:5, marginLeft:"auto" }}>
-            <button onClick={() => setScope("privata")}
-              style={{ ...btnGhost, fontSize:11, padding:"5px 10px",
-                       background: scope==="privata" ? "#fef9c3" : "#fff",
-                       borderColor: scope==="privata" ? "#eab308" : "#cbd5e1",
-                       color: scope==="privata" ? "#854d0e" : "#475569" }}>
-              🔒 Privata
-            </button>
-            <button onClick={() => setScope("famiglia")}
-              style={{ ...btnGhost, fontSize:11, padding:"5px 10px",
-                       background: scope==="famiglia" ? "#dbeafe" : "#fff",
-                       borderColor: scope==="famiglia" ? "#2563eb" : "#cbd5e1",
-                       color: scope==="famiglia" ? "#1d4ed8" : "#475569" }}>
-              👨‍👩‍👧 Famiglia
-            </button>
-          </div>
+        {/* Prep */}
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:13, color:"#64748b" }}>⏱ Preparazione</span>
+          <input type="number" value={prep} onChange={e => setPrep(e.target.value)} min={1} max={180}
+            placeholder="—" style={{ width:56, border:"1px solid #e2e8f0", borderRadius:8,
+                                     padding:"5px 8px", fontSize:13, textAlign:"right" }}/>
+          <span style={{ fontSize:12, color:"#94a3b8" }}>min</span>
         </div>
       </div>
 
@@ -296,18 +277,17 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
 
   return (
     <div style={{ ...card, opacity: r.esclusa ? 0.6 : 1,
-                  borderLeft: `4px solid ${r.scope==="privata" ? "#eab308" : "#2563eb"}` }}>
+                  borderLeft: "4px solid #2563eb" }}>
       <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginBottom:2 }}>
             <span style={{ fontWeight:700, fontSize:15 }}>{m.icon} {r.titolo}</span>
             {prepLabel && <span style={{ fontSize:11, color:"#64748b", background:"#f1f5f9",
                                          borderRadius:6, padding:"1px 6px" }}>⏱{prepLabel}</span>}
-            <span style={{ fontSize:10, padding:"1px 7px", borderRadius:6, fontWeight:700,
-                           background: r.scope==="privata" ? "#fef9c3" : "#dbeafe",
-                           color:      r.scope==="privata" ? "#854d0e" : "#1d4ed8" }}>
-              {r.scope==="privata" ? "🔒 Privata" : "👨‍👩‍👧 Famiglia"}
-            </span>
+            {!mine && r.autoreNome && <span style={{ fontSize:10, padding:"1px 7px", borderRadius:6,
+                           fontWeight:700, background:"#f1f5f9", color:"#64748b" }}>
+              di {r.autoreNome}
+            </span>}
             {r.esclusa && <span style={{ fontSize:10, background:"#fef2f2", color:"#dc2626",
                                           borderRadius:6, padding:"1px 6px", fontWeight:700 }}>🚫 esclusa</span>}
           </div>
@@ -447,7 +427,7 @@ function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
 // ── Pagina principale ────────────────────────────────────────────────────
 export function RicettePage({ cloudStatus, onRicetteChange }) {
   const [vista, setVista]     = useState("lista");
-  const [tab, setTab]         = useState("mie");
+  const [tab, setTab]         = useState("ricette");
   const [catAperte, setCatAperte] = useState({});
   // escluse catalogo: Set di id (memorizzato in localStorage in futuro, per ora in stato)
   const [escluseCatalogo, setEscluseCatalogo] = useState(() => {
@@ -480,9 +460,8 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
     }
   }, []);
 
-  // Suddivisione: mie (isMine) vs famiglia (scope=famiglia e !isMine)
-  const mie        = ricette.filter(r => r.isMine);
-  const diFamiglia = ricette.filter(r => !r.isMine);
+  // Tutte le ricette sono di famiglia: mostro tutte insieme nella sezione "Ricette".
+  const tutteRicette = ricette;
 
   const toggleEsclusaCatalogo = (id) => {
     setEscluseCatalogo(prev => {
@@ -539,9 +518,9 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
         {collegato && <button onClick={() => { setEditing(null); setVista("editor"); }} style={btnPrimary}>+ Nuova</button>}
       </div>
 
-      {/* Tab switcher */}
+      {/* Tab switcher: solo Ricette + Catalogo */}
       <div style={{ display:"flex", gap:6, marginBottom:14 }}>
-        {[["mie","👤 Mie"],["famiglia","👨‍👩‍👧 Famiglia"],["catalogo","📚 Catalogo"]].map(([key,label]) => (
+        {[["ricette","🍴 Ricette"],["catalogo","📚 Catalogo"]].map(([key,label]) => (
           <button key={key} onClick={() => setTab(key)}
             style={{ ...btnGhost, flex:1, padding:"8px 4px", textAlign:"center",
                      background:   tab===key ? "#dbeafe" : "#fff",
@@ -553,44 +532,28 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
         ))}
       </div>
 
-      {/* ── Le mie ── */}
-      {tab === "mie" && (
+      {/* ── Ricette di famiglia (tutte) ── */}
+      {tab === "ricette" && (
         !collegato
           ? <EmptyState emoji="☁️" title="Collegati per le ricette"
-              text="Le ricette personali sono salvate sul cloud. Accedi per crearle."/>
+              text="Le ricette di famiglia sono salvate sul cloud. Accedi per crearle e condividerle."/>
           : loading
             ? <div style={{ textAlign:"center", color:"#94a3b8", padding:20 }}>Caricamento…</div>
             : <>
                 {errore && <div style={{ color:"#dc2626", fontSize:13, marginBottom:10 }}>{errore}</div>}
-                {mie.length === 0
-                  ? <EmptyState emoji="🍴" title="Nessuna ricetta tua"
-                      text="Tocca + Nuova per creare la tua prima ricetta. Puoi anche duplicare una ricetta dal Catalogo per personalizzarla."/>
-                  : mie.map(r => (
-                      <CardRicetta key={r.id} r={r} mine
+                <div style={{ fontSize:12, color:"#64748b", marginBottom:12, lineHeight:1.5 }}>
+                  Tutte le ricette di famiglia. Ogni ricetta che crei è automaticamente condivisa
+                  con i membri della famiglia ed entra nel piano con priorità.
+                </div>
+                {tutteRicette.length === 0
+                  ? <EmptyState emoji="🍴" title="Nessuna ricetta"
+                      text="Tocca + Nuova per creare la prima ricetta di famiglia, oppure duplica una ricetta dal Catalogo per personalizzarla."/>
+                  : tutteRicette.map(r => (
+                      <CardRicetta key={r.id} r={r} mine={r.isMine}
                         onEdit={() => { setEditing(r); setVista("editor"); }}
                         onDelete={async () => {
                           if (confirm(`Eliminare "${r.titolo}"?`)) { await eliminaRicetta(r.id); ricarica(); onRicetteChange?.(); }
                         }}
-                        onDuplica={() => duplica(r)}
-                        onToggleEsclusa={() => toggleEsclusa(r)}/>
-                    ))}
-              </>
-      )}
-
-      {/* ── Famiglia ── */}
-      {tab === "famiglia" && (
-        !collegato
-          ? <EmptyState emoji="☁️" title="Collegati per vedere le ricette di famiglia"
-              text="Le ricette condivise dai tuoi familiari sono visibili solo quando sei connesso."/>
-          : loading
-            ? <div style={{ textAlign:"center", color:"#94a3b8", padding:20 }}>Caricamento…</div>
-            : <>
-                {errore && <div style={{ color:"#dc2626", fontSize:13, marginBottom:10 }}>{errore}</div>}
-                {diFamiglia.length === 0
-                  ? <EmptyState emoji="👨‍👩‍👧" title="Nessuna ricetta condivisa"
-                      text="Quando un membro della famiglia crea una ricetta con scope Famiglia, appare qui."/>
-                  : diFamiglia.map(r => (
-                      <CardRicetta key={r.id} r={r}
                         onDuplica={() => duplica(r)}
                         onToggleEsclusa={() => toggleEsclusa(r)}/>
                     ))}
@@ -603,7 +566,7 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
           <div style={{ fontSize:12, color:"#64748b", marginBottom:12, lineHeight:1.5 }}>
             166 ricette CRA-NUT. Le quantità mostrate sono il batch di riferimento — il piano
             le scala automaticamente per il fabbisogno di ciascun membro.
-            Duplica una ricetta per personalizzarla e aggiungerla al tuo piano con priorità.
+            Duplica una ricetta per personalizzarla e aggiungerla alle ricette di famiglia.
           </div>
           {CAT.map(c => {
             const rs = DB[c.key] || [];

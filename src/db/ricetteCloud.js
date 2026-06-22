@@ -76,8 +76,8 @@ export async function creaRicetta(ricetta) {
     c: Math.round(ricetta.c || 0),
     g: Math.round(ricetta.g || 0),
     esclusa: false,
-    // scope scelto dall'utente nell'editor (privata = solo suo, famiglia = visibile ai familiari)
-    scope: ricetta.scope === "privata" ? "privata" : "famiglia",
+    // Tutte le ricette sono condivise in famiglia (scope non più selezionabile)
+    scope: "famiglia",
   };
   const { data, error } = await supabase.from("ricette_utente").insert(payload).select().single();
   if (error) { logFamily("Ricetta: errore creazione", { titolo: payload.titolo, error: error.message }); throw new Error(error.message); }
@@ -89,8 +89,8 @@ export async function creaRicetta(ricetta) {
 export async function aggiornaRicetta(id, patch) {
   if (!supabase) throw new Error("Cloud non configurato");
   const upd = { ...patch };
-  // Rispetta lo scope scelto dall'utente (non forzare sempre "famiglia")
-  if (upd.scope !== "privata") upd.scope = "famiglia";
+  // Tutte le ricette sono di famiglia
+  upd.scope = "famiglia";
   if (upd.titolo) upd.titolo = upd.titolo.trim();
   ["kcal","p","c","g"].forEach(k => { if (upd[k] != null) upd[k] = Math.round(upd[k]); });
   const { data, error } = await supabase.from("ricette_utente").update(upd).eq("id", id).select().single();
