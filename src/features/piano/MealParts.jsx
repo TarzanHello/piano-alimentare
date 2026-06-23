@@ -46,74 +46,40 @@ export function WaterTracker({ dayKey, personaColor }) {
   if (!loaded) return null;
 
   return (
-    <div style={{background:"#fff",borderRadius:12,border:`1.5px solid ${goal_ok?"#bbf7d0":"#E7EDE2"}`,padding:"14px 16px",marginTop:10,transition:"border-color 0.3s"}}>
+    <div style={{background:"#fff",borderRadius:16,border:`1.5px solid ${goal_ok?"#bbf7d0":"#E7EDE2"}`,padding:"16px 18px",marginTop:10,boxShadow:"0 2px 12px #00000008",transition:"border-color 0.3s"}}>
       {/* Header */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-        <div style={{display:"flex",alignItems:"center",gap:7}}>
-          <span style={{fontSize:18}}>💧</span>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:34,height:34,borderRadius:11,background:"#E8F6FC",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>💧</div>
           <div>
-            <div style={{fontSize:12,fontWeight:800,color:"#13231A"}}>Idratazione</div>
-            <div style={{fontSize:10,color:"#6E8576"}}>Obiettivo: {WATER_GOAL/1000}L · {WATER_ML}ml per bicchiere</div>
+            <div style={{fontSize:13.5,fontWeight:800,color:"#13231A"}}>Idratazione</div>
+            <div style={{fontSize:11,color:"#9DB1A2",fontWeight:600}}>Obiettivo {WATER_GOAL/1000} L</div>
           </div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{fontSize:18,fontWeight:800,color,fontFamily:"monospace"}}>{(ml/1000).toFixed(1)}<span style={{fontSize:11,fontWeight:400,color:"#9DB1A2"}}> L</span></div>
-          <div style={{fontSize:9,color,fontWeight:700}}>{label}</div>
+          <div><span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:21,fontWeight:800,color:"#38BDF8"}}>{(ml/1000).toFixed(1)}</span><span style={{fontSize:12,fontWeight:700,color:"#9DB1A2"}}> L</span></div>
+          <div style={{fontSize:9.5,color:goal_ok?"#16a34a":"#9DB1A2",fontWeight:700}}>{label}</div>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div style={{background:"#EFF3EC",borderRadius:99,height:8,overflow:"hidden",marginBottom:12}}>
-        <div style={{
-          width:`${pct}%`, height:"100%", borderRadius:99,
-          background: goal_ok
-            ? "linear-gradient(90deg,#16a34a,#22c55e)"
-            : ml>=1400 ? "linear-gradient(90deg,#0891b2,#38bdf8)"
-            : ml>=800  ? "linear-gradient(90deg,#d97706,#fbbf24)"
-            : "#C2D0C6",
-          transition:"width 0.4s cubic-bezier(.4,0,.2,1)"
-        }}/>
-      </div>
-
-      {/* Griglia bicchieri */}
-      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+      {/* Segmenti idratazione */}
+      <div style={{display:"flex",gap:7}}>
         {Array.from({length: WATER_MAX}).map((_, i) => {
-          const filled  = i < glasses;
-          const isNext  = i === glasses; // il prossimo da riempire
-          const anim    = bounce === i;
+          const filled = i < glasses;
+          const anim   = bounce === i;
           return (
-            <button
-              key={i}
-              onClick={() => handleGlassClick(i)}
-              style={{
-                width:36, height:44,
-                borderRadius:8,
-                border:`2px solid ${filled ? color+"80" : "#E7EDE2"}`,
-                background: filled ? bgBar : "#F5F8F1",
-                cursor:"pointer",
-                display:"flex", flexDirection:"column",
-                alignItems:"center", justifyContent:"center",
-                gap:1,
-                transform: anim ? "scale(1.25)" : isNext ? "scale(1.05)" : "scale(1)",
-                transition:"transform 0.15s, background 0.2s, border-color 0.2s",
-                outline:"none",
-                padding:0,
-              }}
-            >
-              <span style={{fontSize:18,lineHeight:1,filter:filled?"none":"grayscale(1) opacity(0.35)"}}>
-                🥛
-              </span>
-              <span style={{fontSize:7,fontFamily:"monospace",fontWeight:700,color:filled?color:"#C2D0C6"}}>
-                {WATER_ML}
-              </span>
-            </button>
+            <button key={i} onClick={() => handleGlassClick(i)} title={`${(i+1)*WATER_ML} ml`}
+              style={{flex:1,height:38,borderRadius:11,border:"none",cursor:"pointer",padding:0,
+                background: filled ? "#38BDF8" : "#E8F1EC",
+                transform: anim ? "scaleY(1.15)" : "scaleY(1)",
+                transition:"transform 0.15s, background 0.25s",outline:"none"}}/>
           );
         })}
       </div>
 
       {/* Hint */}
-      <div style={{marginTop:8,fontSize:10,color:"#9DB1A2",textAlign:"center"}}>
-        Tocca un bicchiere per segnarlo · toccalo di nuovo per rimuoverlo
+      <div style={{marginTop:10,fontSize:10,color:"#9DB1A2",textAlign:"center"}}>
+        Tocca i segmenti per registrare l'acqua bevuta ({WATER_ML} ml l'uno)
       </div>
     </div>
   );
@@ -131,7 +97,10 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
 
   // Se consumato e abbiamo macro reali dal log, mostriamo quelle; altrimenti le macro del piano
   const m = (consumed && loggedMacros) ? loggedMacros : (macroOverride || meal[personaKey]);
-  const { label, isSnack } = MEAL_META[mealKey];
+  const { label: rawLabel, isSnack } = MEAL_META[mealKey];
+  const mealEmoji = (rawLabel.match(/^\S+/)||[""])[0];
+  const label = rawLabel.replace(/^\S+\s*/,"");
+  const iconBg = isSnack?"#FDF3E2":mealKey==="colazione"?"#FFF4DA":mealKey==="cena"?"#F3F9EC":"#EAF7EE";
 
   const prep = meal.prep;
   const prepColor = !prep ? "#9DB1A2" : prep <= 15 ? "#16a34a" : prep <= 30 ? "#d97706" : "#dc2626";
@@ -144,24 +113,27 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
     : [];
 
   return (
-    <div style={{background:isSnack?"#fafafa":"#fff",borderRadius:12,border:`1.5px solid ${isOverride?"#7c3aed40":isSnack?"#EFF3EC":"#E7EDE2"}`,marginBottom:8,overflow:"hidden",boxShadow:isSnack?"none":isOverride?"0 2px 12px #7c3aed18":"0 2px 10px #0000000a"}}>
+    <div style={{background:"#fff",borderRadius:18,border:`1.5px solid ${isOverride?"#DCEBCF":"#fff"}`,marginBottom:11,overflow:"hidden",boxShadow:"0 12px 30px -18px rgba(15,58,41,0.28)"}}>
 
       {/* ── Header pasto ── */}
       <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}
-        style={{background:consumed?"#f0fdf4":isSnack?"transparent":isOverride?`#7c3aed0e`:color+"0e",borderBottom:(open||swapOpen)?`1px solid ${isOverride?"#7c3aed20":color+"20"}`:"none",padding:"9px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",userSelect:"none"}}>
-        <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontWeight:800,fontSize:isSnack?11:13,color:isSnack?"#9DB1A2":isOverride?"#7c3aed":color}}>{label}</span>
-          {isOverride && <span style={{fontSize:9,background:"#7c3aed",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:800}}>MOD</span>}
-          {consumed && loggedMacros && <span style={{fontSize:9,background:"#16a34a",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:800}}>✓ reale</span>}
-          {isAdattato && <span style={{fontSize:9,background:"#0891b2",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:800}}>⚖ riadattato</span>}
+        style={{background:consumed?"#f0fdf4":"#fff",borderBottom:(open||swapOpen)?`1px solid #F1F5EE`:"none",padding:"12px 14px",display:"flex",alignItems:"center",gap:11,cursor:"pointer",userSelect:"none"}}>
+        <div style={{width:32,height:32,borderRadius:10,background:iconBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{mealEmoji}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+            <span style={{fontWeight:800,fontSize:isSnack?12:13.5,color:"#10271B"}}>{label}</span>
+            {isOverride && <span style={{fontSize:9,background:"#7c3aed",color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:800}}>MOD</span>}
+            {consumed && loggedMacros && <span style={{fontSize:9,background:"#16a34a",color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:800}}>✓ reale</span>}
+            {isAdattato && <span style={{fontSize:9,background:"#0891b2",color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:800}}>⚖ riadattato</span>}
+          </div>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:6}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           {prepLabel && (
-            <span style={{fontSize:10,fontWeight:700,color:prepColor,background:prepBg,borderRadius:5,padding:"2px 6px"}}>
-              ⏱ {prepLabel}
+            <span style={{fontSize:10.5,fontWeight:700,color:"#18A957",background:"#EAF7EE",borderRadius:7,padding:"3px 8px"}}>
+              {prepLabel}
             </span>
           )}
-          <span style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:consumed&&loggedMacros?"#16a34a":"#13231A"}}>{m.kcal} kcal</span>
+          <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:14,fontWeight:800,color:consumed&&loggedMacros?"#16a34a":"#10271B"}}>{m.kcal}</span>
           <span style={{color:"#C2D0C6",fontSize:10}}>{open?"▲":"▼"}</span>
         </div>
       </div>
@@ -170,7 +142,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
       <div style={{padding:"10px 14px"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:8}}>
           <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}
-            style={{fontSize:isSnack?12:13,fontWeight:600,color:"#13231A",lineHeight:1.4,flex:1,cursor:"pointer",userSelect:"none"}}>
+            style={{fontSize:isSnack?13:14.5,fontWeight:700,color:"#13231A",lineHeight:1.35,flex:1,cursor:"pointer",userSelect:"none"}}>
             {meal.nome}
           </div>
           <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
@@ -215,10 +187,10 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
             )}
           </div>
         </div>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <MacroBadge label="P" value={m.p} color="#1FA2D8"/>
-          <MacroBadge label="C" value={m.c} color="#d97706"/>
-          <MacroBadge label="G" value={m.g} color="#16a34a"/>
+          <MacroBadge label="C" value={m.c} color="#F2A93B"/>
+          <MacroBadge label="G" value={m.g} color="#8E7BE8"/>
         </div>
 
         {/* Porzione reale (se consumato con ingredienti personalizzati) */}

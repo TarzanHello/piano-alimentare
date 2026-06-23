@@ -198,21 +198,57 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
               id:"peso", titolo:"Peso & IMC", icona:"⚖️", colore:"#13231A",
               render:()=>(
                 <>
-                  <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:18,padding:"18px 20px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
-                    <div>
-                      <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Peso attuale</div>
-                      <div style={{display:"flex",alignItems:"baseline",gap:5,marginTop:4}}>
-                        <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:38,fontWeight:800,color:"#F4F7EF",lineHeight:1,letterSpacing:-1}}>{pesoVal||"—"}</span>
-                        <span style={{fontSize:14,fontWeight:700,color:"#9DB1A2"}}>kg</span>
+                  <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:18,padding:"18px 20px",marginBottom:14}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:pesoRecs.length>=2?14:0}}>
+                      <div>
+                        <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Peso attuale</div>
+                        <div style={{display:"flex",alignItems:"baseline",gap:5,marginTop:4}}>
+                          <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:38,fontWeight:800,color:"#F4F7EF",lineHeight:1,letterSpacing:-1}}>{pesoVal||"—"}</span>
+                          <span style={{fontSize:14,fontWeight:700,color:"#9DB1A2"}}>kg</span>
+                        </div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Altezza</div>
+                        <div style={{display:"flex",alignItems:"baseline",gap:4,marginTop:4,justifyContent:"flex-end"}}>
+                          <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:28,fontWeight:800,color:"#F4F7EF",lineHeight:1}}>{altezzaCm||"—"}</span>
+                          <span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>cm</span>
+                        </div>
                       </div>
                     </div>
-                    <div style={{textAlign:"right"}}>
-                      <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Altezza</div>
-                      <div style={{display:"flex",alignItems:"baseline",gap:4,marginTop:4,justifyContent:"flex-end"}}>
-                        <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:28,fontWeight:800,color:"#F4F7EF",lineHeight:1}}>{altezzaCm||"—"}</span>
-                        <span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>cm</span>
-                      </div>
-                    </div>
+                    {pesoRecs.length>=2 && (()=>{
+                      const vals = pesoRecs.map(r=>parseFloat(r.peso)).filter(v=>!isNaN(v));
+                      if (vals.length<2) return null;
+                      const mn=Math.min(...vals), mx=Math.max(...vals), rng=(mx-mn)||1;
+                      const W=300,H=72,P=8;
+                      const pts=vals.map((v,i)=>({x:(i/(vals.length-1))*W, y:P+(1-(v-mn)/rng)*(H-2*P)}));
+                      const line=pts.map((p,i)=>`${i?"L":"M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+                      const area=line+` L${W},${H} L0,${H} Z`;
+                      const last=pts[pts.length-1];
+                      const first=vals[0], delta=(vals[vals.length-1]-first);
+                      const mesi=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+                      const mFirst=(()=>{try{return mesi[new Date(pesoRecs[0].date.split("/").reverse().join("-")).getMonth()];}catch{return"";}})();
+                      const mLast=(()=>{try{return mesi[new Date(pesoRecs[pesoRecs.length-1].date.split("/").reverse().join("-")).getMonth()];}catch{return"";}})();
+                      return (
+                        <div>
+                          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:6}}>
+                            <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(157,232,55,0.16)",borderRadius:999,padding:"5px 11px"}}>
+                              <span style={{fontSize:12,color:"#9DE837",fontWeight:900}}>{delta<=0?"↓":"↑"}</span>
+                              <span style={{fontSize:12,fontWeight:800,color:"#9DE837"}}>{delta>0?"+":""}{delta.toFixed(1)} kg</span>
+                            </div>
+                          </div>
+                          <svg width="100%" height="72" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{display:"block",overflow:"visible"}}>
+                            <defs><linearGradient id="ms-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#9DE837" stopOpacity="0.34"/><stop offset="1" stopColor="#9DE837" stopOpacity="0"/></linearGradient></defs>
+                            <path d={area} fill="url(#ms-area)"/>
+                            <path d={line} fill="none" stroke="#9DE837" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+                            <circle cx={last.x} cy={last.y} r="4" fill="#9DE837" stroke="#10271B" strokeWidth="2"/>
+                          </svg>
+                          <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+                            <span style={{fontSize:10,fontWeight:600,color:"#5E7D6C"}}>{mFirst}</span>
+                            <span style={{fontSize:10,fontWeight:600,color:"#5E7D6C"}}>{mLast}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div style={{background:bmiClass.c+"12",borderRadius:12,padding:"14px",textAlign:"center"}}>
                     <div style={{fontSize:10,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.8,fontWeight:700}}>Indice di Massa Corporea</div>

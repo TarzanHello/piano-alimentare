@@ -69,7 +69,7 @@ export function ShoppingPage({ plan, checks, onToggle, onReset }) {
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:13,fontWeight:600,color:"#13231A",textDecoration:isChk?"line-through":"none",lineHeight:1.3}}>{ing.nome}</div>
                         <div style={{display:"flex",alignItems:"center",gap:4,marginTop:2}}>
-                          <div style={{width:6,height:6,borderRadius:"50%",background:dc,flexShrink:0}}/><span style={{fontSize:10,color:dc,fontWeight:600}}>{depLabel(ing.deperibile)}</span>
+                          <div style={{width:6,height:6,borderRadius:"50%",background:dc,flexShrink:0}}/><span style={{fontSize:10.5,color:dc,fontWeight:700}}>Conservazione: {ing.deperibile} giorni</span>
                         </div>
                       </div>
                       <div style={{background:isChk?"#EFF3EC":"#13231A",color:isChk?"#9DB1A2":"#F5F8F1",borderRadius:8,padding:"4px 10px",fontSize:12,fontFamily:"monospace",fontWeight:800,minWidth:54,textAlign:"center",flexShrink:0,transition:"all 0.2s"}}>{ing.qtyStr}</div>

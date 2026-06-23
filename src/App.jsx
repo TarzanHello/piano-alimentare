@@ -664,58 +664,44 @@ export function App() {
         </div>
       )}
       {/* HEADER */}
-      <div style={{background:"linear-gradient(120deg,#10271B 0%,#13402C 100%)",padding:"20px 20px 16px",paddingTop:"calc(20px + env(safe-area-inset-top,0px))"}}>
-        <div style={{maxWidth:680,margin:"0 auto"}}>
-          <div style={{fontSize:9,color:"#9DB1A2",letterSpacing:2,textTransform:"uppercase",marginBottom:2}}>Piano Alimentare Familiare</div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:14}}>
-            <div style={{fontSize:21,fontWeight:800,color:"#F5F8F1",letterSpacing:-0.5,fontFamily:"'Bricolage Grotesque',sans-serif"}}>
-              {personas.length} {personas.length===1?"persona":"persone"} · 7 giorni
-            </div>
-            <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              {regenNeeded&&<span style={{fontSize:10,color:"#fbbf24",fontWeight:700,background:"#78350f40",borderRadius:5,padding:"2px 6px"}}>⚠ Rigenera</span>}
-              <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#2F5547":"linear-gradient(135deg,#18A957,#0F8F47)",color:"#fff",border:"none",borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:11,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 4px 14px #18A95755",transition:"all 0.2s"}}>
-                <span style={{display:"inline-block",animation:spinning?"spin 0.7s linear infinite":"none",fontSize:13}}>🔄</span>
-                {spinning?"...":"Nuovo piano"}
-              </button>
+      <div style={{background:"linear-gradient(120deg,#10271B 0%,#13402C 100%)",padding:"13px 18px",paddingTop:"calc(13px + env(safe-area-inset-top,0px))"}}>
+        <div style={{maxWidth:680,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:11}}>
+            <div style={{width:34,height:34,borderRadius:10,background:"#18A957",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🥗</div>
+            <div>
+              <div style={{fontSize:16,fontWeight:800,color:"#F5F8F1",fontFamily:"'Bricolage Grotesque',sans-serif",lineHeight:1,letterSpacing:-0.3}}>Piano Alimentare</div>
+              <div style={{fontSize:10.5,color:"#7FA890",fontWeight:600,marginTop:3}}>{personas.length} {personas.length===1?"persona":"persone"} · 7 giorni</div>
             </div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
-            <span style={{fontSize:13,color:"#E7EDE2",fontWeight:700}}>{(()=>{
-              const main = TABS_MAIN.find(t=>t.key===page);
-              if (main) return `${main.icon} ${main.short}`;
-              const sub = SUBMENU.find(s=>s.key===page);
-              if (sub) return `${sub.icon} ${sub.label}`;
-              return "";
-            })()}</span>
-            {/* Badge stagione corrente */}
-            {page==="piano"&&!showHistory&&(()=>{
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            {regenNeeded&&<span style={{fontSize:11,color:"#fbbf24",fontWeight:800,background:"#78350f55",borderRadius:6,padding:"5px 7px"}}>⚠</span>}
+            {history.length>0&&<button onClick={()=>setShowHistory(h=>!h)} title="Storico piani" style={{flexShrink:0,width:36,height:36,borderRadius:10,border:"none",background:showHistory?"#fff":"rgba(255,255,255,0.12)",color:showHistory?"#13231A":"#E7EDE2",fontWeight:700,fontSize:14,cursor:"pointer"}}>🕐</button>}
+            <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#2F5547":"linear-gradient(135deg,#18A957,#0F8F47)",color:"#fff",border:"none",borderRadius:10,padding:"9px 14px",fontWeight:700,fontSize:12,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 6px 16px -4px #18A95599",transition:"all 0.2s"}}>
+              <span style={{display:"inline-block",animation:spinning?"spin 0.7s linear infinite":"none",fontSize:13}}>🔄</span>
+              {spinning?"...":"Nuovo piano"}
+            </button>
+          </div>
+        </div>
+        {page==="piano"&&!showHistory&&(
+          <div style={{maxWidth:680,margin:"11px auto 0",display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}}>
+            {(()=>{
               const m = meseCorrente();
               const nomiMesi = ["","Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
               const stagEmoji = m>=3&&m<=5?"🌸":m>=6&&m<=8?"☀️":m>=9&&m<=11?"🍂":"❄️";
-              return (
-                <span style={{marginLeft:4,fontSize:10,background:"rgba(255,255,255,0.15)",borderRadius:5,padding:"2px 8px",color:"#E7EDE2",fontWeight:600}}>
-                  {stagEmoji} {nomiMesi[m]} · stagionale
-                </span>
-              );
+              return (<span style={{fontSize:10,background:"rgba(255,255,255,0.12)",borderRadius:6,padding:"4px 9px",color:"#E7EDE2",fontWeight:600}}>{stagEmoji} {nomiMesi[m]} · stagionale</span>);
             })()}
-            {history.length>0&&<button onClick={()=>setShowHistory(h=>!h)} style={{marginLeft:"auto",flexShrink:0,padding:"4px 10px",borderRadius:6,border:"none",background:showHistory?"#fff":"rgba(255,255,255,0.15)",color:showHistory?"#13231A":"#E7EDE2",fontWeight:700,fontSize:11,cursor:"pointer"}}>🕐 Storico</button>}
+            {personas.map(p=>{
+              const t=calcTargetAdattivo(p, misureApp[p.id]);
+              return (
+                <div key={p.id} style={{display:"flex",alignItems:"center",gap:5,background:"#ffffff12",borderRadius:7,padding:"4px 10px",border:`1px solid ${p.color}50`}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:p.color}}/>
+                  <span style={{color:"#E7EDE2",fontSize:11}}>{p.nome}</span>
+                  <span style={{color:p.color,fontSize:11,fontFamily:"monospace",fontWeight:700}}>{t.kcal}</span>
+                </div>
+              );
+            })}
           </div>
-          {page==="piano"&&!showHistory&&(
-            <div style={{display:"flex",gap:7,marginTop:12,flexWrap:"wrap"}}>
-              {personas.map(p=>{
-                const t=calcTargetAdattivo(p, misureApp[p.id]);
-                return (
-                  <div key={p.id} style={{display:"flex",alignItems:"center",gap:5,background:"#ffffff12",borderRadius:7,padding:"3px 10px",border:`1px solid ${p.color}50`}}>
-                    <div style={{width:6,height:6,borderRadius:"50%",background:p.color}}/>
-                    <span style={{color:"#E7EDE2",fontSize:11}}>{emojiBySesso(p)} {p.nome}</span>
-                    <span style={{color:p.color,fontSize:11,fontFamily:"monospace",fontWeight:700}}>{t.kcal}</span>
-                    <span style={{fontSize:10}}>{t.confidenza.dot}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       <div style={{maxWidth:680,margin:"0 auto",padding:"18px 16px 0"}}>

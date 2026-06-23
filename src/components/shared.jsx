@@ -33,8 +33,9 @@ export function SwipeContainer({ onSwipeLeft, onSwipeRight, children, style }) {
 
 export function MacroBadge({ label, value, color }) {
   return (
-    <span style={{ display:"inline-flex",alignItems:"center",gap:3,background:color+"18",color,border:`1px solid ${color}38`,borderRadius:6,padding:"2px 7px",fontSize:11,fontWeight:700,fontFamily:"monospace" }}>
-      {label} <span style={{fontWeight:400}}>{value}g</span>
+    <span style={{ display:"inline-flex",alignItems:"baseline",gap:4,background:color+"1f",borderRadius:8,padding:"5px 10px",fontSize:11.5,fontWeight:700 }}>
+      <span style={{color,fontWeight:800,fontSize:10.5}}>{label}</span>
+      <span style={{color:"#13231A"}}>{value}g</span>
     </span>
   );
 }
