@@ -142,7 +142,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
       <div style={{padding:"10px 14px"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:8}}>
           <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}
-            style={{fontSize:isSnack?13:14.5,fontWeight:700,color:"#13231A",lineHeight:1.35,flex:1,cursor:"pointer",userSelect:"none"}}>
+            style={{fontSize:isSnack?13:14.5,fontWeight:600,color:"#13231A",lineHeight:1.35,flex:1,cursor:"pointer",userSelect:"none"}}>
             {meal.nome}
           </div>
           <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
