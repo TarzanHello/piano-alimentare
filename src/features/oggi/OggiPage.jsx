@@ -89,11 +89,14 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
     <div>
       {/* Selettore persona compatto */}
       <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
-        {personas.map(p=>(
-          <button key={p.id} onClick={()=>onSelPersona(p.id)} style={{flexShrink:0,padding:"7px 12px",borderRadius:10,border:"2px solid",borderColor:selPersonaId===p.id?p.color:"#E7EDE2",background:selPersonaId===p.id?p.color+"12":"#fff",color:selPersonaId===p.id?p.color:"#6E8576",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
-            {emojiBySesso(p)} {p.nome}
+        {personas.map(p=>{
+          const sel = selPersonaId===p.id;
+          return (
+          <button key={p.id} onClick={()=>onSelPersona(p.id)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:7,padding:"8px 14px",borderRadius:999,border:sel?"none":"1.5px solid #E7EDE2",background:sel?p.color:"#fff",color:sel?"#fff":"#6E8576",fontWeight:700,fontSize:13,cursor:"pointer",whiteSpace:"nowrap",boxShadow:sel?`0 6px 14px -5px ${p.color}99`:"none"}}>
+            <span style={{width:8,height:8,borderRadius:"50%",background:sel?"#fff":p.color}}/>
+            {p.nome}
           </button>
-        ))}
+        );})}
       </div>
 
       {/* Saluto */}
@@ -121,17 +124,19 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
           <div style={{fontSize:11,color:"#16a34a",marginTop:2}}>Tutti i pasti registrati. Ottimo lavoro.</div>
         </div>
       ) : prossimo && (
-        <div style={{background:`linear-gradient(135deg, ${col}10, ${col}05)`,border:`1.5px solid ${col}40`,borderRadius:16,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontSize:10,fontWeight:800,color:col,letterSpacing:0.8,textTransform:"uppercase",marginBottom:5}}>Prossimo pasto</div>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:20,padding:"16px 18px",marginBottom:12,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",right:-30,top:-30,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(157,232,55,0.20),transparent 70%)"}}/>
+          <div style={{fontSize:10,fontWeight:800,color:"#9DE837",letterSpacing:1.2,textTransform:"uppercase",marginBottom:9}}>Prossimo · ore {String(Math.floor(MEAL_HOUR[prossimo])).padStart(2,"0")}:{MEAL_HOUR[prossimo]%1?"30":"00"}</div>
+          <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:700,color:"#6E8576",marginBottom:1}}>{MEAL_META[prossimo].label}</div>
-              <div style={{fontSize:15,fontWeight:800,color:"#13231A",lineHeight:1.25}}>{day[prossimo]?.nome}</div>
-              <div style={{fontSize:11,color:"#9DB1A2",fontWeight:600,marginTop:2}}>{Math.round(macroFor(prossimo).kcal)} kcal · ore {String(Math.floor(MEAL_HOUR[prossimo])).padStart(2,"0")}:{MEAL_HOUR[prossimo]%1?"30":"00"}</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#7FA890",marginBottom:2}}>{MEAL_META[prossimo].label}</div>
+              <div style={{fontSize:16,fontWeight:800,color:"#F4F7EF",lineHeight:1.25,fontFamily:"'Bricolage Grotesque',sans-serif"}}>{day[prossimo]?.nome}</div>
+              <div style={{fontSize:12,color:"#9DB1A2",fontWeight:600,marginTop:5}}>{Math.round(macroFor(prossimo).kcal)} kcal</div>
             </div>
             <button onClick={()=>onToggleMeal(persona.id, dateKey, prossimo, macroFor(prossimo))}
-              style={{flexShrink:0,padding:"10px 16px",borderRadius:12,border:"none",background:col,color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",boxShadow:`0 4px 12px ${col}50`}}>
-              ✓ Mangiato
+              style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:64,height:64,borderRadius:18,border:"none",background:"#9DE837",color:"#10271B",cursor:"pointer",boxShadow:"0 8px 18px -6px rgba(157,232,55,0.6)"}}>
+              <span style={{fontSize:20,fontWeight:900,lineHeight:1}}>✓</span>
+              <span style={{fontSize:9.5,fontWeight:800}}>Mangia</span>
             </button>
           </div>
         </div>

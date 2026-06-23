@@ -198,14 +198,20 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
               id:"peso", titolo:"Peso & IMC", icona:"⚖️", colore:"#13231A",
               render:()=>(
                 <>
-                  <div style={{display:"flex",justifyContent:"space-around",textAlign:"center",marginBottom:16}}>
+                  <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:18,padding:"18px 20px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
                     <div>
-                      <div style={{fontSize:9,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.8,fontWeight:700}}>Peso attuale</div>
-                      <div style={{fontSize:30,fontWeight:800,color:"#13231A",fontFamily:"monospace",lineHeight:1.1}}>{pesoVal||"—"}<span style={{fontSize:13,color:"#9DB1A2"}}>kg</span></div>
+                      <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Peso attuale</div>
+                      <div style={{display:"flex",alignItems:"baseline",gap:5,marginTop:4}}>
+                        <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:38,fontWeight:800,color:"#F4F7EF",lineHeight:1,letterSpacing:-1}}>{pesoVal||"—"}</span>
+                        <span style={{fontSize:14,fontWeight:700,color:"#9DB1A2"}}>kg</span>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{fontSize:9,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.8,fontWeight:700}}>Altezza</div>
-                      <div style={{fontSize:30,fontWeight:800,color:"#13231A",fontFamily:"monospace",lineHeight:1.1}}>{altezzaCm||"—"}<span style={{fontSize:13,color:"#9DB1A2"}}>cm</span></div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Altezza</div>
+                      <div style={{display:"flex",alignItems:"baseline",gap:4,marginTop:4,justifyContent:"flex-end"}}>
+                        <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:28,fontWeight:800,color:"#F4F7EF",lineHeight:1}}>{altezzaCm||"—"}</span>
+                        <span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>cm</span>
+                      </div>
                     </div>
                   </div>
                   <div style={{background:bmiClass.c+"12",borderRadius:12,padding:"14px",textAlign:"center"}}>

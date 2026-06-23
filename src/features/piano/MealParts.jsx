@@ -409,15 +409,19 @@ export function TotaleBar({ dayData, personaKey, color, target, macroPerPasto, d
   },{kcal:0,p:0,c:0,g:0});
   const t = target||{kcal:2000,p:150,c:200,g:65};
   return (
-    <div style={{background:color+"08",border:`1.5px solid ${color}25`,borderRadius:12,padding:"12px 16px",marginTop:4}}>
-      <div style={{fontSize:10,fontWeight:700,color,marginBottom:8,letterSpacing:1,textTransform:"uppercase"}}>Totale giornaliero</div>
-      {[{l:"Kcal",v:tot.kcal,m:t.kcal},{l:"Proteine",v:tot.p,m:t.p},{l:"Carbo",v:tot.c,m:t.c},{l:"Grassi",v:tot.g,m:t.g}].map(({l,v,m})=>(
-        <div key={l} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-          <span style={{width:58,fontSize:10,color:"#6E8576",fontFamily:"monospace"}}>{l}</span>
-          <ProgressBar value={v} max={m} color={color}/>
-          <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,minWidth:68,textAlign:"right",color:v>m?"#ef4444":color}}>{v}/{m}</span>
+    <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:18,padding:"16px 18px",marginTop:6}}>
+      <div style={{fontSize:10,fontWeight:800,color:"#9DE837",marginBottom:13,letterSpacing:1.2,textTransform:"uppercase"}}>Totale giornaliero</div>
+      {[{l:"Kcal",v:tot.kcal,m:t.kcal,c:"#9DE837"},{l:"Proteine",v:tot.p,m:t.p,c:"#1FA2D8"},{l:"Carbo",v:tot.c,m:t.c,c:"#F2A93B"},{l:"Grassi",v:tot.g,m:t.g,c:"#8E7BE8"}].map(({l,v,m,c})=>{
+        const pct = m>0?Math.min(100,Math.round(v/m*100)):0;
+        return (
+        <div key={l} style={{display:"flex",alignItems:"center",gap:11,marginBottom:l==="Grassi"?0:10}}>
+          <span style={{width:58,fontSize:11,fontWeight:700,color:"#9DB1A2"}}>{l}</span>
+          <div style={{flex:1,height:7,background:"rgba(255,255,255,0.12)",borderRadius:99,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${pct}%`,background:v>m?"#ef4444":c,borderRadius:99,transition:"width 0.5s ease"}}/>
+          </div>
+          <span style={{fontSize:11,fontWeight:800,minWidth:72,textAlign:"right",color:v>m?"#fca5a5":"#F4F7EF"}}>{Math.round(v)}/{m}</span>
         </div>
-      ))}
+      );})}
     </div>
   );
 }

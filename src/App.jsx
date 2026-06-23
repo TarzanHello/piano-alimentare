@@ -759,20 +759,26 @@ export function App() {
             <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
               {personas.map(p=>{
                 const isMe=myPersonaId===p.id;
+                const sel=selPersonaId===p.id;
                 return (
-                  <button key={p.id} onClick={()=>setSelPersonaId(p.id)} style={{flexShrink:0,padding:"8px 14px",borderRadius:10,border:"2px solid",borderColor:selPersonaId===p.id?p.color:"#E7EDE2",background:selPersonaId===p.id?p.color+"12":"#fff",color:selPersonaId===p.id?p.color:"#6E8576",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5}}>
-                    {emojiBySesso(p)} {p.nome}
-                    {isMe&&<span style={{fontSize:9,background:p.color,color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:900}}>IO</span>}
+                  <button key={p.id} onClick={()=>setSelPersonaId(p.id)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:7,padding:"8px 14px",borderRadius:999,border:sel?"none":"1.5px solid #E7EDE2",background:sel?p.color:"#fff",color:sel?"#fff":"#6E8576",fontWeight:700,fontSize:13,cursor:"pointer",whiteSpace:"nowrap",boxShadow:sel?`0 6px 14px -5px ${p.color}99`:"none"}}>
+                    <span style={{width:8,height:8,borderRadius:"50%",background:sel?"#fff":p.color}}/>
+                    {p.nome}
+                    {isMe&&<span style={{fontSize:8.5,background:sel?"#fff":p.color,color:sel?p.color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:900}}>IO</span>}
                   </button>
                 );
               })}
             </div>
-            <div style={{display:"flex",gap:5,marginBottom:14,overflowX:"auto",paddingBottom:4}}>
-              {DAYS.map((d,i)=>(
-                <button key={d} onClick={()=>setSelDay(i)} style={{flexShrink:0,padding:"6px 10px",borderRadius:8,border:"2px solid",borderColor:selDay===i?persona.color:"#E7EDE2",background:selDay===i?persona.color:"#fff",color:selDay===i?"#fff":"#6E8576",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.2s"}}>
-                  {d.slice(0,3)}
+            <div style={{display:"flex",gap:6,marginBottom:14}}>
+              {DAYS.map((d,i)=>{
+                const seld = selDay===i;
+                const dn = (()=>{ try { return new Date(dateKeyForDayIdx(i)).getDate(); } catch { return i+1; } })();
+                return (
+                <button key={d} onClick={()=>setSelDay(i)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"9px 0",borderRadius:14,border:seld?"none":"1.5px solid #E7EDE2",background:seld?persona.color:"#fff",cursor:"pointer",transition:"all 0.2s",boxShadow:seld?`0 8px 16px -6px ${persona.color}88`:"none"}}>
+                  <span style={{fontSize:9.5,fontWeight:700,color:seld?"#ffffffcc":"#9DB1A2",textTransform:"uppercase"}}>{d.slice(0,3)}</span>
+                  <span style={{fontSize:16,fontWeight:800,color:seld?"#fff":"#4A6152",fontFamily:"'Bricolage Grotesque',sans-serif"}}>{dn}</span>
                 </button>
-              ))}
+              );})}
             </div>
             <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"7px 11px",marginBottom:12,fontSize:11,color:"#92400e"}}>
               💡 Tocca ogni pasto per le porzioni · <strong>Nuovo piano</strong> per variare

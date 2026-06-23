@@ -33,15 +33,20 @@ export function ShoppingPage({ plan, checks, onToggle, onReset }) {
         <div style={{textAlign:"center",padding:"30px 0",color:"#9DB1A2",fontSize:13}}>Seleziona almeno un giorno</div>
       ) : (
         <>
-          <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:10,color:"#6E8576",marginBottom:4,textTransform:"uppercase",letterSpacing:0.8,fontWeight:700}}>Spesa per {selDays.length} giorn{selDays.length===1?"o":"i"}</div>
-              <div style={{background:"#EFF3EC",borderRadius:99,height:7,overflow:"hidden"}}>
-                <div style={{width:`${allIds.length?Math.round(done/allIds.length*100):0}%`,height:"100%",background:"linear-gradient(90deg,#18A957,#16a34a)",borderRadius:99,transition:"width 0.3s"}}/>
+          <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:18,padding:"16px 18px",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:12}}>
+              <div>
+                <div style={{fontSize:10,fontWeight:700,color:"#7FA890",letterSpacing:0.8,textTransform:"uppercase"}}>Spesa per {selDays.length} giorn{selDays.length===1?"o":"i"}</div>
+                <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:20,fontWeight:800,color:"#F4F7EF",marginTop:3}}>{done} su {allIds.length} articoli</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                {done>0&&<button onClick={onReset} style={{fontSize:10,color:"#9DB1A2",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,padding:"4px 9px",cursor:"pointer"}}>Reset</button>}
+                <div style={{width:46,height:46,borderRadius:"50%",background:"rgba(157,232,55,0.16)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:13,fontWeight:800,color:"#9DE837",flexShrink:0}}>{allIds.length?Math.round(done/allIds.length*100):0}%</div>
               </div>
             </div>
-            <span style={{fontFamily:"monospace",fontWeight:800,fontSize:14,color:"#13231A"}}>{done}/{allIds.length}</span>
-            {done>0&&<button onClick={onReset} style={{fontSize:10,color:"#9DB1A2",background:"none",border:"1px solid #E7EDE2",borderRadius:6,padding:"3px 8px",cursor:"pointer"}}>Reset</button>}
+            <div style={{height:9,background:"rgba(255,255,255,0.12)",borderRadius:99,overflow:"hidden"}}>
+              <div style={{width:`${allIds.length?Math.round(done/allIds.length*100):0}%`,height:"100%",background:"linear-gradient(90deg,#18A957,#9DE837)",borderRadius:99,transition:"width 0.3s"}}/>
+            </div>
           </div>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
             {[[2,"≤3g","Freschissimo"],[7,"≤7g","Breve conservaz."],[14,"≤14g","Media conservaz."],[365,"Stabile","Lunga conservaz."]].map(([days,lab,desc])=>(
