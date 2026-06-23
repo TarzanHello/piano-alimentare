@@ -193,7 +193,6 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
           const pesoRecs = allRecs.filter(r=>!isNaN(parseFloat(r.peso)));
 
           // ── Dati derivati per le slide ──
-          const circonf = campi.filter(f=>f.key!=="peso");
           const conDati = circonf.filter(f=>statFor(f.key));
           // Stima grasso del primo record utile, per il delta storico
           const pctGfirst = (()=>{ for(const r of allRecs){ const v=stimaGrasso(persona,r); if(v!==null) return v; } return null; })();
