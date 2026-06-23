@@ -113,7 +113,10 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
 
   const risultatiRicerca = useMemo(() => {
     if (!query.trim()) return [];
-    return cercaIngredienti(query, INGREDIENTS, Object.keys(ings)).slice(0, 10);
+    // Cerca su ING_MAP (DB + ingredienti custom), non sull'array statico
+    // INGREDIENTS: i custom vengono iniettati solo in ING_MAP, quindi cercando
+    // su INGREDIENTS non comparirebbero mai nel selettore delle ricette.
+    return cercaIngredienti(query, Object.values(ING_MAP), Object.keys(ings)).slice(0, 10);
   }, [query, ings]);
 
   const macro = useMemo(() => calcolaMacro(ings), [ings]);

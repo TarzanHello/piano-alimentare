@@ -149,7 +149,7 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
   const searchResults = React.useMemo(() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase();
-    return INGREDIENTS
+    return Object.values(ING_MAP)
       .filter(i => !ings[i.id] && (i.nome.toLowerCase().includes(q) || (i.tags||[]).some(t=>t.includes(q))))
       .slice(0, 8);
   }, [search, ings]);
@@ -159,7 +159,7 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
     if (!replSearch.trim()) return [];
     const q = replSearch.toLowerCase();
     const usedIds = new Set(Object.keys(ings));
-    return INGREDIENTS
+    return Object.values(ING_MAP)
       .filter(i => !usedIds.has(i.id) && i.id !== replacing && (i.nome.toLowerCase().includes(q) || (i.tags||[]).some(t=>t.includes(q))))
       .slice(0, 8);
   }, [replSearch, replacing, ings]);
@@ -465,7 +465,7 @@ export function ConsumedEditorModal({ meal, mealKey, personaKey, initialIngs, on
   const searchResults = React.useMemo(() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase();
-    return INGREDIENTS
+    return Object.values(ING_MAP)
       .filter(i => !ings[i.id] && (i.nome.toLowerCase().includes(q) || (i.tags||[]).some(t=>t.includes(q))))
       .slice(0, 8);
   }, [search, ings]);
