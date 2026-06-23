@@ -34,3 +34,16 @@ export const ING_QTY = Object.fromEntries(
 
 export const ING_MAP = Object.fromEntries(INGREDIENTS.map(i => [i.id, i]));
 
+// Registra gli ingredienti custom (localStorage) in ING_MAP al caricamento del modulo,
+// così il motore li trova subito senza aspettare che IngredientiPage venga visitata.
+try {
+  const custom = JSON.parse(localStorage.getItem("pa__custom-ingredients") || "[]");
+  for (const ing of custom) {
+    if (ing && ing.id && !ING_MAP[ing.id]) {
+      ING_MAP[ing.id] = { id: ing.id, nome: ing.nome, cat: ing.cat,
+        deperibile: ing.deperibile ?? 7, stagioni: ing.stagioni ?? null,
+        nutri: ing.nutri || null, custom: true, tags: [] };
+    }
+  }
+} catch {}
+
