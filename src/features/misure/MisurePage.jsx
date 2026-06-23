@@ -206,6 +206,9 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
                           <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:38,fontWeight:800,color:"#F4F7EF",lineHeight:1,letterSpacing:-1}}>{pesoVal||"—"}</span>
                           <span style={{fontSize:14,fontWeight:700,color:"#9DB1A2"}}>kg</span>
                         </div>
+                        {persona.pesoTarget>0 && pesoVal>0 && (
+                          <div style={{fontSize:11,color:"#7FA890",fontWeight:600,marginTop:7}}>Obiettivo {persona.pesoTarget} kg · {Math.abs(pesoVal-persona.pesoTarget).toFixed(1)} kg al traguardo</div>
+                        )}
                       </div>
                       <div style={{textAlign:"right"}}>
                         <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Altezza</div>
@@ -250,10 +253,20 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
                       );
                     })()}
                   </div>
-                  <div style={{background:bmiClass.c+"12",borderRadius:12,padding:"14px",textAlign:"center"}}>
-                    <div style={{fontSize:10,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.8,fontWeight:700}}>Indice di Massa Corporea</div>
-                    <div style={{fontSize:34,fontWeight:800,color:bmiClass.c,fontFamily:"monospace",lineHeight:1.2}}>{bmi>0?bmi.toFixed(1):"—"}</div>
-                    <div style={{fontSize:13,fontWeight:700,color:bmiClass.c}}>{bmiClass.l}</div>
+                  <div style={{background:"#fff",borderRadius:18,padding:"16px 18px",boxShadow:"0 12px 30px -18px rgba(15,58,41,0.28)"}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                      <div style={{fontSize:10,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.8,fontWeight:800}}>Indice di Massa Corporea</div>
+                      <span style={{fontSize:12,fontWeight:800,color:bmiClass.c,background:bmiClass.c+"18",borderRadius:999,padding:"4px 11px"}}>{bmiClass.l}</span>
+                    </div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:5,marginBottom:bmi>0?14:0}}>
+                      <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:36,fontWeight:800,color:"#10271B",lineHeight:1,letterSpacing:-1}}>{bmi>0?bmi.toFixed(1):"—"}</span>
+                      <span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>kg/m²</span>
+                    </div>
+                    {bmi>0 && (
+                      <div style={{position:"relative",height:7,borderRadius:99,background:"linear-gradient(90deg,#0ea5e9 0%,#16a34a 28%,#16a34a 50%,#d97706 72%,#ef4444 100%)"}}>
+                        <div style={{position:"absolute",top:"50%",left:`${Math.max(2,Math.min(98,(bmi-15)/20*100))}%`,width:14,height:14,borderRadius:"50%",background:"#fff",border:`3px solid ${bmiClass.c}`,transform:"translate(-50%,-50%)",boxShadow:"0 2px 6px rgba(0,0,0,0.22)"}}/>
+                      </div>
+                    )}
                   </div>
                   {pesoRecs.length >= 1 && (
                     <div style={{marginTop:16}}>

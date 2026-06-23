@@ -146,21 +146,21 @@ export function WeightProgressChart({ records, persona }) {
   const goalColor="#f59e0b",deltaKg=pesoAttuale-realPts[0].v;
   return (
     <div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:10}}>
-        <div style={{background:"#F5F8F1",borderRadius:8,padding:"7px 8px",textAlign:"center",border:"1px solid #E7EDE2"}}>
-          <div style={{fontSize:8,color:"#9DB1A2",textTransform:"uppercase",fontWeight:700,marginBottom:1}}>Variazione</div>
-          <div style={{fontSize:15,fontWeight:800,fontFamily:"monospace",lineHeight:1,color:Math.abs(deltaKg)<0.05?"#9DB1A2":deltaKg>0?"#ef4444":"#16a34a"}}>{Math.abs(deltaKg)<0.05?"±0":(deltaKg>0?"+":"")+deltaKg.toFixed(1)}</div>
-          <div style={{fontSize:8,color:"#9DB1A2"}}>kg totali</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+        <div style={{background:"#fff",borderRadius:14,padding:"11px 9px",textAlign:"center",boxShadow:"0 8px 22px -16px rgba(15,58,41,0.3)"}}>
+          <div style={{fontSize:9,color:"#9DB1A2",textTransform:"uppercase",fontWeight:700,marginBottom:3,letterSpacing:0.3}}>Variazione</div>
+          <div style={{fontSize:18,fontWeight:800,fontFamily:"'Bricolage Grotesque',sans-serif",lineHeight:1,color:Math.abs(deltaKg)<0.05?"#9DB1A2":deltaKg>0?"#ef4444":"#16a34a"}}>{Math.abs(deltaKg)<0.05?"±0":(deltaKg>0?"+":"")+deltaKg.toFixed(1)}</div>
+          <div style={{fontSize:9,color:"#9DB1A2",marginTop:3}}>kg totali</div>
         </div>
-        <div style={{background:"#F5F8F1",borderRadius:8,padding:"7px 8px",textAlign:"center",border:"1px solid #E7EDE2"}}>
-          <div style={{fontSize:8,color:"#9DB1A2",textTransform:"uppercase",fontWeight:700,marginBottom:1}}>Ritmo</div>
-          <div style={{fontSize:15,fontWeight:800,fontFamily:"monospace",lineHeight:1,color:mainColor}}>{velMedia!==null?(parseFloat(velMedia)>0?"+":"")+velMedia:"—"}</div>
-          <div style={{fontSize:8,color:"#9DB1A2"}}>kg/sett.</div>
+        <div style={{background:"#fff",borderRadius:14,padding:"11px 9px",textAlign:"center",boxShadow:"0 8px 22px -16px rgba(15,58,41,0.3)"}}>
+          <div style={{fontSize:9,color:"#9DB1A2",textTransform:"uppercase",fontWeight:700,marginBottom:3,letterSpacing:0.3}}>Ritmo</div>
+          <div style={{fontSize:18,fontWeight:800,fontFamily:"'Bricolage Grotesque',sans-serif",lineHeight:1,color:mainColor}}>{velMedia!==null?(parseFloat(velMedia)>0?"+":"")+velMedia:"—"}</div>
+          <div style={{fontSize:9,color:"#9DB1A2",marginTop:3}}>kg/sett.</div>
         </div>
-        <div style={{background:dataGoalStr?goalColor+"18":"#F5F8F1",borderRadius:8,padding:"7px 8px",textAlign:"center",border:`1px solid ${dataGoalStr?goalColor+"60":"#E7EDE2"}`}}>
-          <div style={{fontSize:8,color:"#9DB1A2",textTransform:"uppercase",fontWeight:700,marginBottom:1}}>Traguardo</div>
-          <div style={{fontSize:dataGoalStr?9:14,fontWeight:800,lineHeight:1.2,color:dataGoalStr?goalColor:needsProjection?"#9DB1A2":"#16a34a"}}>{dataGoalStr||(needsProjection?"n/d":"✓")}</div>
-          <div style={{fontSize:8,color:"#9DB1A2"}}>{dataGoalStr?`≈${settimaneRim} sett.`:needsProjection?"misurare ancora":"raggiunto"}</div>
+        <div style={{background:dataGoalStr?goalColor+"12":"#fff",borderRadius:14,padding:"11px 9px",textAlign:"center",boxShadow:"0 8px 22px -16px rgba(15,58,41,0.3)"}}>
+          <div style={{fontSize:9,color:"#9DB1A2",textTransform:"uppercase",fontWeight:700,marginBottom:3,letterSpacing:0.3}}>Traguardo</div>
+          <div style={{fontSize:dataGoalStr?11:16,fontWeight:800,lineHeight:1.2,fontFamily:"'Bricolage Grotesque',sans-serif",color:dataGoalStr?goalColor:needsProjection?"#9DB1A2":"#16a34a"}}>{dataGoalStr||(needsProjection?"n/d":"✓")}</div>
+          <div style={{fontSize:9,color:"#9DB1A2",marginTop:3}}>{dataGoalStr?`≈${settimaneRim} sett.`:needsProjection?"misurare ancora":"raggiunto"}</div>
         </div>
       </div>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",overflow:"hidden"}}>
