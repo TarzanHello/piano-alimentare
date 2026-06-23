@@ -7,6 +7,7 @@ import { SK_EXCL, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_OVERRIDES,
 import { calcTargetAdattivo } from '@/core/engine';
 import { dataNascitaToEta, etaToDataNascita, getSession, supabase } from './cloud';
 import { logSync } from './synclog';
+import { pullCustomIngredients } from './customIngredients';
 
 const SK_CLOUD_ME = "pf-cloud-me";
 
@@ -239,6 +240,18 @@ async function pullAltriDatiFamiglia() {
   }
 }
 
+// Forza un ricalcolo del piano locale riusando il percorso "piano" di App.jsx,
+// senza cambiare seed/overrides. Serve quando cambia qualcosa che incide sul
+// piano ma NON sul seed (es. un ingrediente custom arrivato via realtime):
+// pullPiano in quel caso esce senza emettere perché il seed è invariato.
+async function recomputePianoLocale() {
+  const seed=await getLocalRaw(SK_SEED,null);
+  if(!seed) return;
+  let overrides={};
+  try { overrides=JSON.parse(await getLocalRaw(SK_OVERRIDES,"{}"))||{}; } catch {}
+  emit("piano",{seed:String(seed),overrides});
+}
+
 function pullSpesa() {
   // Serializzato: ogni pull aspetta il precedente.
   // Nessun merge locale: il cloud è authoritative, lo stato locale
@@ -456,7 +469,9 @@ function subscribeRealtime() {
     .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_dati",filter:famFilter},(p)=>{
       const chiave=p?.new?.chiave||p?.old?.chiave;
       logSync("realtime","Evento ricevuto: dati famiglia",{chiave});
-      if(chiave==="piano") pullPiano(); else pullAltriDatiFamiglia();
+      if(chiave==="piano") pullPiano();
+      else if(chiave==="ingredienti_custom") pullCustomIngredients().then(recomputePianoLocale);
+      else pullAltriDatiFamiglia();
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_spesa",filter:famFilter},()=>{logSync("realtime","Evento ricevuto: spesa");pullSpesa();})
     .subscribe((status)=>{
@@ -542,6 +557,10 @@ async function reconcile() {
   const {data:fd}=await supabase.from("famiglia_dati").select("chiave,valore").eq("famiglia_id",me.famigliaId);
   const righe=fd||[];
   const chiaviCloud=new Set(righe.map(r=>r.chiave));
+  // Idrata gli ingredienti custom PRIMA del blocco piano: così se pullPiano
+  // emette "piano" e App rigenera il piano, ING_MAP contiene già le entry
+  // custom e le ricette che le richiamano risolvono nome/macro correttamente.
+  await pullCustomIngredients();
   if(!chiaviCloud.has("piano")) {
     logSync("info","Riconciliazione: piano assente sul cloud, lo carico");
     await pushPianoConLock();
@@ -636,6 +655,7 @@ export async function riallineaForzato() {
   me={userId:session.user.id,profiloId:mio.id,famigliaId:mio.famiglia_id};
   if(!mio.famiglia_id){try{await window.storage.delete("pf-cloud-migrated");}catch{} logSync("info","Riallineamento forzato: completato (nessuna famiglia)"); return{ok:true,inFamily:false};}
   await ancoraIdentitaAlCloud();
+  await pullCustomIngredients();
   await pullPiano();await pullAltriDatiFamiglia();
   await pullProfili();await pullMisure();await pullMealsLog();await pullTargetGiornaliero();await pullSpesa();
   await window.storage.set("pf-cloud-migrated","1");
