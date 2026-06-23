@@ -1,7 +1,7 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { SK_MISURE, TUTTI_FIELDS, calcTargetAdattivo, dateToLabel, dateToSort, emojiBySesso, stimaGrasso } from '@/core';
-import { CalorieChart, WeightProgressChart } from '@/components/charts';
+import { CalorieChart } from '@/components/charts';
 import { SwipeContainer } from '@/components/shared';
 import { logSync } from '@/db/synclog';
 
@@ -192,254 +192,241 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
           const circonf = campi.filter(f=>f.key!=="peso");
           const pesoRecs = allRecs.filter(r=>!isNaN(parseFloat(r.peso)));
 
-          // ── Definizione delle 6 schede ──
-          const SCHEDE = [
-            {
-              id:"peso", titolo:"Peso & IMC", icona:"⚖️", colore:"#13231A",
-              render:()=>(
-                <>
-                  <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:18,padding:"18px 20px",marginBottom:14}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:pesoRecs.length>=2?14:0}}>
-                      <div>
-                        <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Peso attuale</div>
-                        <div style={{display:"flex",alignItems:"baseline",gap:5,marginTop:4}}>
-                          <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:38,fontWeight:800,color:"#F4F7EF",lineHeight:1,letterSpacing:-1}}>{pesoVal||"—"}</span>
-                          <span style={{fontSize:14,fontWeight:700,color:"#9DB1A2"}}>kg</span>
-                        </div>
-                        {persona.pesoTarget>0 && pesoVal>0 && (
-                          <div style={{fontSize:11,color:"#7FA890",fontWeight:600,marginTop:7}}>Obiettivo {persona.pesoTarget} kg · {Math.abs(pesoVal-persona.pesoTarget).toFixed(1)} kg al traguardo</div>
-                        )}
-                      </div>
-                      <div style={{textAlign:"right"}}>
-                        <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Altezza</div>
-                        <div style={{display:"flex",alignItems:"baseline",gap:4,marginTop:4,justifyContent:"flex-end"}}>
-                          <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:28,fontWeight:800,color:"#F4F7EF",lineHeight:1}}>{altezzaCm||"—"}</span>
-                          <span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>cm</span>
-                        </div>
-                      </div>
-                    </div>
-                    {pesoRecs.length>=2 && (()=>{
-                      const vals = pesoRecs.map(r=>parseFloat(r.peso)).filter(v=>!isNaN(v));
-                      if (vals.length<2) return null;
-                      const mn=Math.min(...vals), mx=Math.max(...vals), rng=(mx-mn)||1;
-                      const W=300,H=72,P=8;
-                      const pts=vals.map((v,i)=>({x:(i/(vals.length-1))*W, y:P+(1-(v-mn)/rng)*(H-2*P)}));
-                      const line=pts.map((p,i)=>`${i?"L":"M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-                      const area=line+` L${W},${H} L0,${H} Z`;
-                      const last=pts[pts.length-1];
-                      const first=vals[0], delta=(vals[vals.length-1]-first);
-                      const mesi=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
-                      const mFirst=(()=>{try{return mesi[new Date(pesoRecs[0].date.split("/").reverse().join("-")).getMonth()];}catch{return"";}})();
-                      const mLast=(()=>{try{return mesi[new Date(pesoRecs[pesoRecs.length-1].date.split("/").reverse().join("-")).getMonth()];}catch{return"";}})();
-                      return (
-                        <div>
-                          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:6}}>
-                            <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(157,232,55,0.16)",borderRadius:999,padding:"5px 11px"}}>
-                              <span style={{fontSize:12,color:"#9DE837",fontWeight:900}}>{delta<=0?"↓":"↑"}</span>
-                              <span style={{fontSize:12,fontWeight:800,color:"#9DE837"}}>{delta>0?"+":""}{delta.toFixed(1)} kg</span>
-                            </div>
-                          </div>
-                          <svg width="100%" height="72" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{display:"block",overflow:"visible"}}>
-                            <defs><linearGradient id="ms-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#9DE837" stopOpacity="0.34"/><stop offset="1" stopColor="#9DE837" stopOpacity="0"/></linearGradient></defs>
-                            <path d={area} fill="url(#ms-area)"/>
-                            <path d={line} fill="none" stroke="#9DE837" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
-                            <circle cx={last.x} cy={last.y} r="4" fill="#9DE837" stroke="#10271B" strokeWidth="2"/>
-                          </svg>
-                          <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
-                            <span style={{fontSize:10,fontWeight:600,color:"#5E7D6C"}}>{mFirst}</span>
-                            <span style={{fontSize:10,fontWeight:600,color:"#5E7D6C"}}>{mLast}</span>
-                          </div>
-                        </div>
-                      );
-                    })()}
+          // ── Dati derivati per le slide ──
+          const circonf = campi.filter(f=>f.key!=="peso");
+          const conDati = circonf.filter(f=>statFor(f.key));
+          // Stima grasso del primo record utile, per il delta storico
+          const pctGfirst = (()=>{ for(const r of allRecs){ const v=stimaGrasso(persona,r); if(v!==null) return v; } return null; })();
+          const pctGdelta = (pctG!==null && pctGfirst!==null) ? (pctG-pctGfirst) : null;
+
+          // Grafico peso (unico) riusato nell'hero
+          const renderHeroChart = () => {
+            if (pesoRecs.length<2) return null;
+            const vals = pesoRecs.map(r=>parseFloat(r.peso)).filter(v=>!isNaN(v));
+            if (vals.length<2) return null;
+            const mn=Math.min(...vals), mx=Math.max(...vals), rng=(mx-mn)||1;
+            const W=300,H=72,P=8;
+            const pts=vals.map((v,i)=>({x:(i/(vals.length-1))*W, y:P+(1-(v-mn)/rng)*(H-2*P)}));
+            const line=pts.map((p,i)=>`${i?"L":"M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+            const area=line+` L${W},${H} L0,${H} Z`;
+            const lastPt=pts[pts.length-1];
+            const delta=(vals[vals.length-1]-vals[0]);
+            const mesi=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+            const mFirst=(()=>{try{return mesi[new Date(pesoRecs[0].date.split("/").reverse().join("-")).getMonth()];}catch{return"";}})();
+            const mLast=(()=>{try{return mesi[new Date(pesoRecs[pesoRecs.length-1].date.split("/").reverse().join("-")).getMonth()];}catch{return"";}})();
+            return (
+              <div style={{marginTop:14}}>
+                <div style={{display:"flex",justifyContent:"flex-end",marginBottom:6}}>
+                  <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(157,232,55,0.16)",borderRadius:999,padding:"5px 11px"}}>
+                    <span style={{fontSize:12,color:"#9DE837",fontWeight:900}}>{delta<=0?"↓":"↑"}</span>
+                    <span style={{fontSize:12,fontWeight:800,color:"#9DE837"}}>{delta>0?"+":""}{delta.toFixed(1)} kg</span>
                   </div>
-                  <div style={{background:"#fff",borderRadius:18,padding:"16px 18px",boxShadow:"0 12px 30px -18px rgba(15,58,41,0.28)"}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                      <div style={{fontSize:10,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.8,fontWeight:800}}>Indice di Massa Corporea</div>
-                      <span style={{fontSize:12,fontWeight:800,color:bmiClass.c,background:bmiClass.c+"18",borderRadius:999,padding:"4px 11px"}}>{bmiClass.l}</span>
+                </div>
+                <svg width="100%" height="72" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{display:"block",overflow:"visible"}}>
+                  <defs><linearGradient id="ms-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#9DE837" stopOpacity="0.34"/><stop offset="1" stopColor="#9DE837" stopOpacity="0"/></linearGradient></defs>
+                  <path d={area} fill="url(#ms-area)"/>
+                  <path d={line} fill="none" stroke="#9DE837" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+                  <circle cx={lastPt.x} cy={lastPt.y} r="4" fill="#9DE837" stroke="#10271B" strokeWidth="2"/>
+                </svg>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+                  <span style={{fontSize:10,fontWeight:600,color:"#5E7D6C"}}>{mFirst}</span>
+                  <span style={{fontSize:10,fontWeight:600,color:"#5E7D6C"}}>{mLast}</span>
+                </div>
+              </div>
+            );
+          };
+
+          const cardBox = {background:"#fff",borderRadius:18,boxShadow:"0 12px 30px -18px rgba(15,58,41,0.28)"};
+
+          // ════ SLIDE 1 · RIEPILOGO (layout del mockup) ════
+          const SlideRiepilogo = () => (
+            <>
+              {/* Hero peso + grafico unico */}
+              <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:18,padding:"18px 20px",marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+                  <div>
+                    <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Peso attuale</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:5,marginTop:4}}>
+                      <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:38,fontWeight:800,color:"#F4F7EF",lineHeight:1,letterSpacing:-1}}>{pesoVal||"—"}</span>
+                      <span style={{fontSize:14,fontWeight:700,color:"#9DB1A2"}}>kg</span>
                     </div>
-                    <div style={{display:"flex",alignItems:"baseline",gap:5,marginBottom:bmi>0?14:0}}>
-                      <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:36,fontWeight:800,color:"#10271B",lineHeight:1,letterSpacing:-1}}>{bmi>0?bmi.toFixed(1):"—"}</span>
-                      <span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>kg/m²</span>
-                    </div>
-                    {bmi>0 && (
-                      <div style={{position:"relative",height:7,borderRadius:99,background:"linear-gradient(90deg,#0ea5e9 0%,#16a34a 28%,#16a34a 50%,#d97706 72%,#ef4444 100%)"}}>
-                        <div style={{position:"absolute",top:"50%",left:`${Math.max(2,Math.min(98,(bmi-15)/20*100))}%`,width:14,height:14,borderRadius:"50%",background:"#fff",border:`3px solid ${bmiClass.c}`,transform:"translate(-50%,-50%)",boxShadow:"0 2px 6px rgba(0,0,0,0.22)"}}/>
-                      </div>
+                    {persona.pesoTarget>0 && pesoVal>0 && (
+                      <div style={{fontSize:11,color:"#7FA890",fontWeight:600,marginTop:7}}>Obiettivo {persona.pesoTarget} kg · {Math.abs(pesoVal-persona.pesoTarget).toFixed(1)} kg al traguardo</div>
                     )}
                   </div>
-                  {pesoRecs.length >= 1 && (
-                    <div style={{marginTop:16}}>
-                      <WeightProgressChart records={allRecs} persona={persona}/>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Altezza</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:4,marginTop:4,justifyContent:"flex-end"}}>
+                      <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:28,fontWeight:800,color:"#F4F7EF",lineHeight:1}}>{altezzaCm||"—"}</span>
+                      <span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>cm</span>
+                    </div>
+                  </div>
+                </div>
+                {renderHeroChart()}
+              </div>
+
+              {/* Composizione: massa grassa + TDEE adattivo */}
+              <div style={{display:"flex",gap:11,marginBottom:12}}>
+                <div style={{...cardBox,flex:1,padding:"15px 16px"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.6}}>Massa grassa</div>
+                  {pctG!==null ? (
+                    <>
+                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:23,fontWeight:800,color:"#10271B",marginTop:4}}>{pctG.toFixed(1)}<span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>%</span></div>
+                      <div style={{fontSize:11,fontWeight:700,marginTop:2,color:pctGdelta===null?"#7C9183":pctGdelta<0?"#18A957":pctGdelta>0?"#ef4444":"#9DB1A2"}}>
+                        {pctGdelta===null?"metodo US Navy":`${pctGdelta>0?"+":""}${pctGdelta.toFixed(1)}% finora`}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{fontSize:12,fontWeight:700,color:"#C2D0C6",marginTop:8,lineHeight:1.4}}>Servono collo e vita</div>
+                  )}
+                </div>
+                <div style={{...cardBox,flex:1,padding:"15px 16px"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.6}}>TDEE adattivo</div>
+                  <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:23,fontWeight:800,color:"#10271B",marginTop:4}}>{target.tdeeFinale}<span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}> kcal</span></div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#7C9183",marginTop:2}}>{allRecs.length} misurazion{allRecs.length===1?"e":"i"}</div>
+                </div>
+              </div>
+
+              {/* Circonferenze (misurazioni) */}
+              <div style={{...cardBox,padding:"8px 6px"}}>
+                <div style={{padding:"10px 14px 8px",fontSize:11,fontWeight:800,color:"#9DB1A2",letterSpacing:1,textTransform:"uppercase"}}>Circonferenze</div>
+                {conDati.length===0 ? (
+                  <div style={{padding:"6px 14px 16px",fontSize:12.5,color:"#9DB1A2",lineHeight:1.5}}>Nessuna circonferenza registrata. Aggiungi vita, fianchi, petto/seno… con ➕.</div>
+                ) : conDati.map((f,i)=>{
+                  const s=statFor(f.key); const d=parseFloat(s.delta); const neu=d===0;
+                  return (
+                    <div key={f.key} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderTop:i?"1px solid #F1F5EE":"none"}}>
+                      <div style={{width:34,height:34,borderRadius:11,background:f.color+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{f.emoji}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13.5,fontWeight:700,color:"#13231A"}}>{f.label}</div>
+                        <div style={{fontSize:11,color:"#9DB1A2",fontWeight:600}}>{s.n} rilevazion{s.n===1?"e":"i"}</div>
+                      </div>
+                      <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:16,fontWeight:800,color:"#10271B"}}>{s.last}<span style={{fontSize:11,color:"#9DB1A2"}}> {f.unit}</span></span>
+                      <span style={{fontSize:11,fontWeight:800,minWidth:42,textAlign:"right",color:neu?"#9DB1A2":d<0?"#18A957":"#ef4444"}}>{neu?"=":`${d<0?"−":"+"}${Math.abs(d)}`}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          );
+
+          // ════ SLIDE 2 · DETTAGLI (tutto il resto) ════
+          const SlideDettagli = () => (
+            <>
+              {/* IMC */}
+              <div style={{...cardBox,padding:"16px 18px",marginBottom:12}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                  <div style={{fontSize:10,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.8,fontWeight:800}}>Indice di Massa Corporea</div>
+                  <span style={{fontSize:12,fontWeight:800,color:bmiClass.c,background:bmiClass.c+"18",borderRadius:999,padding:"4px 11px"}}>{bmiClass.l}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"baseline",gap:5,marginBottom:bmi>0?14:0}}>
+                  <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:36,fontWeight:800,color:"#10271B",lineHeight:1,letterSpacing:-1}}>{bmi>0?bmi.toFixed(1):"—"}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>kg/m²</span>
+                </div>
+                {bmi>0 && (
+                  <div style={{position:"relative",height:7,borderRadius:99,background:"linear-gradient(90deg,#0ea5e9 0%,#16a34a 28%,#16a34a 50%,#d97706 72%,#ef4444 100%)"}}>
+                    <div style={{position:"absolute",top:"50%",left:`${Math.max(2,Math.min(98,(bmi-15)/20*100))}%`,width:14,height:14,borderRadius:"50%",background:"#fff",border:`3px solid ${bmiClass.c}`,transform:"translate(-50%,-50%)",boxShadow:"0 2px 6px rgba(0,0,0,0.22)"}}/>
+                  </div>
+                )}
+              </div>
+
+              {/* Massa grassa / magra in kg */}
+              {pctG!==null && (
+                <div style={{...cardBox,padding:"16px 18px",marginBottom:12}}>
+                  <div style={{fontSize:10,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.8,fontWeight:800,marginBottom:12}}>Composizione corporea</div>
+                  <div style={{display:"flex",gap:10}}>
+                    <div style={{flex:1,background:"#fef2f8",borderRadius:14,padding:"13px 12px",textAlign:"center"}}>
+                      <div style={{fontSize:9,color:"#db2777",textTransform:"uppercase",letterSpacing:0.6,fontWeight:700}}>Massa grassa</div>
+                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:22,fontWeight:800,color:"#db2777",marginTop:3}}>{massaGrassaKg.toFixed(1)}<span style={{fontSize:11}}> kg</span></div>
+                    </div>
+                    <div style={{flex:1,background:"#f0fdf4",borderRadius:14,padding:"13px 12px",textAlign:"center"}}>
+                      <div style={{fontSize:9,color:"#16a34a",textTransform:"uppercase",letterSpacing:0.6,fontWeight:700}}>Massa magra</div>
+                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:22,fontWeight:800,color:"#16a34a",marginTop:3}}>{massaMagraKg.toFixed(1)}<span style={{fontSize:11}}> kg</span></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Calorie & deficit */}
+              <div style={{...cardBox,padding:"16px 18px",marginBottom:12}}>
+                <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:12}}>
+                  <div style={{fontSize:10,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.8,fontWeight:800}}>Fabbisogno giornaliero</div>
+                  <div><span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:24,fontWeight:800,color:"#10271B"}}>{target.kcal}</span><span style={{fontSize:12,fontWeight:700,color:"#9DB1A2"}}> kcal</span></div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:8,fontSize:13}}>
+                  <div style={{display:"flex",justifyContent:"space-between",padding:"9px 12px",background:"#F5F8F1",borderRadius:10}}>
+                    <span style={{color:"#6E8576",fontWeight:600}}>Metabolismo + attività (TDEE)</span>
+                    <span style={{fontWeight:800,color:"#13231A"}}>{target.tdeeFinale} kcal</span>
+                  </div>
+                  {Math.abs(deficit)>=1 && (
+                    <div style={{display:"flex",justifyContent:"space-between",padding:"9px 12px",background:deficit<0?"#EDF7EF":"#fef2f2",borderRadius:10}}>
+                      <span style={{color:"#6E8576",fontWeight:600}}>Aggiustamento obiettivo</span>
+                      <span style={{fontWeight:800,color:deficit<0?"#18A957":"#dc2626"}}>{deficit<0?`deficit ${-deficit}`:`surplus +${deficit}`} kcal</span>
                     </div>
                   )}
-                </>
-              ),
-            },
-            {
-              id:"grasso", titolo:"Massa grassa", icona:"🔬", colore:"#db2777",
-              render:()=>(
-                pctG===null ? (
-                  <div style={{textAlign:"center",color:"#9DB1A2",fontSize:13,padding:"30px 10px"}}>
-                    <div style={{fontSize:36,marginBottom:10}}>📐</div>
-                    Per stimare la massa grassa servono <b>collo</b> e <b>vita</b> {persona.sesso==="F"?"e fianchi":""} (formula US Navy).<br/>Aggiungi questi dati con ➕.
-                  </div>
-                ) : (
-                  <>
-                    <div style={{textAlign:"center",marginBottom:16}}>
-                      <div style={{fontSize:10,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.8,fontWeight:700}}>Grasso corporeo stimato</div>
-                      <div style={{fontSize:38,fontWeight:800,color:"#db2777",fontFamily:"monospace",lineHeight:1.2}}>{pctG.toFixed(1)}<span style={{fontSize:16}}>%</span></div>
-                      <div style={{fontSize:10,color:"#9DB1A2"}}>metodo US Navy (circonferenze)</div>
+                  {target.larnInfo && (
+                    <div style={{display:"flex",justifyContent:"space-between",padding:"9px 12px",background:"#F5F8F1",borderRadius:10}}>
+                      <span style={{color:"#6E8576",fontWeight:600}}>Metabolismo basale (LARN)</span>
+                      <span style={{fontWeight:800,color:"#13231A"}}>{target.larnInfo.mb} kcal</span>
                     </div>
-                    <div style={{display:"flex",gap:10}}>
-                      <div style={{flex:1,background:"#fef2f8",borderRadius:12,padding:"12px",textAlign:"center"}}>
-                        <div style={{fontSize:9,color:"#db2777",textTransform:"uppercase",letterSpacing:0.6,fontWeight:700}}>Massa grassa</div>
-                        <div style={{fontSize:22,fontWeight:800,color:"#db2777",fontFamily:"monospace"}}>{massaGrassaKg.toFixed(1)}<span style={{fontSize:11}}>kg</span></div>
-                      </div>
-                      <div style={{flex:1,background:"#f0fdf4",borderRadius:12,padding:"12px",textAlign:"center"}}>
-                        <div style={{fontSize:9,color:"#16a34a",textTransform:"uppercase",letterSpacing:0.6,fontWeight:700}}>Massa magra</div>
-                        <div style={{fontSize:22,fontWeight:800,color:"#16a34a",fontFamily:"monospace"}}>{massaMagraKg.toFixed(1)}<span style={{fontSize:11}}>kg</span></div>
-                      </div>
-                    </div>
-                  </>
-                )
-              ),
-            },
-            {
-              id:"calorie", titolo:"Calorie & deficit", icona:"🔥", colore:"#ea580c",
-              render:()=>(
-                <>
-                  <div style={{textAlign:"center",marginBottom:16}}>
-                    <div style={{fontSize:10,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.8,fontWeight:700}}>Fabbisogno giornaliero</div>
-                    <div style={{fontSize:38,fontWeight:800,color:"#ea580c",fontFamily:"monospace",lineHeight:1.2}}>{target.kcal}<span style={{fontSize:15,color:"#9DB1A2"}}>kcal</span></div>
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:8,fontSize:13}}>
-                    <div style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",background:"#F5F8F1",borderRadius:8}}>
-                      <span style={{color:"#6E8576"}}>Metabolismo + attività (TDEE)</span>
-                      <span style={{fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{target.tdeeFinale} kcal</span>
-                    </div>
-                    {Math.abs(deficit)>=1 && (
-                      <div style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",background:deficit<0?"#EDF7EF":"#fef2f2",borderRadius:8}}>
-                        <span style={{color:"#6E8576"}}>Aggiustamento obiettivo</span>
-                        <span style={{fontFamily:"monospace",fontWeight:700,color:deficit<0?"#18A957":"#dc2626"}}>{deficit<0?`deficit ${-deficit}`:`surplus +${deficit}`} kcal</span>
-                      </div>
-                    )}
-                    {target.larnInfo && (
-                      <div style={{display:"flex",justifyContent:"space-between",padding:"8px 12px",background:"#F5F8F1",borderRadius:8}}>
-                        <span style={{color:"#6E8576"}}>Metabolismo basale (LARN)</span>
-                        <span style={{fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{target.larnInfo.mb} kcal</span>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ),
-            },
-            {
-              id:"macro", titolo:"Macronutrienti", icona:"🍽️", colore:"#1FA2D8",
-              render:()=>(
-                <>
-                  <div style={{fontSize:10,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.8,fontWeight:700,textAlign:"center",marginBottom:14}}>Obiettivo giornaliero</div>
-                  <div style={{display:"flex",gap:8}}>
-                    {[{l:"Proteine",v:target.p,c:"#dc2626",e:"🥩"},{l:"Carboidrati",v:target.c,c:"#d97706",e:"🌾"},{l:"Grassi",v:target.g,c:"#16a34a",e:"🥑"}].map(m=>(
-                      <div key={m.l} style={{flex:1,background:m.c+"10",borderRadius:12,padding:"14px 8px",textAlign:"center",border:`1.5px solid ${m.c}25`}}>
-                        <div style={{fontSize:20}}>{m.e}</div>
-                        <div style={{fontSize:24,fontWeight:800,color:m.c,fontFamily:"monospace",lineHeight:1.1,marginTop:4}}>{m.v}<span style={{fontSize:11}}>g</span></div>
-                        <div style={{fontSize:9,color:m.c,fontWeight:700,textTransform:"uppercase",letterSpacing:0.4,marginTop:2}}>{m.l}</div>
-                        <div style={{fontSize:9,color:"#9DB1A2",marginTop:2}}>{Math.round(m.v*(m.l==="Grassi"?9:4))} kcal</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{textAlign:"center",fontSize:11,color:"#9DB1A2",marginTop:14}}>
-                    Ripartizione di {target.kcal} kcal — proteine {Math.round(target.p*4/target.kcal*100)}% · carbo {Math.round(target.c*4/target.kcal*100)}% · grassi {Math.round(target.g*9/target.kcal*100)}%
-                  </div>
-                </>
-              ),
-            },
-            {
-              id:"circonf", titolo:"Circonferenze", icona:"📐", colore:"#7c3aed",
-              render:()=>{
-                const conDati = circonf.filter(f=>statFor(f.key));
-                if (!conDati.length) return (
-                  <div style={{textAlign:"center",color:"#9DB1A2",fontSize:13,padding:"30px 10px"}}>
-                    <div style={{fontSize:36,marginBottom:10}}>📏</div>
-                    Nessuna circonferenza registrata.<br/>Aggiungi vita, fianchi, petto/seno… con ➕.
-                  </div>
-                );
-                return (
-                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                    {conDati.map(f=>{
-                      const s=statFor(f.key); const d=parseFloat(s.delta); const pos=d>0,neu=d===0;
-                      return (
-                        <div key={f.key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"#F5F8F1",borderRadius:10}}>
-                          <span style={{fontSize:18}}>{f.emoji}</span>
-                          <span style={{flex:1,fontSize:12,fontWeight:700,color:"#4A6152"}}>{f.label}</span>
-                          <span style={{fontSize:18,fontWeight:800,color:f.color,fontFamily:"monospace"}}>{s.last}<span style={{fontSize:10,color:"#9DB1A2"}}>{f.unit}</span></span>
-                          <span style={{fontSize:11,fontWeight:700,minWidth:46,textAlign:"right",color:neu?"#9DB1A2":pos?"#ef4444":"#16a34a"}}>{neu?"—":pos?`▲${s.delta}`:`▼${s.delta}`}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              },
-            },
-            {
-              id:"storico", titolo:"Storico", icona:"🕐", colore:"#0891b2",
-              render:()=>(
-                recsDesc.length===0 ? (
-                  <div style={{textAlign:"center",color:"#9DB1A2",fontSize:13,padding:"30px"}}>Nessuna misurazione</div>
-                ) : (
-                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                    {recsDesc.slice(0,8).map((rec,idx)=>(
-                      <div key={idx} onClick={()=>openEdit(rec)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",background:"#F5F8F1",borderRadius:10,cursor:"pointer"}}>
-                        <div>
-                          <div style={{fontSize:12,fontWeight:700,color:"#13231A"}}>{rec.date}</div>
-                          <div style={{fontSize:10,color:"#9DB1A2"}}>{rec.peso?`${rec.peso}kg`:""}{rec.vita?` · vita ${rec.vita}`:""}</div>
-                        </div>
-                        <span style={{fontSize:12,color:"#0891b2",fontWeight:700}}>✏️</span>
-                      </div>
-                    ))}
-                    {recsDesc.length>8 && <div style={{textAlign:"center",fontSize:11,color:"#9DB1A2"}}>+ altre {recsDesc.length-8} nello Storico completo</div>}
-                  </div>
-                )
-              ),
-            },
-          ];
+                  )}
+                </div>
+              </div>
 
-          const idx = Math.max(0, Math.min(calcCard, SCHEDE.length-1));
-          const scheda = SCHEDE[idx];
+              {/* Macronutrienti */}
+              <div style={{...cardBox,padding:"16px 18px"}}>
+                <div style={{fontSize:10,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.8,fontWeight:800,marginBottom:14}}>Obiettivo macronutrienti</div>
+                <div style={{display:"flex",gap:8}}>
+                  {[{l:"Proteine",v:target.p,c:"#1FA2D8",e:"🥩"},{l:"Carboidrati",v:target.c,c:"#F2A93B",e:"🌾"},{l:"Grassi",v:target.g,c:"#8E7BE8",e:"🥑"}].map(m=>(
+                    <div key={m.l} style={{flex:1,background:m.c+"12",borderRadius:14,padding:"14px 8px",textAlign:"center"}}>
+                      <div style={{fontSize:20}}>{m.e}</div>
+                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:23,fontWeight:800,color:m.c,lineHeight:1.1,marginTop:4}}>{m.v}<span style={{fontSize:11}}>g</span></div>
+                      <div style={{fontSize:9,color:m.c,fontWeight:700,textTransform:"uppercase",letterSpacing:0.4,marginTop:2}}>{m.l}</div>
+                      <div style={{fontSize:9,color:"#9DB1A2",marginTop:2}}>{Math.round(m.v*(m.l==="Grassi"?9:4))} kcal</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{textAlign:"center",fontSize:11,color:"#9DB1A2",marginTop:14,lineHeight:1.5}}>
+                  Ripartizione di {target.kcal} kcal — proteine {Math.round(target.p*4/target.kcal*100)}% · carbo {Math.round(target.c*4/target.kcal*100)}% · grassi {Math.round(target.g*9/target.kcal*100)}%
+                </div>
+              </div>
+            </>
+          );
+
+          const SLIDES = [
+            { id:"riepilogo", titolo:"Riepilogo", render:SlideRiepilogo },
+            { id:"dettagli",  titolo:"Dettagli",  render:SlideDettagli  },
+          ];
+          const idx = Math.max(0, Math.min(calcCard, SLIDES.length-1));
 
           return (
             <>
-              {/* Carosello schede calcolatore con swipe */}
+              {/* Tab delle due slide */}
+              <div style={{display:"flex",gap:0,marginBottom:14,background:"#EFF3EC",borderRadius:12,padding:3}}>
+                {SLIDES.map((s,i)=>(
+                  <button key={s.id} onClick={()=>setCalcCard(i)}
+                    style={{flex:1,padding:"9px",borderRadius:9,border:"none",background:i===idx?"#fff":"transparent",color:i===idx?"#10271B":"#9DB1A2",fontWeight:800,fontSize:12.5,cursor:"pointer",boxShadow:i===idx?"0 2px 6px #0000001a":"none",transition:"all 0.15s"}}>
+                    {s.titolo}
+                  </button>
+                ))}
+              </div>
+
+              {/* Slide scrollabile con swipe orizzontale */}
               <SwipeContainer
-                onSwipeLeft={()=>setCalcCard(i=>Math.min(SCHEDE.length-1,i+1))}
+                onSwipeLeft={()=>setCalcCard(i=>Math.min(SLIDES.length-1,i+1))}
                 onSwipeRight={()=>setCalcCard(i=>Math.max(0,i-1))}
                 style={{touchAction:"pan-y"}}>
-                <div style={{background:"#fff",borderRadius:16,border:`1.5px solid ${scheda.colore}25`,padding:"18px 16px",boxShadow:"0 4px 20px #0000000f",minHeight:240}}>
-                  {/* Intestazione scheda con frecce */}
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-                    <button onClick={()=>setCalcCard(i=>Math.max(0,i-1))} disabled={idx===0}
-                      style={{border:"none",background:"none",fontSize:20,color:idx===0?"#E7EDE2":scheda.colore,cursor:idx===0?"default":"pointer",padding:"0 4px"}}>‹</button>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <span style={{fontSize:18}}>{scheda.icona}</span>
-                      <span style={{fontSize:14,fontWeight:800,color:scheda.colore}}>{scheda.titolo}</span>
-                    </div>
-                    <button onClick={()=>setCalcCard(i=>Math.min(SCHEDE.length-1,i+1))} disabled={idx===SCHEDE.length-1}
-                      style={{border:"none",background:"none",fontSize:20,color:idx===SCHEDE.length-1?"#E7EDE2":scheda.colore,cursor:idx===SCHEDE.length-1?"default":"pointer",padding:"0 4px"}}>›</button>
-                  </div>
-                  {scheda.render()}
-                </div>
+                {SLIDES[idx].render()}
               </SwipeContainer>
 
               {/* Indicatori a puntini */}
-              <div style={{display:"flex",justifyContent:"center",gap:7,margin:"14px 0 4px"}}>
-                {SCHEDE.map((s,i)=>(
+              <div style={{display:"flex",justifyContent:"center",gap:7,margin:"16px 0 4px"}}>
+                {SLIDES.map((s,i)=>(
                   <button key={s.id} onClick={()=>setCalcCard(i)}
-                    style={{width:i===idx?22:8,height:8,borderRadius:4,border:"none",background:i===idx?scheda.colore:"#C2D0C6",cursor:"pointer",transition:"all 0.2s",padding:0}}
+                    style={{width:i===idx?22:8,height:8,borderRadius:4,border:"none",background:i===idx?"#18A957":"#C2D0C6",cursor:"pointer",transition:"all 0.2s",padding:0}}
                     aria-label={s.titolo}/>
                 ))}
               </div>
-              <div style={{textAlign:"center",fontSize:10,color:"#9DB1A2",marginBottom:8}}>← scorri tra i calcolatori →</div>
             </>
           );
         })()
