@@ -381,7 +381,11 @@ export function formattaPorzione(quantitaMap) {
   const pezzi = [];
   for (const [ingId, q] of Object.entries(quantitaMap || {})) {
     const ing = ING_MAP[ingId];
-    const nome = ing ? ing.nome.toLowerCase() : ingId;
+    // Fallback: se l'id non è risolvibile in ING_MAP (es. ingrediente custom
+    // non ancora sincronizzato) NON mostrare l'id grezzo all'utente.
+    const nome = ing
+      ? ing.nome.toLowerCase()
+      : (/^(custom_|cust_|ing_)/.test(ingId) ? "ingrediente personalizzato" : ingId);
     let qta;
     if (q.unit === "g" || q.unit === "ml") {
       qta = Math.round(q.valore) + q.unit;
@@ -591,11 +595,22 @@ export function todayDayIndex() {
   return d === 0 ? 6 : d - 1;
 }
 
+// Chiave data in ora LOCALE (YYYY-MM-DD). NON usare toISOString(): converte in
+// UTC e, in un fuso diverso da UTC, può restituire il giorno precedente
+// (in Italia tra mezzanotte e le 02:00), facendo "scivolare" i log del giorno
+// sbagliato sulla schermata Oggi.
+export function localDateKey(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function dateKeyForDayIdx(dayIdx) {
   const today = new Date();
   const d = new Date(today);
   d.setDate(today.getDate() + (dayIdx - todayDayIndex()));
-  return d.toISOString().slice(0, 10);
+  return localDateKey(d);
 }
 
 // ─── SVG Line Chart ────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { SK_MISURE, TUTTI_FIELDS, calcTargetAdattivo, dateToLabel, dateToSort, emojiBySesso, stimaGrasso } from '@/core';
+import { SK_MISURE, TUTTI_FIELDS, calcTargetAdattivo, dateToLabel, dateToSort, emojiBySesso, localDateKey, stimaGrasso } from '@/core';
 import { CalorieChart } from '@/components/charts';
 import { SwipeContainer } from '@/components/shared';
 import { logSync } from '@/db/synclog';
@@ -434,7 +434,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
           const target2=calcTargetAdattivo(persona,allRecs);
           const pLog=(mealsLog||{})[selPid]||{};
           const today2=new Date();
-          const weekDays=Array.from({length:7},(_,i)=>{const d=new Date(today2);d.setDate(today2.getDate()-(6-i));const key=d.toISOString().slice(0,10);const dayLog=pLog[key]||{};const meals=Object.entries(dayLog).filter(([,m])=>m.consumed).map(([mk,m])=>({mk,kcal:m.kcal||0}));return{key,meals,totKcal:meals.reduce((s,m)=>s+m.kcal,0),isToday:i===6};});
+          const weekDays=Array.from({length:7},(_,i)=>{const d=new Date(today2);d.setDate(today2.getDate()-(6-i));const key=localDateKey(d);const dayLog=pLog[key]||{};const meals=Object.entries(dayLog).filter(([,m])=>m.consumed).map(([mk,m])=>({mk,kcal:m.kcal||0}));return{key,meals,totKcal:meals.reduce((s,m)=>s+m.kcal,0),isToday:i===6};});
           const giorniConDati=weekDays.filter(d=>d.totKcal>0).length;
           const media=giorniConDati>0?Math.round(weekDays.reduce((s,d)=>s+d.totKcal,0)/giorniConDati):0;
           const todayData=weekDays[6];

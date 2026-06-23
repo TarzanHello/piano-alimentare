@@ -42,7 +42,23 @@ export function registerInING_MAP(list) {
 
 // ─── Cloud push/pull ──────────────────────────────────────────────
 
-async function pushCloud(list) {
+async function fetchCloudList() {
+  if (!supabase) return [];
+  const me = getCloudMe();
+  if (!me?.famigliaId) return [];
+  try {
+    const { data, error } = await supabase
+      .from("famiglia_dati")
+      .select("valore")
+      .eq("famiglia_id", me.famigliaId)
+      .eq("chiave", "ingredienti_custom")
+      .maybeSingle();
+    if (error || !data?.valore?.list) return [];
+    return data.valore.list;
+  } catch { return []; }
+}
+
+async function writeCloudList(list) {
   if (!supabase) return;
   const me = getCloudMe();
   if (!me?.famigliaId) return;
@@ -56,6 +72,31 @@ async function pushCloud(list) {
   } catch (e) {
     logSync("error", "Ingredienti custom: push eccezione", { error: e.message });
   }
+}
+
+// Push in MERGE: unisce la lista locale con quella già sul cloud per id
+// (il locale vince sui conflitti). Così un dispositivo con stato vecchio o
+// vuoto NON può più azzerare gli ingredienti creati altrove. Usato da
+// add/update. Le cancellazioni passano invece da pushCloudReplace.
+async function pushCloud(localList) {
+  if (!supabase) return;
+  const me = getCloudMe();
+  if (!me?.famigliaId) return;
+  const cloudList = await fetchCloudList();
+  const byId = new Map();
+  for (const ing of cloudList)        if (ing?.id) byId.set(ing.id, ing);
+  for (const ing of (localList || [])) if (ing?.id) byId.set(ing.id, ing); // locale vince
+  const merged = [...byId.values()];
+  await writeCloudList(merged);
+  // Riallinea locale + motore allo stato fuso (così non "perdo" gli altrui)
+  saveLocal(merged);
+  registerInING_MAP(merged);
+}
+
+// Push autoritativo (sostituzione piena): solo per la cancellazione, dove
+// l'intento di rimuovere un id deve propagarsi e non essere re-fuso.
+async function pushCloudReplace(list) {
+  await writeCloudList(list);
 }
 
 export async function pullCustomIngredients() {
@@ -105,7 +146,10 @@ export async function deleteCustomIngredient(id) {
   saveLocal(list);
   // Rimuovi da ING_MAP
   delete ING_MAP[id];
-  await pushCloud(list);
+  // Cancellazione autoritativa: parti dalla lista cloud corrente, togli l'id
+  // e riscrivi (replace), così la rimozione si propaga senza essere re-fusa.
+  const cloudList = await fetchCloudList();
+  await pushCloudReplace(cloudList.filter(i => i.id !== id));
 }
 
 export async function updateCustomIngredient(id, updates) {
