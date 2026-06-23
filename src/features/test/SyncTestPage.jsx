@@ -114,17 +114,17 @@ export function SyncTestPage() {
 
   const colorFor = (tipo) => {
     if (tipo === "WARN" || tipo === "ERROR") return "#dc2626";
-    if (tipo === "CLOUD→APP") return "#2563eb";
+    if (tipo === "CLOUD→APP") return "#18A957";
     if (tipo === "CLOUD STATUS") return "#7c3aed";
     if (tipo === "STORAGE SET") return "#d97706";
     if (tipo === "SYNC") return "#16a34a";
-    return "#475569";
+    return "#4A6152";
   };
 
   return (
     <div>
-      <div style={{fontSize:16,fontWeight:900,color:"#1e293b",marginBottom:4}}>🔬 Diagnostica Sync</div>
-      <div style={{fontSize:11,color:"#94a3b8",marginBottom:14,lineHeight:1.5}}>
+      <div style={{fontSize:16,fontWeight:900,color:"#13231A",marginBottom:4}}>🔬 Diagnostica Sync</div>
+      <div style={{fontSize:11,color:"#9DB1A2",marginBottom:14,lineHeight:1.5}}>
         Avvia il monitoraggio, esegui le operazioni (seleziona/deseleziona spesa, cambia piano), poi fermalo e copia il log. Fai la stessa cosa sull'altro device e manda entrambi i log.
       </div>
 
@@ -132,25 +132,25 @@ export function SyncTestPage() {
       <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
         <input value={deviceName} onChange={e=>{setDeviceName(e.target.value);localStorage.setItem(DEVICE_NAME_KEY,e.target.value);}}
           placeholder="Nome device (es. PC, Telefono Aureliano…)"
-          style={{flex:1,padding:"9px 12px",borderRadius:9,border:"1.5px solid #e2e8f0",fontSize:12,fontWeight:600}}/>
+          style={{flex:1,padding:"9px 12px",borderRadius:9,border:"1.5px solid #E7EDE2",fontSize:12,fontWeight:600}}/>
       </div>
 
       {/* Controlli */}
       <div style={{display:"flex",gap:8,marginBottom:12}}>
         <button onClick={start} disabled={active||!deviceName.trim()}
-          style={{padding:"10px 18px",borderRadius:10,border:"none",background:active||!deviceName.trim()?"#cbd5e1":"#16a34a",color:"#fff",fontWeight:800,fontSize:12,cursor:active||!deviceName.trim()?"default":"pointer"}}>
+          style={{padding:"10px 18px",borderRadius:10,border:"none",background:active||!deviceName.trim()?"#C2D0C6":"#16a34a",color:"#fff",fontWeight:800,fontSize:12,cursor:active||!deviceName.trim()?"default":"pointer"}}>
           ▶ Avvia monitoraggio
         </button>
         <button onClick={stop} disabled={!active}
-          style={{padding:"10px 18px",borderRadius:10,border:"none",background:!active?"#cbd5e1":"#dc2626",color:"#fff",fontWeight:800,fontSize:12,cursor:!active?"default":"pointer"}}>
+          style={{padding:"10px 18px",borderRadius:10,border:"none",background:!active?"#C2D0C6":"#dc2626",color:"#fff",fontWeight:800,fontSize:12,cursor:!active?"default":"pointer"}}>
           ■ Ferma
         </button>
         <button onClick={copyLog} disabled={logs.length===0}
-          style={{padding:"10px 18px",borderRadius:10,border:"none",background:logs.length===0?"#cbd5e1":"#2563eb",color:"#fff",fontWeight:800,fontSize:12,cursor:logs.length===0?"default":"pointer"}}>
+          style={{padding:"10px 18px",borderRadius:10,border:"none",background:logs.length===0?"#C2D0C6":"#18A957",color:"#fff",fontWeight:800,fontSize:12,cursor:logs.length===0?"default":"pointer"}}>
           {copied?"✓ Copiato":"📋 Copia log"}
         </button>
         <button onClick={()=>{logsRef.current=[];setLogs([]);}}
-          style={{padding:"10px 18px",borderRadius:10,border:"1.5px solid #e2e8f0",background:"#fff",color:"#64748b",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+          style={{padding:"10px 18px",borderRadius:10,border:"1.5px solid #E7EDE2",background:"#fff",color:"#6E8576",fontWeight:700,fontSize:12,cursor:"pointer"}}>
           🗑 Pulisci
         </button>
       </div>
@@ -158,23 +158,23 @@ export function SyncTestPage() {
       {/* Log */}
       <div style={{background:"#0f172a",borderRadius:12,padding:"12px 14px",minHeight:300,maxHeight:"60vh",overflowY:"auto",fontFamily:"monospace",fontSize:10.5,lineHeight:1.6}}>
         {logs.length === 0 && (
-          <div style={{color:"#475569",fontStyle:"italic"}}>Nessun evento ancora. Avvia il monitoraggio e poi esegui le operazioni.</div>
+          <div style={{color:"#4A6152",fontStyle:"italic"}}>Nessun evento ancora. Avvia il monitoraggio e poi esegui le operazioni.</div>
         )}
         {logs.map((l,i)=>(
           <div key={i} style={{color:colorFor(l.tipo),marginBottom:1}}>
-            <span style={{color:"#64748b"}}>[{l.ts}]</span>{" "}
+            <span style={{color:"#6E8576"}}>[{l.ts}]</span>{" "}
             <span style={{color:colorFor(l.tipo),fontWeight:"bold"}}>{l.tipo.padEnd(14)}</span>{" "}
-            <span style={{color:l.tipo==="INFO"?"#94a3b8":"#e2e8f0"}}>{l.msg}</span>
-            {l.extra && <span style={{color:"#64748b"}}> | {l.extra}</span>}
+            <span style={{color:l.tipo==="INFO"?"#9DB1A2":"#E7EDE2"}}>{l.msg}</span>
+            {l.extra && <span style={{color:"#6E8576"}}> | {l.extra}</span>}
           </div>
         ))}
         <div ref={endRef}/>
       </div>
 
-      <div style={{marginTop:10,fontSize:10,color:"#94a3b8",lineHeight:1.5}}>
+      <div style={{marginTop:10,fontSize:10,color:"#9DB1A2",lineHeight:1.5}}>
         <strong>Legenda colori:</strong>{" "}
         <span style={{color:"#16a34a"}}>verde = sync interno</span> ·{" "}
-        <span style={{color:"#2563eb"}}>blu = evento cloud→app</span> ·{" "}
+        <span style={{color:"#18A957"}}>blu = evento cloud→app</span> ·{" "}
         <span style={{color:"#d97706"}}>arancio = scrittura storage</span> ·{" "}
         <span style={{color:"#7c3aed"}}>viola = stato cloud</span> ·{" "}
         <span style={{color:"#dc2626"}}>rosso = warning/errore</span>

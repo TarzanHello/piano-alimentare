@@ -95,7 +95,7 @@ export async function ensureMyProfile(personaLocale) {
     lavoro: p.lavoro || 'sedentario',
     allenamenti: p.allenamenti ?? 3,
     obiettivo: p.obiettivo || 'mantenimento',
-    color: p.color || '#2563eb',
+    color: p.color || '#18A957',
   };
   const { data, error } = await supabase.from('profili').insert(nuovo).select().single();
   if (error) { console.warn('ensureMyProfile:', error.message); return null; }

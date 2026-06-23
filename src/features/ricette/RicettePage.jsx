@@ -22,8 +22,8 @@ const UNIT_OPTIONS = [
 ];
 
 const card      = { background:"#fff", borderRadius:16, padding:16, boxShadow:"0 1px 3px rgba(0,0,0,0.08)", marginBottom:12 };
-const btnPrimary = { padding:"12px 16px", borderRadius:12, border:"none", fontWeight:700, color:"#fff", background:"#2563eb", cursor:"pointer" };
-const btnGhost   = { padding:"8px 12px", borderRadius:10, border:"1px solid #cbd5e1", background:"#fff", color:"#475569", fontWeight:600, cursor:"pointer", fontSize:12 };
+const btnPrimary = { padding:"12px 16px", borderRadius:12, border:"none", fontWeight:700, color:"#fff", background:"#18A957", cursor:"pointer" };
+const btnGhost   = { padding:"8px 12px", borderRadius:10, border:"1px solid #C2D0C6", background:"#fff", color:"#4A6152", fontWeight:600, cursor:"pointer", fontSize:12 };
 
 // ── Calcolo macro da quantita {ing_id: {g, unit}} (batch) ────────────────
 function calcolaMacro(quantita) {
@@ -72,15 +72,15 @@ function IngRow({ id, v, onSetG, onSetUnit, onRimuovi }) {
   return (
     <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:"1px solid #f5f7fa" }}>
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:13, fontWeight:600, color:"#1e293b", lineHeight:1.2 }}>{ing?.nome || id}</div>
-        {kcalIng !== null && <div style={{ fontSize:11, color:"#94a3b8", marginTop:1 }}>{kcalIng} kcal</div>}
+        <div style={{ fontSize:13, fontWeight:600, color:"#13231A", lineHeight:1.2 }}>{ing?.nome || id}</div>
+        {kcalIng !== null && <div style={{ fontSize:11, color:"#9DB1A2", marginTop:1 }}>{kcalIng} kcal</div>}
       </div>
       <input type="number" value={v.g} min={0} step={v.unit==="g"||v.unit==="ml"?5:0.5}
         onChange={e => onSetG(id, parseFloat(e.target.value)||0)}
-        style={{ width:70, border:"1px solid #e2e8f0", borderRadius:8, padding:"5px 8px",
+        style={{ width:70, border:"1px solid #E7EDE2", borderRadius:8, padding:"5px 8px",
                  fontSize:14, textAlign:"right", fontWeight:700 }}/>
       <select value={v.unit||"g"} onChange={e => onSetUnit(id, e.target.value)}
-        style={{ fontSize:12, border:"1px solid #e2e8f0", borderRadius:6, padding:"4px 6px", background:"#f8fafc" }}>
+        style={{ fontSize:12, border:"1px solid #E7EDE2", borderRadius:6, padding:"4px 6px", background:"#F5F8F1" }}>
         {UNIT_OPTIONS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
       </select>
       <button onClick={() => onRimuovi(id)}
@@ -175,10 +175,10 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
 
       <div style={card}>
         <input value={titolo} onChange={e => setTitolo(e.target.value)} placeholder="Titolo ricetta *"
-          maxLength={80} style={{ width:"100%", border:"1px solid #e2e8f0", borderRadius:10, padding:"10px 12px",
+          maxLength={80} style={{ width:"100%", border:"1px solid #E7EDE2", borderRadius:10, padding:"10px 12px",
                                   fontSize:15, marginBottom:8, boxSizing:"border-box" }}/>
         <textarea value={descr} onChange={e => setDescr(e.target.value)} placeholder="Descrizione (facoltativa)"
-          maxLength={300} rows={2} style={{ width:"100%", border:"1px solid #e2e8f0", borderRadius:10,
+          maxLength={300} rows={2} style={{ width:"100%", border:"1px solid #E7EDE2", borderRadius:10,
                                             padding:"10px 12px", fontSize:13, resize:"vertical", marginBottom:10,
                                             boxSizing:"border-box" }}/>
         {/* Categoria */}
@@ -186,9 +186,9 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
           {CAT.map(c => (
             <button key={c.key} onClick={() => setCat(c.key)}
               style={{ padding:"6px 11px", borderRadius:8, border:"2px solid",
-                       borderColor: categoria===c.key ? "#2563eb" : "#e2e8f0",
-                       background:  categoria===c.key ? "#2563eb" : "#fff",
-                       color:       categoria===c.key ? "#fff"    : "#64748b",
+                       borderColor: categoria===c.key ? "#18A957" : "#E7EDE2",
+                       background:  categoria===c.key ? "#18A957" : "#fff",
+                       color:       categoria===c.key ? "#fff"    : "#6E8576",
                        fontWeight:700, fontSize:12, cursor:"pointer" }}>
               {c.icon} {c.label}
             </button>
@@ -196,11 +196,11 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
         </div>
         {/* Prep */}
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <span style={{ fontSize:13, color:"#64748b" }}>⏱ Preparazione</span>
+          <span style={{ fontSize:13, color:"#6E8576" }}>⏱ Preparazione</span>
           <input type="number" value={prep} onChange={e => setPrep(e.target.value)} min={1} max={180}
-            placeholder="—" style={{ width:56, border:"1px solid #e2e8f0", borderRadius:8,
+            placeholder="—" style={{ width:56, border:"1px solid #E7EDE2", borderRadius:8,
                                      padding:"5px 8px", fontSize:13, textAlign:"right" }}/>
-          <span style={{ fontSize:12, color:"#94a3b8" }}>min</span>
+          <span style={{ fontSize:12, color:"#9DB1A2" }}>min</span>
         </div>
       </div>
 
@@ -209,16 +209,16 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
         <div style={{ fontWeight:700, fontSize:14, marginBottom:8 }}>Ingredienti</div>
         <input value={query} onChange={e => setQuery(e.target.value)}
           placeholder="Cerca ingrediente…"
-          style={{ width:"100%", border:"1px solid #e2e8f0", borderRadius:10, padding:"9px 12px",
+          style={{ width:"100%", border:"1px solid #E7EDE2", borderRadius:10, padding:"9px 12px",
                    fontSize:14, boxSizing:"border-box" }}/>
         {risultatiRicerca.length > 0 && (
           <div style={{ marginTop:6, border:"1px solid #eef2f7", borderRadius:10, overflow:"hidden" }}>
             {risultatiRicerca.map(ing => (
               <button key={ing.id} onClick={() => aggiungi(ing)}
                 style={{ display:"block", width:"100%", textAlign:"left", padding:"9px 12px",
-                         border:"none", borderBottom:"1px solid #f1f5f9", background:"#fff",
+                         border:"none", borderBottom:"1px solid #EFF3EC", background:"#fff",
                          cursor:"pointer", fontSize:13 }}>
-                {ing.nome} <span style={{ color:"#94a3b8", fontSize:11 }}>· {ing.cat}</span>
+                {ing.nome} <span style={{ color:"#9DB1A2", fontSize:11 }}>· {ing.cat}</span>
               </button>
             ))}
           </div>
@@ -229,7 +229,7 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
           ))}
         </div>
         {Object.keys(ings).length === 0 && (
-          <div style={{ textAlign:"center", color:"#94a3b8", fontSize:13, padding:"16px 0" }}>
+          <div style={{ textAlign:"center", color:"#9DB1A2", fontSize:13, padding:"16px 0" }}>
             Cerca e aggiungi ingredienti
           </div>
         )}
@@ -246,11 +246,11 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
             <span style={{ fontSize:22, fontWeight:900, color:"#15803d", fontFamily:"monospace" }}>
               {macro.kcal} kcal
             </span>
-            <span style={{ fontSize:13, color:"#64748b" }}>
+            <span style={{ fontSize:13, color:"#6E8576" }}>
               P {macro.p}g · C {macro.c}g · G {macro.g_}g
             </span>
           </div>
-          <div style={{ fontSize:11, color:"#94a3b8", marginTop:4 }}>
+          <div style={{ fontSize:11, color:"#9DB1A2", marginTop:4 }}>
             Il sistema scala automaticamente le quantità per il fabbisogno di ciascun membro della famiglia.
           </div>
         </div>
@@ -277,35 +277,35 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
 
   return (
     <div style={{ ...card, opacity: r.esclusa ? 0.6 : 1,
-                  borderLeft: "4px solid #2563eb" }}>
+                  borderLeft: "4px solid #18A957" }}>
       <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginBottom:2 }}>
             <span style={{ fontWeight:700, fontSize:15 }}>{m.icon} {r.titolo}</span>
-            {prepLabel && <span style={{ fontSize:11, color:"#64748b", background:"#f1f5f9",
+            {prepLabel && <span style={{ fontSize:11, color:"#6E8576", background:"#EFF3EC",
                                          borderRadius:6, padding:"1px 6px" }}>⏱{prepLabel}</span>}
             {!mine && r.autoreNome && <span style={{ fontSize:10, padding:"1px 7px", borderRadius:6,
-                           fontWeight:700, background:"#f1f5f9", color:"#64748b" }}>
+                           fontWeight:700, background:"#EFF3EC", color:"#6E8576" }}>
               di {r.autoreNome}
             </span>}
             {r.esclusa && <span style={{ fontSize:10, background:"#fef2f2", color:"#dc2626",
                                           borderRadius:6, padding:"1px 6px", fontWeight:700 }}>🚫 esclusa</span>}
           </div>
-          {r.descrizione && <div style={{ fontSize:12, color:"#64748b", marginBottom:3 }}>{r.descrizione}</div>}
-          <div style={{ fontSize:12, color:"#94a3b8" }}>
-            <span style={{ fontWeight:700, color:"#1e293b" }}>{macro.kcal} kcal</span>
+          {r.descrizione && <div style={{ fontSize:12, color:"#6E8576", marginBottom:3 }}>{r.descrizione}</div>}
+          <div style={{ fontSize:12, color:"#9DB1A2" }}>
+            <span style={{ fontWeight:700, color:"#13231A" }}>{macro.kcal} kcal</span>
             {" · "}P {macro.p} C {macro.c} G {macro.g_}
           </div>
         </div>
         <button onClick={() => setEspanso(!espanso)}
-          style={{ border:"none", background:"transparent", color:"#94a3b8",
+          style={{ border:"none", background:"transparent", color:"#9DB1A2",
                    fontSize:16, cursor:"pointer", padding:"2px 4px", flexShrink:0 }}>
           {espanso ? "▲" : "▼"}
         </button>
       </div>
 
       {espanso && r.quantita && (
-        <div style={{ marginTop:8, paddingTop:8, borderTop:"1px solid #f1f5f9" }}>
+        <div style={{ marginTop:8, paddingTop:8, borderTop:"1px solid #EFF3EC" }}>
           {Object.entries(r.quantita).map(([id, v]) => {
             const ing = ING_MAP[id];
             const qty = v.g ?? v.uomo ?? 0;
@@ -313,7 +313,7 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
             const qStr = unit==="g"||unit==="ml" ? `${Math.round(qty)}${unit}` :
                          unit==="pz" ? `${qty===0.5?"½":qty} pz` : `${qty} ${unit}`;
             return (
-              <div key={id} style={{ fontSize:12, color:"#475569", lineHeight:1.8 }}>
+              <div key={id} style={{ fontSize:12, color:"#4A6152", lineHeight:1.8 }}>
                 <span style={{ fontWeight:700 }}>{qStr}</span> {ing?.nome?.toLowerCase() || id}
               </div>
             );
@@ -327,8 +327,8 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
         <button onClick={onToggleEsclusa}
           style={{ ...btnGhost,
                    background:   r.esclusa ? "#f0fdf4" : "#fff",
-                   borderColor:  r.esclusa ? "#86efac" : "#cbd5e1",
-                   color:        r.esclusa ? "#16a34a" : "#475569" }}>
+                   borderColor:  r.esclusa ? "#86efac" : "#C2D0C6",
+                   color:        r.esclusa ? "#16a34a" : "#4A6152" }}>
           {r.esclusa ? "✅ Nel piano" : "🚫 Escludi piano"}
         </button>
         {mine && (
@@ -358,8 +358,8 @@ function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
   }, [r.id]);
   const macro = useMemo(() => calcolaMacro(quantitaBatch), [quantitaBatch]);
   const prep = r.prep;
-  const prepColor = !prep ? "#94a3b8" : prep<=15 ? "#16a34a" : prep<=30 ? "#d97706" : "#dc2626";
-  const prepBg    = !prep ? "#f8fafc" : prep<=15 ? "#f0fdf4" : prep<=30 ? "#fffbeb" : "#fef2f2";
+  const prepColor = !prep ? "#9DB1A2" : prep<=15 ? "#16a34a" : prep<=30 ? "#d97706" : "#dc2626";
+  const prepBg    = !prep ? "#F5F8F1" : prep<=15 ? "#f0fdf4" : prep<=30 ? "#fffbeb" : "#fef2f2";
   const prepLabel = !prep ? "—" : prep>=60 ? `${prep/60}h` : `${prep}'`;
 
   return (
@@ -376,21 +376,21 @@ function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
             {esclusa && <span style={{ marginLeft:6, fontSize:10, background:"#fef2f2",
                                         color:"#dc2626", borderRadius:5, padding:"1px 5px" }}>🚫</span>}
           </div>
-          <div style={{ fontSize:11, color:"#94a3b8" }}>
-            <span style={{ fontWeight:700, color:"#1e293b" }}>{macro.kcal} kcal</span>
+          <div style={{ fontSize:11, color:"#9DB1A2" }}>
+            <span style={{ fontWeight:700, color:"#13231A" }}>{macro.kcal} kcal</span>
             {" · "}P {macro.p} C {macro.c} G {macro.g_}
             <span style={{ marginLeft:6, fontSize:10 }}>(batch di riferimento)</span>
           </div>
         </div>
         <button onClick={() => setEspanso(!espanso)}
-          style={{ border:"none", background:"transparent", color:"#94a3b8", fontSize:14, cursor:"pointer" }}>
+          style={{ border:"none", background:"transparent", color:"#9DB1A2", fontSize:14, cursor:"pointer" }}>
           {espanso ? "▲" : "▼"}
         </button>
       </div>
 
       {/* Lista ingredienti espansa */}
       {espanso && (
-        <div style={{ marginTop:8, paddingTop:8, borderTop:"1px solid #f1f5f9" }}>
+        <div style={{ marginTop:8, paddingTop:8, borderTop:"1px solid #EFF3EC" }}>
           {Object.entries(quantitaRaw).filter(([id]) => id !== '_scaled').map(([id, v]) => {
             const ing = ING_MAP[id];
             const qty = v.uomo ?? v.g ?? 0;
@@ -398,13 +398,13 @@ function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
             const qStr = unit==="g"||unit==="ml" ? `${Math.round(qty)}${unit}` :
                          unit==="pz" ? `${qty===0.5?"½":qty} pz` : `${qty} ${unit}`;
             return (
-              <div key={id} style={{ fontSize:12, color:"#475569", lineHeight:1.8 }}>
+              <div key={id} style={{ fontSize:12, color:"#4A6152", lineHeight:1.8 }}>
                 <span style={{ fontWeight:700 }}>{qStr}</span> {ing?.nome?.toLowerCase() || id}
               </div>
             );
           })}
           {Object.keys(quantitaRaw).length === 0 && (
-            <div style={{ fontSize:12, color:"#94a3b8" }}>Ingredienti non disponibili</div>
+            <div style={{ fontSize:12, color:"#9DB1A2" }}>Ingredienti non disponibili</div>
           )}
         </div>
       )}
@@ -415,8 +415,8 @@ function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
         <button onClick={onToggleEsclusa}
           style={{ ...btnGhost,
                    background:  esclusa ? "#f0fdf4" : "#fff",
-                   borderColor: esclusa ? "#86efac" : "#cbd5e1",
-                   color:       esclusa ? "#16a34a" : "#475569" }}>
+                   borderColor: esclusa ? "#86efac" : "#C2D0C6",
+                   color:       esclusa ? "#16a34a" : "#4A6152" }}>
           {esclusa ? "✅ Nel piano" : "🚫 Escludi piano"}
         </button>
       </div>
@@ -523,9 +523,9 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
         {[["ricette","🍴 Ricette"],["catalogo","📚 Catalogo"]].map(([key,label]) => (
           <button key={key} onClick={() => setTab(key)}
             style={{ ...btnGhost, flex:1, padding:"8px 4px", textAlign:"center",
-                     background:   tab===key ? "#dbeafe" : "#fff",
-                     borderColor:  tab===key ? "#2563eb" : "#cbd5e1",
-                     color:        tab===key ? "#1d4ed8" : "#475569",
+                     background:   tab===key ? "#D6EFDD" : "#fff",
+                     borderColor:  tab===key ? "#18A957" : "#C2D0C6",
+                     color:        tab===key ? "#0F8F47" : "#4A6152",
                      fontWeight:   tab===key ? 800 : 600 }}>
             {label}
           </button>
@@ -538,10 +538,10 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
           ? <EmptyState emoji="☁️" title="Collegati per le ricette"
               text="Le ricette di famiglia sono salvate sul cloud. Accedi per crearle e condividerle."/>
           : loading
-            ? <div style={{ textAlign:"center", color:"#94a3b8", padding:20 }}>Caricamento…</div>
+            ? <div style={{ textAlign:"center", color:"#9DB1A2", padding:20 }}>Caricamento…</div>
             : <>
                 {errore && <div style={{ color:"#dc2626", fontSize:13, marginBottom:10 }}>{errore}</div>}
-                <div style={{ fontSize:12, color:"#64748b", marginBottom:12, lineHeight:1.5 }}>
+                <div style={{ fontSize:12, color:"#6E8576", marginBottom:12, lineHeight:1.5 }}>
                   Tutte le ricette di famiglia. Ogni ricetta che crei è automaticamente condivisa
                   con i membri della famiglia ed entra nel piano con priorità.
                 </div>
@@ -563,7 +563,7 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
       {/* ── Catalogo ── */}
       {tab === "catalogo" && (
         <>
-          <div style={{ fontSize:12, color:"#64748b", marginBottom:12, lineHeight:1.5 }}>
+          <div style={{ fontSize:12, color:"#6E8576", marginBottom:12, lineHeight:1.5 }}>
             166 ricette CRA-NUT. Le quantità mostrate sono il batch di riferimento — il piano
             le scala automaticamente per il fabbisogno di ciascun membro.
             Duplica una ricetta per personalizzarla e aggiungerla alle ricette di famiglia.
@@ -575,16 +575,16 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
               <div key={c.key} style={{ marginBottom:10 }}>
                 <button onClick={() => setCatAperte(p => ({ ...p, [c.key]: !aperta }))}
                   style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between",
-                           padding:"12px 14px", borderRadius:12, border:"1px solid #e2e8f0",
-                           background:"#fff", cursor:"pointer", fontWeight:700, fontSize:14, color:"#1e293b" }}>
+                           padding:"12px 14px", borderRadius:12, border:"1px solid #E7EDE2",
+                           background:"#fff", cursor:"pointer", fontWeight:700, fontSize:14, color:"#13231A" }}>
                   <span>{c.icon} {c.label}
-                    <span style={{ color:"#94a3b8", fontWeight:600, fontSize:12 }}> · {rs.length} ricette</span>
+                    <span style={{ color:"#9DB1A2", fontWeight:600, fontSize:12 }}> · {rs.length} ricette</span>
                     {[...escluseCatalogo].some(id => rs.some(r => r.id===id)) &&
                       <span style={{ marginLeft:6, fontSize:11, color:"#dc2626" }}>
                         ({[...escluseCatalogo].filter(id => rs.some(r => r.id===id)).length} escluse)
                       </span>}
                   </span>
-                  <span style={{ color:"#cbd5e1", fontSize:11 }}>{aperta ? "▲" : "▼"}</span>
+                  <span style={{ color:"#C2D0C6", fontSize:11 }}>{aperta ? "▲" : "▼"}</span>
                 </button>
                 {aperta && (
                   <div style={{ marginTop:8 }}>

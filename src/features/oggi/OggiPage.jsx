@@ -11,15 +11,15 @@ function KcalRing({ consumed, target, color }) {
   return (
     <div style={{position:"relative",width:150,height:150,flexShrink:0}}>
       <svg width={150} height={150} style={{transform:"rotate(-90deg)"}}>
-        <circle cx={75} cy={75} r={R} fill="none" stroke="#e2e8f0" strokeWidth={12}/>
+        <circle cx={75} cy={75} r={R} fill="none" stroke="#E7EDE2" strokeWidth={12}/>
         <circle cx={75} cy={75} r={R} fill="none" stroke={stroke} strokeWidth={12}
           strokeLinecap="round" strokeDasharray={C}
           strokeDashoffset={C * (1 - Math.min(1, pct))}
           style={{transition:"stroke-dashoffset 0.6s cubic-bezier(0.2,0.9,0.3,1), stroke 0.3s"}}/>
       </svg>
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{fontSize:26,fontWeight:900,color:over?"#dc2626":"#1e293b",lineHeight:1}}>{Math.round(consumed)}</div>
-        <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",marginTop:2}}>di {Math.round(target)} kcal</div>
+        <div style={{fontSize:26,fontWeight:900,color:over?"#dc2626":"#13231A",lineHeight:1}}>{Math.round(consumed)}</div>
+        <div style={{fontSize:10,fontWeight:700,color:"#9DB1A2",marginTop:2}}>di {Math.round(target)} kcal</div>
         {over && <div style={{fontSize:9,fontWeight:800,color:"#dc2626",marginTop:2}}>oltre il target</div>}
       </div>
     </div>
@@ -31,10 +31,10 @@ function MacroBar({ label, val, max, color }) {
   const pct = max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0;
   return (
     <div style={{marginBottom:8}}>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,fontWeight:700,color:"#64748b",marginBottom:3}}>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,fontWeight:700,color:"#6E8576",marginBottom:3}}>
         <span>{label}</span><span>{Math.round(val)} / {Math.round(max)} g</span>
       </div>
-      <div style={{height:6,background:"#e2e8f0",borderRadius:3,overflow:"hidden"}}>
+      <div style={{height:6,background:"#E7EDE2",borderRadius:3,overflow:"hidden"}}>
         <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:3,transition:"width 0.5s ease"}}/>
       </div>
     </div>
@@ -83,14 +83,14 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
 
   const saluto = nowH < 12 ? "Buongiorno" : nowH < 18 ? "Buon pomeriggio" : "Buonasera";
   const dataLabel = new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
-  const col = persona?.color || "#2563eb";
+  const col = persona?.color || "#18A957";
 
   return (
     <div>
       {/* Selettore persona compatto */}
       <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
         {personas.map(p=>(
-          <button key={p.id} onClick={()=>onSelPersona(p.id)} style={{flexShrink:0,padding:"7px 12px",borderRadius:10,border:"2px solid",borderColor:selPersonaId===p.id?p.color:"#e2e8f0",background:selPersonaId===p.id?p.color+"12":"#fff",color:selPersonaId===p.id?p.color:"#64748b",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
+          <button key={p.id} onClick={()=>onSelPersona(p.id)} style={{flexShrink:0,padding:"7px 12px",borderRadius:10,border:"2px solid",borderColor:selPersonaId===p.id?p.color:"#E7EDE2",background:selPersonaId===p.id?p.color+"12":"#fff",color:selPersonaId===p.id?p.color:"#6E8576",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap"}}>
             {emojiBySesso(p)} {p.nome}
           </button>
         ))}
@@ -98,18 +98,18 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
 
       {/* Saluto */}
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:20,fontWeight:900,color:"#1e293b"}}>{saluto}, {persona?.nome} 👋</div>
-        <div style={{fontSize:12,color:"#94a3b8",fontWeight:600,textTransform:"capitalize"}}>{dataLabel}</div>
+        <div style={{fontSize:24,fontWeight:800,color:"#13231A",fontFamily:"'Bricolage Grotesque',sans-serif"}}>{saluto}, {persona?.nome} 👋</div>
+        <div style={{fontSize:12,color:"#9DB1A2",fontWeight:600,textTransform:"capitalize"}}>{dataLabel}</div>
       </div>
 
       {/* Anello kcal + macro */}
-      <div style={{background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:16,padding:"16px",marginBottom:12,display:"flex",alignItems:"center",gap:18,boxShadow:"0 2px 12px #00000008"}}>
+      <div style={{background:"#fff",border:"1.5px solid #E7EDE2",borderRadius:16,padding:"16px",marginBottom:12,display:"flex",alignItems:"center",gap:18,boxShadow:"0 2px 12px #00000008"}}>
         <KcalRing consumed={consumed.kcal} target={target?.kcal||0} color={col}/>
         <div style={{flex:1,minWidth:0}}>
           <MacroBar label="Proteine"    val={consumed.p} max={target?.p||0} color="#0ea5e9"/>
           <MacroBar label="Carboidrati" val={consumed.c} max={target?.c||0} color="#f59e0b"/>
           <MacroBar label="Grassi"      val={consumed.g} max={target?.g||0} color="#8b5cf6"/>
-          <div style={{fontSize:10,color:"#94a3b8",fontWeight:600,marginTop:4}}>{nConsumati} pasti su {MEAL_KEYS.filter(mk=>day[mk]).length} registrati</div>
+          <div style={{fontSize:10,color:"#9DB1A2",fontWeight:600,marginTop:4}}>{nConsumati} pasti su {MEAL_KEYS.filter(mk=>day[mk]).length} registrati</div>
         </div>
       </div>
 
@@ -125,9 +125,9 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
           <div style={{fontSize:10,fontWeight:800,color:col,letterSpacing:0.8,textTransform:"uppercase",marginBottom:5}}>Prossimo pasto</div>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:12,fontWeight:700,color:"#64748b",marginBottom:1}}>{MEAL_META[prossimo].label}</div>
-              <div style={{fontSize:15,fontWeight:800,color:"#1e293b",lineHeight:1.25}}>{day[prossimo]?.nome}</div>
-              <div style={{fontSize:11,color:"#94a3b8",fontWeight:600,marginTop:2}}>{Math.round(macroFor(prossimo).kcal)} kcal · ore {String(Math.floor(MEAL_HOUR[prossimo])).padStart(2,"0")}:{MEAL_HOUR[prossimo]%1?"30":"00"}</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#6E8576",marginBottom:1}}>{MEAL_META[prossimo].label}</div>
+              <div style={{fontSize:15,fontWeight:800,color:"#13231A",lineHeight:1.25}}>{day[prossimo]?.nome}</div>
+              <div style={{fontSize:11,color:"#9DB1A2",fontWeight:600,marginTop:2}}>{Math.round(macroFor(prossimo).kcal)} kcal · ore {String(Math.floor(MEAL_HOUR[prossimo])).padStart(2,"0")}:{MEAL_HOUR[prossimo]%1?"30":"00"}</div>
             </div>
             <button onClick={()=>onToggleMeal(persona.id, dateKey, prossimo, macroFor(prossimo))}
               style={{flexShrink:0,padding:"10px 16px",borderRadius:12,border:"none",background:col,color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",boxShadow:`0 4px 12px ${col}50`}}>
@@ -138,8 +138,8 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
       )}
 
       {/* Pasti della giornata */}
-      <div style={{background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:16,overflow:"hidden",marginBottom:12,boxShadow:"0 2px 12px #00000008"}}>
-        <div style={{padding:"11px 16px 7px",fontSize:10,fontWeight:800,color:"#94a3b8",letterSpacing:0.8,textTransform:"uppercase",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div style={{background:"#fff",border:"1.5px solid #E7EDE2",borderRadius:16,overflow:"hidden",marginBottom:12,boxShadow:"0 2px 12px #00000008"}}>
+        <div style={{padding:"11px 16px 7px",fontSize:10,fontWeight:800,color:"#9DB1A2",letterSpacing:0.8,textTransform:"uppercase",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span>I pasti di oggi</span>
           <button onClick={onGoPiano} style={{border:"none",background:"transparent",color:col,fontWeight:800,fontSize:11,cursor:"pointer",letterSpacing:0}}>Vai al piano ›</button>
         </div>
@@ -147,15 +147,15 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
           const isCons = !!dayLog[mk]?.consumed;
           const m = macroFor(mk);
           return (
-            <div key={mk} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",borderTop:i>0?"1px solid #f1f5f9":"none",opacity:isCons?0.75:1}}>
+            <div key={mk} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",borderTop:i>0?"1px solid #EFF3EC":"none",opacity:isCons?0.75:1}}>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#94a3b8"}}>{MEAL_META[mk].label}</div>
-                <div style={{fontSize:13,fontWeight:700,color:"#1e293b",textDecoration:isCons?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{day[mk]?.nome}</div>
+                <div style={{fontSize:11,fontWeight:700,color:"#9DB1A2"}}>{MEAL_META[mk].label}</div>
+                <div style={{fontSize:13,fontWeight:700,color:"#13231A",textDecoration:isCons?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{day[mk]?.nome}</div>
               </div>
-              <div style={{fontSize:11,fontWeight:800,color:"#64748b",flexShrink:0}}>{Math.round(m.kcal)} kcal</div>
+              <div style={{fontSize:11,fontWeight:800,color:"#6E8576",flexShrink:0}}>{Math.round(m.kcal)} kcal</div>
               <button onClick={()=>onToggleMeal(persona.id, dateKey, mk, m)}
                 title={isCons?"Segna come non consumato":"Segna come mangiato"}
-                style={{flexShrink:0,width:32,height:32,borderRadius:"50%",border:isCons?"none":"2px solid #cbd5e1",background:isCons?"#16a34a":"#fff",color:isCons?"#fff":"#cbd5e1",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",animation:isCons?"pop 0.25s ease-out":"none"}}>
+                style={{flexShrink:0,width:32,height:32,borderRadius:"50%",border:isCons?"none":"2px solid #C2D0C6",background:isCons?"#16a34a":"#fff",color:isCons?"#fff":"#C2D0C6",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",animation:isCons?"pop 0.25s ease-out":"none"}}>
                 ✓
               </button>
             </div>

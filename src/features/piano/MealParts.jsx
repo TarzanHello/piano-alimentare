@@ -39,38 +39,38 @@ export function WaterTracker({ dayKey, personaColor }) {
   const ml       = glasses * WATER_ML;
   const pct      = Math.min(100, Math.round((ml / WATER_GOAL) * 100));
   const goal_ok  = ml >= WATER_GOAL;
-  const color    = goal_ok ? "#16a34a" : ml >= 1400 ? "#0891b2" : ml >= 800 ? "#d97706" : "#94a3b8";
-  const bgBar    = goal_ok ? "#f0fdf4" : ml >= 1400 ? "#f0f9ff" : ml >= 800 ? "#fffbeb" : "#f8fafc";
+  const color    = goal_ok ? "#16a34a" : ml >= 1400 ? "#0891b2" : ml >= 800 ? "#d97706" : "#9DB1A2";
+  const bgBar    = goal_ok ? "#f0fdf4" : ml >= 1400 ? "#EEF7F0" : ml >= 800 ? "#fffbeb" : "#F5F8F1";
   const label    = goal_ok ? "🎉 Obiettivo raggiunto!" : `${WATER_GOAL - ml} ml al traguardo`;
 
   if (!loaded) return null;
 
   return (
-    <div style={{background:"#fff",borderRadius:12,border:`1.5px solid ${goal_ok?"#bbf7d0":"#e2e8f0"}`,padding:"14px 16px",marginTop:10,transition:"border-color 0.3s"}}>
+    <div style={{background:"#fff",borderRadius:12,border:`1.5px solid ${goal_ok?"#bbf7d0":"#E7EDE2"}`,padding:"14px 16px",marginTop:10,transition:"border-color 0.3s"}}>
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
         <div style={{display:"flex",alignItems:"center",gap:7}}>
           <span style={{fontSize:18}}>💧</span>
           <div>
-            <div style={{fontSize:12,fontWeight:800,color:"#1e293b"}}>Idratazione</div>
-            <div style={{fontSize:10,color:"#64748b"}}>Obiettivo: {WATER_GOAL/1000}L · {WATER_ML}ml per bicchiere</div>
+            <div style={{fontSize:12,fontWeight:800,color:"#13231A"}}>Idratazione</div>
+            <div style={{fontSize:10,color:"#6E8576"}}>Obiettivo: {WATER_GOAL/1000}L · {WATER_ML}ml per bicchiere</div>
           </div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{fontSize:18,fontWeight:800,color,fontFamily:"monospace"}}>{(ml/1000).toFixed(1)}<span style={{fontSize:11,fontWeight:400,color:"#94a3b8"}}> L</span></div>
+          <div style={{fontSize:18,fontWeight:800,color,fontFamily:"monospace"}}>{(ml/1000).toFixed(1)}<span style={{fontSize:11,fontWeight:400,color:"#9DB1A2"}}> L</span></div>
           <div style={{fontSize:9,color,fontWeight:700}}>{label}</div>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div style={{background:"#f1f5f9",borderRadius:99,height:8,overflow:"hidden",marginBottom:12}}>
+      <div style={{background:"#EFF3EC",borderRadius:99,height:8,overflow:"hidden",marginBottom:12}}>
         <div style={{
           width:`${pct}%`, height:"100%", borderRadius:99,
           background: goal_ok
             ? "linear-gradient(90deg,#16a34a,#22c55e)"
             : ml>=1400 ? "linear-gradient(90deg,#0891b2,#38bdf8)"
             : ml>=800  ? "linear-gradient(90deg,#d97706,#fbbf24)"
-            : "#cbd5e1",
+            : "#C2D0C6",
           transition:"width 0.4s cubic-bezier(.4,0,.2,1)"
         }}/>
       </div>
@@ -88,8 +88,8 @@ export function WaterTracker({ dayKey, personaColor }) {
               style={{
                 width:36, height:44,
                 borderRadius:8,
-                border:`2px solid ${filled ? color+"80" : "#e2e8f0"}`,
-                background: filled ? bgBar : "#f8fafc",
+                border:`2px solid ${filled ? color+"80" : "#E7EDE2"}`,
+                background: filled ? bgBar : "#F5F8F1",
                 cursor:"pointer",
                 display:"flex", flexDirection:"column",
                 alignItems:"center", justifyContent:"center",
@@ -103,7 +103,7 @@ export function WaterTracker({ dayKey, personaColor }) {
               <span style={{fontSize:18,lineHeight:1,filter:filled?"none":"grayscale(1) opacity(0.35)"}}>
                 🥛
               </span>
-              <span style={{fontSize:7,fontFamily:"monospace",fontWeight:700,color:filled?color:"#cbd5e1"}}>
+              <span style={{fontSize:7,fontFamily:"monospace",fontWeight:700,color:filled?color:"#C2D0C6"}}>
                 {WATER_ML}
               </span>
             </button>
@@ -112,7 +112,7 @@ export function WaterTracker({ dayKey, personaColor }) {
       </div>
 
       {/* Hint */}
-      <div style={{marginTop:8,fontSize:10,color:"#94a3b8",textAlign:"center"}}>
+      <div style={{marginTop:8,fontSize:10,color:"#9DB1A2",textAlign:"center"}}>
         Tocca un bicchiere per segnarlo · toccalo di nuovo per rimuoverlo
       </div>
     </div>
@@ -134,8 +134,8 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
   const { label, isSnack } = MEAL_META[mealKey];
 
   const prep = meal.prep;
-  const prepColor = !prep ? "#94a3b8" : prep <= 15 ? "#16a34a" : prep <= 30 ? "#d97706" : "#dc2626";
-  const prepBg    = !prep ? "#f8fafc"  : prep <= 15 ? "#f0fdf4" : prep <= 30 ? "#fffbeb" : "#fef2f2";
+  const prepColor = !prep ? "#9DB1A2" : prep <= 15 ? "#16a34a" : prep <= 30 ? "#d97706" : "#dc2626";
+  const prepBg    = !prep ? "#F5F8F1"  : prep <= 15 ? "#f0fdf4" : prep <= 30 ? "#fffbeb" : "#fef2f2";
   const prepLabel = !prep ? null : prep >= 60 ? `${prep/60}h` : `${prep}'`;
 
   // Alternative calcolate al volo quando l'utente sceglie un filtro tempo
@@ -144,13 +144,13 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
     : [];
 
   return (
-    <div style={{background:isSnack?"#fafafa":"#fff",borderRadius:12,border:`1.5px solid ${isOverride?"#7c3aed40":isSnack?"#f1f5f9":"#e2e8f0"}`,marginBottom:8,overflow:"hidden",boxShadow:isSnack?"none":isOverride?"0 2px 12px #7c3aed18":"0 2px 10px #0000000a"}}>
+    <div style={{background:isSnack?"#fafafa":"#fff",borderRadius:12,border:`1.5px solid ${isOverride?"#7c3aed40":isSnack?"#EFF3EC":"#E7EDE2"}`,marginBottom:8,overflow:"hidden",boxShadow:isSnack?"none":isOverride?"0 2px 12px #7c3aed18":"0 2px 10px #0000000a"}}>
 
       {/* ── Header pasto ── */}
       <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}
         style={{background:consumed?"#f0fdf4":isSnack?"transparent":isOverride?`#7c3aed0e`:color+"0e",borderBottom:(open||swapOpen)?`1px solid ${isOverride?"#7c3aed20":color+"20"}`:"none",padding:"9px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",userSelect:"none"}}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontWeight:800,fontSize:isSnack?11:13,color:isSnack?"#94a3b8":isOverride?"#7c3aed":color}}>{label}</span>
+          <span style={{fontWeight:800,fontSize:isSnack?11:13,color:isSnack?"#9DB1A2":isOverride?"#7c3aed":color}}>{label}</span>
           {isOverride && <span style={{fontSize:9,background:"#7c3aed",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:800}}>MOD</span>}
           {consumed && loggedMacros && <span style={{fontSize:9,background:"#16a34a",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:800}}>✓ reale</span>}
           {isAdattato && <span style={{fontSize:9,background:"#0891b2",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:800}}>⚖ riadattato</span>}
@@ -161,8 +161,8 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
               ⏱ {prepLabel}
             </span>
           )}
-          <span style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:consumed&&loggedMacros?"#16a34a":"#1e293b"}}>{m.kcal} kcal</span>
-          <span style={{color:"#cbd5e1",fontSize:10}}>{open?"▲":"▼"}</span>
+          <span style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:consumed&&loggedMacros?"#16a34a":"#13231A"}}>{m.kcal} kcal</span>
+          <span style={{color:"#C2D0C6",fontSize:10}}>{open?"▲":"▼"}</span>
         </div>
       </div>
 
@@ -170,7 +170,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
       <div style={{padding:"10px 14px"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:8}}>
           <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}
-            style={{fontSize:isSnack?12:13,fontWeight:600,color:"#1e293b",lineHeight:1.4,flex:1,cursor:"pointer",userSelect:"none"}}>
+            style={{fontSize:isSnack?12:13,fontWeight:600,color:"#13231A",lineHeight:1.4,flex:1,cursor:"pointer",userSelect:"none"}}>
             {meal.nome}
           </div>
           <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
@@ -179,12 +179,12 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
               onClick={e=>{ e.stopPropagation(); onToggleLike && (logSync("gusti", `${prefEntry?.liked?"Rimosso like":"Like"}: ${meal.nome?.slice(0,30)}`, {id:meal.id}), onToggleLike()); }}
               aria-label={prefEntry?.liked ? "Rimuovi preferito" : "Segna come preferito"}
               title={prefEntry?.liked ? "Tolta dai preferiti" : "Aggiungi ai preferiti"}
-              style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${prefEntry?.liked?"#ef4444":"#e2e8f0"}`,background:prefEntry?.liked?"#fef2f2":"#f8fafc",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
+              style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${prefEntry?.liked?"#ef4444":"#E7EDE2"}`,background:prefEntry?.liked?"#fef2f2":"#F5F8F1",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
               <span style={{filter:prefEntry?.liked?"none":"grayscale(1) opacity(0.55)"}}>{prefEntry?.liked?"❤️":"🤍"}</span>
             </button>
             {/* Bottone consumato */}
             <button onClick={e=>{ e.stopPropagation(); logSync("pasto-log", `${consumed?"Rimarca non consumato":"Segna consumato"}: ${mealKey}`, {dayIdx, mealKey, pasto:meal?.nome?.slice(0,25)}); onToggleConsumed&&onToggleConsumed(); }} title={consumed?"Segna come non consumato":"Segna come consumato"}
-              style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${consumed?"#16a34a":"#e2e8f0"}`,background:consumed?"#f0fdf4":"#f8fafc",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
+              style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${consumed?"#16a34a":"#E7EDE2"}`,background:consumed?"#f0fdf4":"#F5F8F1",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
               <span style={{filter:consumed?"none":"grayscale(1) opacity(0.4)"}}>{consumed?"✅":"☑️"}</span>
             </button>
             {/* Bottone modifica calorie consumate — visibile solo se consumato */}
@@ -201,7 +201,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
               <button
                 onClick={e=>{ e.stopPropagation(); setEditOpen(true); setOpen(false); setSwapOpen(false); }}
                 title="Modifica ingredienti e quantità"
-                style={{flexShrink:0,width:31,height:28,borderRadius:7,border:"1.5px solid #e2e8f0",background:"#f8fafc",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,padding:0,color:"#64748b",fontWeight:700}}>
+                style={{flexShrink:0,width:31,height:28,borderRadius:7,border:"1.5px solid #E7EDE2",background:"#F5F8F1",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,padding:0,color:"#6E8576",fontWeight:700}}>
                 ✏️
               </button>
             )}
@@ -209,14 +209,14 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
             {!consumed && (
               <button
                 onClick={e=>{ e.stopPropagation(); setSwapOpen(s=>!s); setOpen(false); if(!swapOpen) setMaxPrep(null); }}
-                style={{flexShrink:0,padding:"5px 10px",borderRadius:7,border:`1.5px solid ${swapOpen?"#7c3aed":"#e2e8f0"}`,background:swapOpen?"#7c3aed":"#f8fafc",color:swapOpen?"#fff":"#64748b",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
+                style={{flexShrink:0,padding:"5px 10px",borderRadius:7,border:`1.5px solid ${swapOpen?"#7c3aed":"#E7EDE2"}`,background:swapOpen?"#7c3aed":"#F5F8F1",color:swapOpen?"#fff":"#6E8576",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
                 {swapOpen?"✕":"⇄ Cambia"}
               </button>
             )}
           </div>
         </div>
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          <MacroBadge label="P" value={m.p} color="#2563eb"/>
+          <MacroBadge label="P" value={m.p} color="#1FA2D8"/>
           <MacroBadge label="C" value={m.c} color="#d97706"/>
           <MacroBadge label="G" value={m.g} color="#16a34a"/>
         </div>
@@ -231,7 +231,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
 
         {/* Porzione pianificata (espansa) — se non consumato o senza dati reali */}
         {open && !loggedIngs && (quantitaOverride || meal.porzioni?.[personaKey]) && (
-          <div style={{marginTop:10,background:color+"08",border:`1px solid ${color}20`,borderRadius:8,padding:"8px 12px",fontSize:12,color:"#334155",lineHeight:1.6}}>
+          <div style={{marginTop:10,background:color+"08",border:`1px solid ${color}20`,borderRadius:8,padding:"8px 12px",fontSize:12,color:"#2F5547",lineHeight:1.6}}>
             <span style={{fontWeight:700,color,fontSize:10,textTransform:"uppercase",letterSpacing:0.8}}>
               📏 Porzione{quantitaOverride ? " personalizzata" : ""} · </span>
             {quantitaOverride ? formattaPorzione(quantitaOverride) : meal.porzioni[personaKey]}
@@ -287,7 +287,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
 
       {/* ── Drawer sostituzione ── */}
       {swapOpen && (
-        <div style={{borderTop:"1px solid #e2e8f0",background:"#fafafa",padding:"12px 14px"}}>
+        <div style={{borderTop:"1px solid #E7EDE2",background:"#fafafa",padding:"12px 14px"}}>
           {/* Come verrà interpretato questo swap */}
           {(()=>{
             const tipo = classifySwap(dayIdx, mealKey);
@@ -305,7 +305,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
           })()}
           {/* Selettore tempo + accesso al ricettario completo */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,gap:8}}>
-            <div style={{fontSize:10,fontWeight:800,color:"#1e293b",textTransform:"uppercase",letterSpacing:0.8}}>
+            <div style={{fontSize:10,fontWeight:800,color:"#13231A",textTransform:"uppercase",letterSpacing:0.8}}>
               ⏱ Quanto tempo hai?
             </div>
             <button onClick={()=>setRicettarioOpen(true)}
@@ -317,7 +317,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
           <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
             {PREP_SLOTS.map(s=>(
               <button key={s.label} onClick={()=>setPrepSlot(prepSlot===s?null:s)}
-                style={{padding:"6px 12px",borderRadius:8,border:`2px solid ${prepSlot===s?s.color:"#e2e8f0"}`,background:prepSlot===s?s.bg:"#fff",color:prepSlot===s?s.color:"#64748b",fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.15s"}}>
+                style={{padding:"6px 12px",borderRadius:8,border:`2px solid ${prepSlot===s?s.color:"#E7EDE2"}`,background:prepSlot===s?s.bg:"#fff",color:prepSlot===s?s.color:"#6E8576",fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.15s"}}>
                 {s.label}
               </button>
             ))}
@@ -325,18 +325,18 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
 
           {/* Risultati */}
           {prepSlot === null ? (
-            <div style={{textAlign:"center",padding:"12px 0",color:"#94a3b8",fontSize:12}}>
+            <div style={{textAlign:"center",padding:"12px 0",color:"#9DB1A2",fontSize:12}}>
               Seleziona il tempo disponibile per vedere le alternative,<br/>
               oppure apri il <strong>📖 Ricettario</strong> per scegliere tra tutte le ricette
             </div>
           ) : alternatives.length === 0 ? (
-            <div style={{textAlign:"center",padding:"12px 0",color:"#94a3b8",fontSize:12}}>
+            <div style={{textAlign:"center",padding:"12px 0",color:"#9DB1A2",fontSize:12}}>
               Nessuna ricetta nella fascia {prepSlot.label} 😔<br/>
               <span style={{fontSize:11}}>Prova un'altra fascia di tempo, oppure apri il 📖 Ricettario per vedere tutte le ricette</span>
             </div>
           ) : (
             <div>
-              <div style={{fontSize:10,color:"#64748b",marginBottom:8,fontWeight:600}}>
+              <div style={{fontSize:10,color:"#6E8576",marginBottom:8,fontWeight:600}}>
                 {alternatives.length} alternative trovate · ordinate per calorie simili
               </div>
               {alternatives.map(alt=>{
@@ -344,17 +344,17 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
                 const altPrep = alt.prep || 0;
                 const altPrepColor = altPrep<=15?"#16a34a":altPrep<=30?"#d97706":"#dc2626";
                 const kcalDiff = altM?.kcal - m.kcal;
-                const diffColor = Math.abs(kcalDiff)<=50?"#16a34a":Math.abs(kcalDiff)<=100?"#d97706":"#94a3b8";
+                const diffColor = Math.abs(kcalDiff)<=50?"#16a34a":Math.abs(kcalDiff)<=100?"#d97706":"#9DB1A2";
                 return (
                   <div key={alt.id} onClick={()=>{ onSwap(alt); setSwapOpen(false); setMaxPrep(null); }}
-                    style={{background:"#fff",borderRadius:10,border:"1.5px solid #e2e8f0",padding:"10px 12px",marginBottom:7,cursor:"pointer",transition:"border-color 0.15s",display:"flex",alignItems:"center",gap:10}}
+                    style={{background:"#fff",borderRadius:10,border:"1.5px solid #E7EDE2",padding:"10px 12px",marginBottom:7,cursor:"pointer",transition:"border-color 0.15s",display:"flex",alignItems:"center",gap:10}}
                     onMouseEnter={e=>e.currentTarget.style.borderColor="#7c3aed80"}
-                    onMouseLeave={e=>e.currentTarget.style.borderColor="#e2e8f0"}>
+                    onMouseLeave={e=>e.currentTarget.style.borderColor="#E7EDE2"}>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12,fontWeight:700,color:"#1e293b",lineHeight:1.3,marginBottom:5}}>{alt.nome}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:"#13231A",lineHeight:1.3,marginBottom:5}}>{alt.nome}</div>
                       <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
                         <span style={{fontSize:10,fontWeight:700,color:altPrepColor,background:altPrepColor+"18",borderRadius:5,padding:"1px 6px"}}>⏱ {altPrep}'</span>
-                        <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#1e293b"}}>{altM?.kcal} kcal</span>
+                        <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{altM?.kcal} kcal</span>
                         <span style={{fontSize:10,fontWeight:700,color:diffColor}}>
                           {kcalDiff===0?"=":`${kcalDiff>0?"+":""}${kcalDiff} kcal`}
                         </span>
@@ -413,7 +413,7 @@ export function TotaleBar({ dayData, personaKey, color, target, macroPerPasto, d
       <div style={{fontSize:10,fontWeight:700,color,marginBottom:8,letterSpacing:1,textTransform:"uppercase"}}>Totale giornaliero</div>
       {[{l:"Kcal",v:tot.kcal,m:t.kcal},{l:"Proteine",v:tot.p,m:t.p},{l:"Carbo",v:tot.c,m:t.c},{l:"Grassi",v:tot.g,m:t.g}].map(({l,v,m})=>(
         <div key={l} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-          <span style={{width:58,fontSize:10,color:"#64748b",fontFamily:"monospace"}}>{l}</span>
+          <span style={{width:58,fontSize:10,color:"#6E8576",fontFamily:"monospace"}}>{l}</span>
           <ProgressBar value={v} max={m} color={color}/>
           <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,minWidth:68,textAlign:"right",color:v>m?"#ef4444":color}}>{v}/{m}</span>
         </div>

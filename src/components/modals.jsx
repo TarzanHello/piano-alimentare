@@ -222,33 +222,33 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
       <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:480,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px #0000003a"}}>
 
         {/* ── Header ── */}
-        <div style={{padding:"16px 18px 12px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div style={{padding:"16px 18px 12px",borderBottom:"1px solid #EFF3EC",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
           <div>
-            <div style={{fontSize:11,color:"#94a3b8",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>
+            <div style={{fontSize:11,color:"#9DB1A2",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>
               ✏️ Modifica ricetta
             </div>
             <input
               value={nome}
               onChange={e=>setNome(e.target.value)}
-              style={{fontSize:15,fontWeight:800,color:"#1e293b",border:"none",outline:"none",padding:0,background:"transparent",width:"100%",minWidth:0}}
+              style={{fontSize:15,fontWeight:800,color:"#13231A",border:"none",outline:"none",padding:0,background:"transparent",width:"100%",minWidth:0}}
               placeholder="Nome ricetta…"
             />
           </div>
           <button onClick={onClose}
-            style={{width:32,height:32,borderRadius:"50%",border:"none",background:"#f1f5f9",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            style={{width:32,height:32,borderRadius:"50%",border:"none",background:"#EFF3EC",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             ✕
           </button>
         </div>
 
         {/* ── Macro live ── */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,padding:"10px 18px",background:"#f8fafc",flexShrink:0,borderBottom:"1px solid #f1f5f9"}}>
-          {[["kcal","#1e293b"],["P","#2563eb"],["C","#d97706"],["G","#16a34a"]].map(([lbl,col])=>(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,padding:"10px 18px",background:"#F5F8F1",flexShrink:0,borderBottom:"1px solid #EFF3EC"}}>
+          {[["kcal","#13231A"],["P","#1FA2D8"],["C","#d97706"],["G","#16a34a"]].map(([lbl,col])=>(
             <div key={lbl} style={{textAlign:"center"}}>
-              <div style={{fontSize:8,color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{lbl}</div>
+              <div style={{fontSize:8,color:"#9DB1A2",fontWeight:700,textTransform:"uppercase"}}>{lbl}</div>
               <div style={{fontSize:16,fontWeight:800,color:col,fontFamily:"monospace",lineHeight:1.2}}>
                 {lbl==="kcal"?macro.kcal:lbl==="P"?macro.p:lbl==="C"?macro.c:macro.g}
               </div>
-              {lbl!=="kcal"&&<div style={{fontSize:8,color:"#94a3b8"}}>g</div>}
+              {lbl!=="kcal"&&<div style={{fontSize:8,color:"#9DB1A2"}}>g</div>}
             </div>
           ))}
         </div>
@@ -278,15 +278,15 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
         <div style={{flex:1,overflowY:"auto",padding:"10px 18px"}}>
           {Object.entries(grouped).map(([cat, ids]) => (
             <div key={cat} style={{marginBottom:14}}>
-              <div style={{fontSize:9,fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>{cat}</div>
+              <div style={{fontSize:9,fontWeight:800,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>{cat}</div>
               {ids.map(ingId => {
                 const q = ings[ingId];
                 return (
-                  <div key={ingId} style={{borderBottom:"1px solid #f1f5f9",paddingBottom:replacing===ingId?8:0}}>
+                  <div key={ingId} style={{borderBottom:"1px solid #EFF3EC",paddingBottom:replacing===ingId?8:0}}>
                     {/* Riga principale */}
                     <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0"}}>
                       {/* Nome */}
-                      <div style={{flex:1,fontSize:12,fontWeight:600,color:replacing===ingId?"#7c3aed":"#334155",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      <div style={{flex:1,fontSize:12,fontWeight:600,color:replacing===ingId?"#7c3aed":"#2F5547",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                         {ingLabel(ingId)}
                       </div>
                       {/* Quantità */}
@@ -294,18 +294,18 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
                         type="number" min="0" step={q.unit==="pz"||q.unit==="cucchiaio"||q.unit==="cucchiaino"?0.5:5}
                         value={q.valore}
                         onChange={e=>updateQty(ingId,"valore",e.target.value)}
-                        style={{width:52,padding:"5px 6px",border:"1.5px solid #e2e8f0",borderRadius:7,fontSize:13,fontWeight:700,fontFamily:"monospace",textAlign:"right",outline:"none"}}
+                        style={{width:52,padding:"5px 6px",border:"1.5px solid #E7EDE2",borderRadius:7,fontSize:13,fontWeight:700,fontFamily:"monospace",textAlign:"right",outline:"none"}}
                       />
                       {/* Unità */}
                       <select value={q.unit} onChange={e=>updateQty(ingId,"unit",e.target.value)}
-                        style={{padding:"5px 2px",border:"1.5px solid #e2e8f0",borderRadius:7,fontSize:11,fontWeight:600,outline:"none",background:"#fff",color:"#475569",maxWidth:72}}>
+                        style={{padding:"5px 2px",border:"1.5px solid #E7EDE2",borderRadius:7,fontSize:11,fontWeight:600,outline:"none",background:"#fff",color:"#4A6152",maxWidth:72}}>
                         {UNIT_OPTIONS.map(u=><option key={u} value={u}>{u}</option>)}
                       </select>
                       {/* Sostituisci */}
                       <button
                         onClick={()=>{ setReplacing(replacing===ingId?null:ingId); setReplSearch(""); }}
                         title="Sostituisci con altro ingrediente (stesse kcal)"
-                        style={{width:28,height:28,borderRadius:7,border:`1.5px solid ${replacing===ingId?"#7c3aed":"#e2e8f0"}`,background:replacing===ingId?"#f5f3ff":"#f8fafc",color:replacing===ingId?"#7c3aed":"#64748b",fontWeight:800,fontSize:12,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>
+                        style={{width:28,height:28,borderRadius:7,border:`1.5px solid ${replacing===ingId?"#7c3aed":"#E7EDE2"}`,background:replacing===ingId?"#f5f3ff":"#F5F8F1",color:replacing===ingId?"#7c3aed":"#6E8576",fontWeight:800,fontSize:12,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>
                         ⇄
                       </button>
                       {/* Rimuovi */}
@@ -348,8 +348,8 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
                                   onMouseEnter={e=>e.currentTarget.style.background="#faf5ff"}
                                   onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
                                   <div>
-                                    <div style={{fontSize:12,fontWeight:700,color:"#334155"}}>{ing.nome}</div>
-                                    <div style={{fontSize:9,color:"#94a3b8"}}>{ing.cat}</div>
+                                    <div style={{fontSize:12,fontWeight:700,color:"#2F5547"}}>{ing.nome}</div>
+                                    <div style={{fontSize:9,color:"#9DB1A2"}}>{ing.cat}</div>
                                   </div>
                                   <div style={{textAlign:"right",flexShrink:0}}>
                                     <div style={{fontSize:11,fontWeight:800,color:"#7c3aed",fontFamily:"monospace"}}>{qPreview}</div>
@@ -361,7 +361,7 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
                           </div>
                         )}
                         {replSearch.trim()&&replResults.length===0&&(
-                          <div style={{padding:"8px 10px",fontSize:11,color:"#94a3b8",textAlign:"center",marginTop:4}}>Nessun ingrediente trovato</div>
+                          <div style={{padding:"8px 10px",fontSize:11,color:"#9DB1A2",textAlign:"center",marginTop:4}}>Nessun ingrediente trovato</div>
                         )}
                       </div>
                     )}
@@ -375,7 +375,7 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
           <div style={{marginTop:8,marginBottom:6}}>
             {!showSearch ? (
               <button onClick={()=>setShowSearch(true)}
-                style={{width:"100%",padding:"9px",borderRadius:9,border:"1.5px dashed #cbd5e1",background:"#f8fafc",color:"#64748b",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                style={{width:"100%",padding:"9px",borderRadius:9,border:"1.5px dashed #C2D0C6",background:"#F5F8F1",color:"#6E8576",fontWeight:700,fontSize:12,cursor:"pointer"}}>
                 + Aggiungi ingrediente
               </button>
             ) : (
@@ -386,26 +386,26 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
                     value={search}
                     onChange={e=>setSearch(e.target.value)}
                     placeholder="Cerca ingrediente…"
-                    style={{width:"100%",padding:"9px 12px",border:"1.5px solid #2563eb",borderRadius:9,fontSize:13,outline:"none",boxSizing:"border-box"}}
+                    style={{width:"100%",padding:"9px 12px",border:"1.5px solid #18A957",borderRadius:9,fontSize:13,outline:"none",boxSizing:"border-box"}}
                   />
                   <button onClick={()=>{setShowSearch(false);setSearch("");}}
-                    style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#94a3b8",fontSize:16}}>✕</button>
+                    style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#9DB1A2",fontSize:16}}>✕</button>
                 </div>
                 {searchResults.length>0 && (
-                  <div style={{border:"1px solid #e2e8f0",borderRadius:9,overflow:"hidden"}}>
+                  <div style={{border:"1px solid #E7EDE2",borderRadius:9,overflow:"hidden"}}>
                     {searchResults.map(ing=>(
                       <div key={ing.id} onClick={()=>addIng(ing.id)}
-                        style={{padding:"9px 12px",cursor:"pointer",fontSize:12,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f1f5f9",background:"#fff"}}
-                        onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                        style={{padding:"9px 12px",cursor:"pointer",fontSize:12,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #EFF3EC",background:"#fff"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="#F5F8F1"}
                         onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-                        <span style={{fontWeight:600,color:"#334155"}}>{ing.nome}</span>
-                        <span style={{fontSize:9,color:"#94a3b8"}}>{ing.cat}</span>
+                        <span style={{fontWeight:600,color:"#2F5547"}}>{ing.nome}</span>
+                        <span style={{fontSize:9,color:"#9DB1A2"}}>{ing.cat}</span>
                       </div>
                     ))}
                   </div>
                 )}
                 {search.trim()&&searchResults.length===0&&(
-                  <div style={{padding:"10px 12px",fontSize:12,color:"#94a3b8",textAlign:"center"}}>
+                  <div style={{padding:"10px 12px",fontSize:12,color:"#9DB1A2",textAlign:"center"}}>
                     Nessun ingrediente trovato
                   </div>
                 )}
@@ -415,13 +415,13 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
         </div>
 
         {/* ── Footer: salva ── */}
-        <div style={{padding:"12px 18px 20px",borderTop:"1px solid #f1f5f9",flexShrink:0,display:"flex",gap:10}}>
+        <div style={{padding:"12px 18px 20px",borderTop:"1px solid #EFF3EC",flexShrink:0,display:"flex",gap:10}}>
           <button onClick={onClose}
-            style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #e2e8f0",background:"#f8fafc",color:"#64748b",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+            style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #E7EDE2",background:"#F5F8F1",color:"#6E8576",fontWeight:700,fontSize:13,cursor:"pointer"}}>
             Annulla
           </button>
           <button onClick={handleSave}
-            style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#2563eb,#1d4ed8)",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",boxShadow:"0 4px 14px #2563eb33"}}>
+            style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#18A957,#0F8F47)",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",boxShadow:"0 4px 14px #18A95733"}}>
             ✓ Salva ricetta personalizzata
           </button>
         </div>
@@ -489,26 +489,26 @@ export function ConsumedEditorModal({ meal, mealKey, personaKey, initialIngs, on
       <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:480,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px #0000003a"}}>
 
         {/* Header */}
-        <div style={{padding:"16px 18px 12px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div style={{padding:"16px 18px 12px",borderBottom:"1px solid #EFF3EC",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
           <div>
             <div style={{fontSize:11,color:"#16a34a",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>
               ✅ Cosa hai mangiato davvero?
             </div>
-            <div style={{fontSize:14,fontWeight:800,color:"#1e293b"}}>{meal.nome}</div>
+            <div style={{fontSize:14,fontWeight:800,color:"#13231A"}}>{meal.nome}</div>
           </div>
           <button onClick={onClose}
-            style={{width:32,height:32,borderRadius:"50%",border:"none",background:"#f1f5f9",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
+            style={{width:32,height:32,borderRadius:"50%",border:"none",background:"#EFF3EC",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
         </div>
 
         {/* Macro live */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,padding:"10px 18px",background:"#f0fdf4",flexShrink:0,borderBottom:"1px solid #dcfce7"}}>
-          {[["kcal","#1e293b"],["P","#2563eb"],["C","#d97706"],["G","#16a34a"]].map(([lbl,col])=>(
+          {[["kcal","#13231A"],["P","#1FA2D8"],["C","#d97706"],["G","#16a34a"]].map(([lbl,col])=>(
             <div key={lbl} style={{textAlign:"center"}}>
-              <div style={{fontSize:8,color:"#94a3b8",fontWeight:700,textTransform:"uppercase"}}>{lbl}</div>
+              <div style={{fontSize:8,color:"#9DB1A2",fontWeight:700,textTransform:"uppercase"}}>{lbl}</div>
               <div style={{fontSize:16,fontWeight:800,color:col,fontFamily:"monospace",lineHeight:1.2}}>
                 {lbl==="kcal"?macro.kcal:lbl==="P"?macro.p:lbl==="C"?macro.c:macro.g}
               </div>
-              {lbl!=="kcal"&&<div style={{fontSize:8,color:"#94a3b8"}}>g</div>}
+              {lbl!=="kcal"&&<div style={{fontSize:8,color:"#9DB1A2"}}>g</div>}
             </div>
           ))}
         </div>
@@ -516,27 +516,27 @@ export function ConsumedEditorModal({ meal, mealKey, personaKey, initialIngs, on
         {/* Lista ingredienti */}
         <div style={{flex:1,overflowY:"auto",padding:"10px 18px"}}>
           {Object.keys(ings).length === 0 && (
-            <div style={{textAlign:"center",padding:"20px 0",color:"#94a3b8",fontSize:12}}>
+            <div style={{textAlign:"center",padding:"20px 0",color:"#9DB1A2",fontSize:12}}>
               Nessun ingrediente — aggiungine uno qui sotto
             </div>
           )}
           {Object.entries(grouped).map(([cat, ids]) => (
             <div key={cat} style={{marginBottom:14}}>
-              <div style={{fontSize:9,fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>{cat}</div>
+              <div style={{fontSize:9,fontWeight:800,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.5,marginBottom:6}}>{cat}</div>
               {ids.map(ingId => {
                 const q = ings[ingId];
                 return (
-                  <div key={ingId} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #f1f5f9"}}>
-                    <div style={{flex:1,fontSize:13,fontWeight:600,color:"#1e293b",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                  <div key={ingId} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #EFF3EC"}}>
+                    <div style={{flex:1,fontSize:13,fontWeight:600,color:"#13231A",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       {ING_MAP[ingId]?.nome || ingId}
                     </div>
                     <input type="number" min="0" step="1"
                       value={q.valore}
                       onChange={e=>updateQty(ingId,"valore",e.target.value)}
-                      style={{width:60,padding:"4px 6px",border:"1.5px solid #e2e8f0",borderRadius:7,fontSize:13,fontWeight:700,textAlign:"center",outline:"none",fontFamily:"monospace"}}
+                      style={{width:60,padding:"4px 6px",border:"1.5px solid #E7EDE2",borderRadius:7,fontSize:13,fontWeight:700,textAlign:"center",outline:"none",fontFamily:"monospace"}}
                     />
                     <select value={q.unit} onChange={e=>updateQty(ingId,"unit",e.target.value)}
-                      style={{padding:"4px 2px",border:"1.5px solid #e2e8f0",borderRadius:7,fontSize:11,background:"#f8fafc",outline:"none",color:"#334155"}}>
+                      style={{padding:"4px 2px",border:"1.5px solid #E7EDE2",borderRadius:7,fontSize:11,background:"#F5F8F1",outline:"none",color:"#2F5547"}}>
                       {UNIT_OPTIONS.map(u=><option key={u} value={u}>{u}</option>)}
                     </select>
                     <button onClick={()=>removeIng(ingId)}
@@ -553,7 +553,7 @@ export function ConsumedEditorModal({ meal, mealKey, personaKey, initialIngs, on
           <div style={{marginTop:8,marginBottom:6}}>
             {!showSearch ? (
               <button onClick={()=>setShowSearch(true)}
-                style={{width:"100%",padding:"9px",borderRadius:9,border:"1.5px dashed #cbd5e1",background:"#f8fafc",color:"#64748b",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                style={{width:"100%",padding:"9px",borderRadius:9,border:"1.5px dashed #C2D0C6",background:"#F5F8F1",color:"#6E8576",fontWeight:700,fontSize:12,cursor:"pointer"}}>
                 + Aggiungi ingrediente
               </button>
             ) : (
@@ -563,23 +563,23 @@ export function ConsumedEditorModal({ meal, mealKey, personaKey, initialIngs, on
                     placeholder="Cerca ingrediente…"
                     style={{width:"100%",padding:"9px 12px",border:"1.5px solid #16a34a",borderRadius:9,fontSize:13,outline:"none",boxSizing:"border-box"}}/>
                   <button onClick={()=>{setShowSearch(false);setSearch("");}}
-                    style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#94a3b8",fontSize:16}}>✕</button>
+                    style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#9DB1A2",fontSize:16}}>✕</button>
                 </div>
                 {searchResults.length>0 && (
-                  <div style={{border:"1px solid #e2e8f0",borderRadius:9,overflow:"hidden"}}>
+                  <div style={{border:"1px solid #E7EDE2",borderRadius:9,overflow:"hidden"}}>
                     {searchResults.map(ing=>(
                       <div key={ing.id} onClick={()=>addIng(ing.id)}
-                        style={{padding:"9px 12px",cursor:"pointer",fontSize:12,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f1f5f9",background:"#fff"}}
-                        onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                        style={{padding:"9px 12px",cursor:"pointer",fontSize:12,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #EFF3EC",background:"#fff"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="#F5F8F1"}
                         onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-                        <span style={{fontWeight:600,color:"#334155"}}>{ing.nome}</span>
-                        <span style={{fontSize:9,color:"#94a3b8"}}>{ing.cat}</span>
+                        <span style={{fontWeight:600,color:"#2F5547"}}>{ing.nome}</span>
+                        <span style={{fontSize:9,color:"#9DB1A2"}}>{ing.cat}</span>
                       </div>
                     ))}
                   </div>
                 )}
                 {search.trim()&&searchResults.length===0&&(
-                  <div style={{padding:"10px 12px",fontSize:12,color:"#94a3b8",textAlign:"center"}}>Nessun ingrediente trovato</div>
+                  <div style={{padding:"10px 12px",fontSize:12,color:"#9DB1A2",textAlign:"center"}}>Nessun ingrediente trovato</div>
                 )}
               </div>
             )}
@@ -587,9 +587,9 @@ export function ConsumedEditorModal({ meal, mealKey, personaKey, initialIngs, on
         </div>
 
         {/* Footer */}
-        <div style={{padding:"12px 18px 20px",borderTop:"1px solid #f1f5f9",flexShrink:0,display:"flex",gap:10}}>
+        <div style={{padding:"12px 18px 20px",borderTop:"1px solid #EFF3EC",flexShrink:0,display:"flex",gap:10}}>
           <button onClick={onClose}
-            style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #e2e8f0",background:"#f8fafc",color:"#64748b",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+            style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #E7EDE2",background:"#F5F8F1",color:"#6E8576",fontWeight:700,fontSize:13,cursor:"pointer"}}>
             Annulla
           </button>
           <button onClick={handleSave}
@@ -622,22 +622,22 @@ const CAT_META = {
 function RicettarioCard({ r, personaKey, onPick, badge }) {
   const m = r[personaKey] || r.uomo || { kcal:0, p:0, c:0, g:0 };
   const prep = r.prep;
-  const prepColor = prep==null ? "#94a3b8" : prep <= 15 ? "#16a34a" : prep <= 30 ? "#d97706" : "#dc2626";
-  const prepBg    = prep==null ? "#f8fafc"  : prep <= 15 ? "#f0fdf4" : prep <= 30 ? "#fffbeb" : "#fef2f2";
+  const prepColor = prep==null ? "#9DB1A2" : prep <= 15 ? "#16a34a" : prep <= 30 ? "#d97706" : "#dc2626";
+  const prepBg    = prep==null ? "#F5F8F1"  : prep <= 15 ? "#f0fdf4" : prep <= 30 ? "#fffbeb" : "#fef2f2";
   const prepLabel = prep==null ? "—" : prep >= 60 ? `${prep/60}h` : `${prep}'`;
   return (
     <div onClick={()=>onPick(r)}
-      style={{background:"#fff",borderRadius:10,border:"1.5px solid #e2e8f0",padding:"10px 12px",marginBottom:7,cursor:"pointer",transition:"border-color 0.15s",display:"flex",alignItems:"center",gap:10}}
+      style={{background:"#fff",borderRadius:10,border:"1.5px solid #E7EDE2",padding:"10px 12px",marginBottom:7,cursor:"pointer",transition:"border-color 0.15s",display:"flex",alignItems:"center",gap:10}}
       onMouseEnter={e=>e.currentTarget.style.borderColor="#7c3aed80"}
-      onMouseLeave={e=>e.currentTarget.style.borderColor="#e2e8f0"}>
+      onMouseLeave={e=>e.currentTarget.style.borderColor="#E7EDE2"}>
       <div style={{flexShrink:0,width:42,height:42,borderRadius:9,background:prepBg,border:`1.5px solid ${prepColor}30`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
         <span style={{fontSize:12,fontWeight:800,color:prepColor,lineHeight:1.1}}>⏱{prepLabel}</span>
       </div>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:12,fontWeight:700,color:"#1e293b",lineHeight:1.3,marginBottom:5}}>{r.nome}</div>
+        <div style={{fontSize:12,fontWeight:700,color:"#13231A",lineHeight:1.3,marginBottom:5}}>{r.nome}</div>
         <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#1e293b"}}>{m.kcal} kcal</span>
-          <span style={{fontSize:10,color:"#94a3b8"}}>P{m.p} C{m.c} G{m.g}</span>
+          <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{m.kcal} kcal</span>
+          <span style={{fontSize:10,color:"#9DB1A2"}}>P{m.p} C{m.c} G{m.g}</span>
           {badge}
         </div>
       </div>
@@ -688,27 +688,27 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
       <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:480,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px #0000003a"}}>
 
         {/* ── Header ── */}
-        <div style={{padding:"16px 18px 12px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div style={{padding:"16px 18px 12px",borderBottom:"1px solid #EFF3EC",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
           <div>
-            <div style={{fontSize:11,color:"#94a3b8",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>
+            <div style={{fontSize:11,color:"#9DB1A2",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>
               📖 Ricettario
             </div>
-            <div style={{fontSize:15,fontWeight:800,color:"#1e293b"}}>{meta.icon} {meta.label}</div>
+            <div style={{fontSize:15,fontWeight:800,color:"#13231A"}}>{meta.icon} {meta.label}</div>
           </div>
           <button onClick={onClose}
-            style={{width:32,height:32,borderRadius:"50%",border:"none",background:"#f1f5f9",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            style={{width:32,height:32,borderRadius:"50%",border:"none",background:"#EFF3EC",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             ✕
           </button>
         </div>
 
         {/* ── Corpo scorrevole ── */}
         <div style={{flex:1,overflowY:"auto",padding:"12px 18px 20px"}}>
-          <div style={{fontSize:10,color:"#94a3b8",marginBottom:8,fontWeight:600}}>
+          <div style={{fontSize:10,color:"#9DB1A2",marginBottom:8,fontWeight:600}}>
             ⏱ il tempo di preparazione è indicato su ogni ricetta
           </div>
 
           {!cloudStatus?.loggedIn && (
-            <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:11,color:"#64748b",lineHeight:1.5}}>
+            <div style={{background:"#F5F8F1",border:"1px solid #E7EDE2",borderRadius:8,padding:"8px 12px",marginBottom:12,fontSize:11,color:"#6E8576",lineHeight:1.5}}>
               ☁️ Accedi per vedere anche le tue ricette personalizzate e quelle della famiglia.
             </div>
           )}
@@ -717,30 +717,30 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
           {/* Ricette mie */}
           {cloudStatus?.loggedIn && (
             <>
-              <div style={{fontSize:10,fontWeight:800,color:"#1e293b",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
+              <div style={{fontSize:10,fontWeight:800,color:"#13231A",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
                 ✏️ Le mie ricette
               </div>
               {loading ? (
-                <div style={{fontSize:11,color:"#94a3b8",padding:"6px 0 12px"}}>Caricamento…</div>
+                <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>Caricamento…</div>
               ) : mie.length === 0 ? (
-                <div style={{fontSize:11,color:"#94a3b8",padding:"6px 0 12px"}}>Nessuna ricetta tua in questa categoria.</div>
+                <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>Nessuna ricetta tua in questa categoria.</div>
               ) : (
                 <div style={{marginBottom:14}}>
                   {mie.map(r => (
                     <RicettarioCard key={r.id} r={r} personaKey={personaKey} onPick={x=>handlePick(x,true)}
-                      badge={<span style={{fontSize:9,background:"#dbeafe",color:"#1d4ed8",borderRadius:4,padding:"1px 5px",fontWeight:700}}>mia</span>}/>
+                      badge={<span style={{fontSize:9,background:"#D6EFDD",color:"#0F8F47",borderRadius:4,padding:"1px 5px",fontWeight:700}}>mia</span>}/>
                   ))}
                 </div>
               )}
 
               {/* Ricette di famiglia */}
-              <div style={{fontSize:10,fontWeight:800,color:"#1e293b",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
+              <div style={{fontSize:10,fontWeight:800,color:"#13231A",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
                 👨‍👩‍👧 Ricette di famiglia
               </div>
               {loading ? (
-                <div style={{fontSize:11,color:"#94a3b8",padding:"6px 0 12px"}}>Caricamento…</div>
+                <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>Caricamento…</div>
               ) : diFamiglia.length === 0 ? (
-                <div style={{fontSize:11,color:"#94a3b8",padding:"6px 0 12px"}}>Nessuna ricetta condivisa in questa categoria.</div>
+                <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>Nessuna ricetta condivisa in questa categoria.</div>
               ) : (
                 <div style={{marginBottom:14}}>
                   {diFamiglia.map(r => (
@@ -753,7 +753,7 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
           )}
 
           {/* Catalogo */}
-          <div style={{fontSize:10,fontWeight:800,color:"#1e293b",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
+          <div style={{fontSize:10,fontWeight:800,color:"#13231A",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
             {meta.icon} Catalogo {meta.label.toLowerCase()} · {catalogo.length} ricette
           </div>
           {catalogo.map(r => (

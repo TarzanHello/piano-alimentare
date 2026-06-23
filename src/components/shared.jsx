@@ -41,7 +41,7 @@ export function MacroBadge({ label, value, color }) {
 
 export function ProgressBar({ value, max, color }) {
   return (
-    <div style={{background:"#f1f5f9",borderRadius:99,height:7,overflow:"hidden",flex:1}}>
+    <div style={{background:"#EFF3EC",borderRadius:99,height:7,overflow:"hidden",flex:1}}>
       <div style={{width:`${Math.min(100,Math.round(value/max*100))}%`,height:"100%",background:value>max?"#ef4444":color,borderRadius:99,transition:"width 0.5s"}}/>
     </div>
   );
@@ -58,12 +58,12 @@ export function ProgressBar({ value, max, color }) {
 // Stato vuoto curato e riusabile, con call-to-action opzionale
 export function EmptyState({ emoji, title, text, ctaLabel, onCta }) {
   return (
-    <div style={{textAlign:"center",padding:"44px 24px",background:"#fff",border:"1.5px dashed #e2e8f0",borderRadius:16}}>
+    <div style={{textAlign:"center",padding:"44px 24px",background:"#fff",border:"1.5px dashed #E7EDE2",borderRadius:16}}>
       <div style={{fontSize:40,marginBottom:10}}>{emoji}</div>
-      <div style={{fontSize:15,fontWeight:800,color:"#1e293b",marginBottom:4}}>{title}</div>
-      <div style={{fontSize:12,color:"#94a3b8",lineHeight:1.5,maxWidth:300,margin:"0 auto"}}>{text}</div>
+      <div style={{fontSize:15,fontWeight:800,color:"#13231A",marginBottom:4}}>{title}</div>
+      <div style={{fontSize:12,color:"#9DB1A2",lineHeight:1.5,maxWidth:300,margin:"0 auto"}}>{text}</div>
       {ctaLabel && onCta && (
-        <button onClick={onCta} style={{marginTop:14,padding:"9px 18px",borderRadius:10,border:"none",background:"#2563eb",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer"}}>{ctaLabel}</button>
+        <button onClick={onCta} style={{marginTop:14,padding:"9px 18px",borderRadius:10,border:"none",background:"#18A957",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer"}}>{ctaLabel}</button>
       )}
     </div>
   );

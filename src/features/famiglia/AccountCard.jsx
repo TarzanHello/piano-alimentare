@@ -103,10 +103,10 @@ export function AccountCard({ myPersona, onGoUtente }) {
   };
 
   const S = {
-    card:  {background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:16,padding:"16px",marginBottom:14,boxShadow:"0 2px 12px #00000008"},
-    h:     {fontSize:10,fontWeight:800,color:"#94a3b8",letterSpacing:0.8,textTransform:"uppercase",marginBottom:10},
+    card:  {background:"#fff",border:"1.5px solid #E7EDE2",borderRadius:16,padding:"16px",marginBottom:14,boxShadow:"0 2px 12px #00000008"},
+    h:     {fontSize:10,fontWeight:800,color:"#9DB1A2",letterSpacing:0.8,textTransform:"uppercase",marginBottom:10},
     btn:   (bg)=>({padding:"10px 16px",borderRadius:10,border:"none",background:bg,color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer"}),
-    input: {flex:1,padding:"10px 12px",borderRadius:10,border:"1.5px solid #e2e8f0",fontSize:13,minWidth:0},
+    input: {flex:1,padding:"10px 12px",borderRadius:10,border:"1.5px solid #E7EDE2",fontSize:13,minWidth:0},
   };
 
   // Mappa user_id → ordine di entrata (posizione nella lista ordinata per created_at)
@@ -119,22 +119,22 @@ export function AccountCard({ myPersona, onGoUtente }) {
 
       {!session ? (
         <>
-          <div style={{fontSize:12,color:"#64748b",lineHeight:1.5,marginBottom:10}}>
+          <div style={{fontSize:12,color:"#6E8576",lineHeight:1.5,marginBottom:10}}>
             Per creare una famiglia o entrare con un codice serve prima l'accesso con Google, dalla pagina Utente.
           </div>
-          <button onClick={onGoUtente} style={S.btn("#1e293b")}>👤 Vai alla pagina Utente</button>
+          <button onClick={onGoUtente} style={S.btn("#13231A")}>👤 Vai alla pagina Utente</button>
         </>
       ) : !famiglia ? (
         <>
-          <div style={{fontSize:12,color:"#475569",marginBottom:12}}>
+          <div style={{fontSize:12,color:"#4A6152",marginBottom:12}}>
             Connesso come <strong>{session.user.email}</strong>
           </div>
-          <div style={{fontSize:12,fontWeight:700,color:"#1e293b",marginBottom:6}}>Crea la tua famiglia</div>
+          <div style={{fontSize:12,fontWeight:700,color:"#13231A",marginBottom:6}}>Crea la tua famiglia</div>
           <div style={{display:"flex",gap:8,marginBottom:14}}>
             <input style={S.input} placeholder="Nome (es. Famiglia Rossi)" value={nomeFam} onChange={e=>setNomeFam(e.target.value)}/>
-            <button disabled={busy||!nomeFam.trim()} onClick={()=>azione(()=>createFamily(nomeFam))} style={S.btn("#2563eb")}>Crea</button>
+            <button disabled={busy||!nomeFam.trim()} onClick={()=>azione(()=>createFamily(nomeFam))} style={S.btn("#18A957")}>Crea</button>
           </div>
-          <div style={{fontSize:12,fontWeight:700,color:"#1e293b",marginBottom:6}}>Oppure entra con un codice</div>
+          <div style={{fontSize:12,fontWeight:700,color:"#13231A",marginBottom:6}}>Oppure entra con un codice</div>
           <div style={{display:"flex",gap:8,marginBottom:10}}>
             <input style={{...S.input,textTransform:"uppercase",fontFamily:"monospace"}} placeholder="ES. PASTA-1234" value={codice} onChange={e=>setCodice(e.target.value)}/>
             <button disabled={busy||!codice.trim()} onClick={()=>azione(()=>joinFamily(codice))} style={S.btn("#16a34a")}>Unisciti</button>
@@ -144,8 +144,8 @@ export function AccountCard({ myPersona, onGoUtente }) {
         <>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:15,fontWeight:800,color:"#1e293b"}}>👨‍👩‍👧 {famiglia.nome}</div>
-              <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>
+              <div style={{fontSize:15,fontWeight:800,color:"#13231A"}}>👨‍👩‍👧 {famiglia.nome}</div>
+              <div style={{fontSize:11,color:"#9DB1A2",fontWeight:600}}>
                 {utentiRegistrati.length} {utentiRegistrati.length===1?"membro":"membri"} · {session.user.email}
               </div>
             </div>
@@ -157,10 +157,10 @@ export function AccountCard({ myPersona, onGoUtente }) {
           </div>
 
           {/* Codice invito */}
-          <div style={{display:"flex",alignItems:"center",gap:8,background:"#f8fafc",border:"1.5px dashed #cbd5e1",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,background:"#F5F8F1",border:"1.5px dashed #C2D0C6",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
             <div style={{flex:1}}>
-              <div style={{fontSize:9,fontWeight:800,color:"#94a3b8",letterSpacing:0.6,textTransform:"uppercase"}}>Codice invito</div>
-              <div style={{fontSize:17,fontWeight:900,fontFamily:"monospace",color:"#1e293b",letterSpacing:1}}>{famiglia.invite_code}</div>
+              <div style={{fontSize:9,fontWeight:800,color:"#9DB1A2",letterSpacing:0.6,textTransform:"uppercase"}}>Codice invito</div>
+              <div style={{fontSize:17,fontWeight:900,fontFamily:"monospace",color:"#13231A",letterSpacing:1}}>{famiglia.invite_code}</div>
             </div>
             <button onClick={condividi} style={S.btn("#0ea5e9")}>{copiato ? "✓ Copiato" : "📤 Condividi"}</button>
           </div>
@@ -168,7 +168,7 @@ export function AccountCard({ myPersona, onGoUtente }) {
           {/* Lista membri con badge priorità */}
           {utentiRegistrati.length > 0 && (
             <div style={{marginBottom:12}}>
-              <div style={{fontSize:9,fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>
+              <div style={{fontSize:9,fontWeight:800,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>
                 Membri · ordine di priorità
               </div>
               {utentiRegistrati.map((m, i) => {
@@ -177,23 +177,23 @@ export function AccountCard({ myPersona, onGoUtente }) {
                 const profiliACarico = membri.filter(x => !x.user_id && x.gestito_da === m.user_id);
                 return (
                   <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,
-                      background: isMe ? "#f0f9ff" : "#fafafa",
-                      border: `1.5px solid ${isMe ? "#bae6fd" : "#f1f5f9"}`,
+                      background: isMe ? "#EEF7F0" : "#fafafa",
+                      border: `1.5px solid ${isMe ? "#A9DDB8" : "#EFF3EC"}`,
                       marginBottom:6}}>
                     {/* Numero priorità */}
-                    <div style={{width:22,height:22,borderRadius:"50%",background:isMembroCapo?"#fde047":"#e2e8f0",
+                    <div style={{width:22,height:22,borderRadius:"50%",background:isMembroCapo?"#fde047":"#E7EDE2",
                         display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
-                        fontSize:10,fontWeight:900,color:isMembroCapo?"#854d0e":"#64748b"}}>
+                        fontSize:10,fontWeight:900,color:isMembroCapo?"#854d0e":"#6E8576"}}>
                       {isMembroCapo ? "👑" : i+1}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:12,color:"#1e293b",display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{fontWeight:700,fontSize:12,color:"#13231A",display:"flex",alignItems:"center",gap:5}}>
                         {m.nome}
-                        {isMe && <span style={{fontSize:8,background:"#2563eb",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:900}}>IO</span>}
+                        {isMe && <span style={{fontSize:8,background:"#18A957",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:900}}>IO</span>}
                         {isMembroCapo && !isMe && <span style={{fontSize:8,background:"#f59e0b",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:900}}>CAPO</span>}
                       </div>
                       {profiliACarico.length > 0 && (
-                        <div style={{fontSize:10,color:"#94a3b8",marginTop:1}}>
+                        <div style={{fontSize:10,color:"#9DB1A2",marginTop:1}}>
                           + {profiliACarico.map(x=>x.nome).join(", ")}
                         </div>
                       )}
@@ -212,15 +212,15 @@ export function AccountCard({ myPersona, onGoUtente }) {
               {/* Profili a carico senza utente registrato */}
               {membri.filter(m => !m.user_id && !utentiRegistrati.some(u => u.user_id === m.gestito_da)).map(m => (
                 <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:8,
-                    background:"#fafafa",border:"1px solid #f1f5f9",marginBottom:4}}>
+                    background:"#fafafa",border:"1px solid #EFF3EC",marginBottom:4}}>
                   <span style={{fontSize:13}}>🧒</span>
-                  <span style={{fontSize:11,color:"#64748b",fontWeight:600}}>{m.nome}</span>
+                  <span style={{fontSize:11,color:"#6E8576",fontWeight:600}}>{m.nome}</span>
                 </div>
               ))}
             </div>
           )}
 
-          <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.5,marginBottom:12}}>
+          <div style={{fontSize:11,color:"#9DB1A2",lineHeight:1.5,marginBottom:12}}>
             Profili, misure, piano, gusti e spesa sono sincronizzati con la famiglia.
             {isCapo && " Come capo puoi rimuovere altri membri (✕) e la titolarità si trasferirà automaticamente se esci."}
           </div>
@@ -236,8 +236,8 @@ export function AccountCard({ myPersona, onGoUtente }) {
 
       {err && <div style={{marginTop:10,background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#b91c1c",fontWeight:600}}>⚠️ {err}</div>}
 
-      <div style={{marginTop:12,paddingTop:10,borderTop:"1px solid #f1f5f9"}}>
-        <button onClick={eseguiDiagnostica} style={{border:"none",background:"transparent",color:"#94a3b8",fontSize:10,fontWeight:700,cursor:"pointer",padding:0,textDecoration:"underline"}}>🔍 Diagnostica</button>
+      <div style={{marginTop:12,paddingTop:10,borderTop:"1px solid #EFF3EC"}}>
+        <button onClick={eseguiDiagnostica} style={{border:"none",background:"transparent",color:"#9DB1A2",fontSize:10,fontWeight:700,cursor:"pointer",padding:0,textDecoration:"underline"}}>🔍 Diagnostica</button>
         {diag && (
           <pre style={{marginTop:8,background:"#0f172a",color:"#a5f3fc",fontSize:10,lineHeight:1.5,padding:"10px 12px",borderRadius:8,overflowX:"auto",whiteSpace:"pre-wrap",wordBreak:"break-all"}}>
 {JSON.stringify(diag, null, 2)}

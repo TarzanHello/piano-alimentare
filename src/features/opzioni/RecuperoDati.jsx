@@ -60,32 +60,32 @@ export function RecuperoDati({ personas }) {
   const orfane = serie.filter(s => s.orfana);
 
   return (
-    <div style={{background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:14,padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
-      <div style={{fontSize:13,fontWeight:800,color:"#1e293b",marginBottom:4}}>🛟 Recupero misurazioni</div>
-      <div style={{fontSize:11,color:"#64748b",lineHeight:1.5,marginBottom:12}}>
+    <div style={{background:"#fff",border:"1.5px solid #E7EDE2",borderRadius:14,padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
+      <div style={{fontSize:13,fontWeight:800,color:"#13231A",marginBottom:4}}>🛟 Recupero misurazioni</div>
+      <div style={{fontSize:11,color:"#6E8576",lineHeight:1.5,marginBottom:12}}>
         Serie di misurazioni presenti su questo dispositivo. Quelle "orfane" appartengono a profili che non esistono più dopo una migrazione: riassegnale alla persona giusta e verranno sincronizzate.
       </div>
-      {serie.length === 0 && <div style={{fontSize:12,color:"#94a3b8"}}>Nessuna misurazione salvata su questo dispositivo.</div>}
+      {serie.length === 0 && <div style={{fontSize:12,color:"#9DB1A2"}}>Nessuna misurazione salvata su questo dispositivo.</div>}
       {serie.map(s => {
         const p = personas.find(x => x.id === s.key);
         return (
-          <div key={s.key} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid #f1f5f9",flexWrap:"wrap"}}>
+          <div key={s.key} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid #EFF3EC",flexWrap:"wrap"}}>
             <div style={{flex:1,minWidth:160}}>
-              <div style={{fontSize:12,fontWeight:800,color:s.orfana?"#d97706":"#1e293b"}}>
+              <div style={{fontSize:12,fontWeight:800,color:s.orfana?"#d97706":"#13231A"}}>
                 {s.orfana ? "⚠️ Serie orfana" : `${emojiBySesso(p)} ${p.nome}`}
-                <span style={{fontWeight:600,color:"#94a3b8"}}> · {s.count} misurazioni</span>
+                <span style={{fontWeight:600,color:"#9DB1A2"}}> · {s.count} misurazioni</span>
               </div>
-              <div style={{fontSize:10,color:"#94a3b8",fontFamily:"monospace"}}>dal {s.prima} al {s.ultima} · chiave {s.key.slice(0,12)}…</div>
+              <div style={{fontSize:10,color:"#9DB1A2",fontFamily:"monospace"}}>dal {s.prima} al {s.ultima} · chiave {s.key.slice(0,12)}…</div>
             </div>
             {s.orfana && (
               <div style={{display:"flex",gap:6,alignItems:"center"}}>
                 <select value={target[s.key]||""} onChange={e=>setTarget({...target,[s.key]:e.target.value})}
-                  style={{padding:"7px 9px",borderRadius:8,border:"1.5px solid #e2e8f0",fontSize:11,fontWeight:600}}>
+                  style={{padding:"7px 9px",borderRadius:8,border:"1.5px solid #E7EDE2",fontSize:11,fontWeight:600}}>
                   <option value="" disabled>Assegna a…</option>
                   {personas.map(p=><option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
                 <button disabled={!target[s.key]} onClick={()=>riassegna(s.key)}
-                  style={{padding:"7px 12px",borderRadius:8,border:"none",background:target[s.key]?"#16a34a":"#cbd5e1",color:"#fff",fontWeight:800,fontSize:11,cursor:target[s.key]?"pointer":"default"}}>
+                  style={{padding:"7px 12px",borderRadius:8,border:"none",background:target[s.key]?"#16a34a":"#C2D0C6",color:"#fff",fontWeight:800,fontSize:11,cursor:target[s.key]?"pointer":"default"}}>
                   Recupera
                 </button>
               </div>
@@ -96,9 +96,9 @@ export function RecuperoDati({ personas }) {
       {orfane.length === 0 && serie.length > 0 && <div style={{fontSize:11,color:"#16a34a",fontWeight:700,marginTop:8}}>✓ Nessuna serie orfana: tutto assegnato correttamente.</div>}
       {fatto && <div style={{marginTop:10,fontSize:12,fontWeight:700,color:fatto.startsWith("✓")?"#16a34a":"#b91c1c"}}>{fatto}</div>}
 
-      <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #f1f5f9"}}>
-        <div style={{fontSize:11,fontWeight:800,color:"#475569",marginBottom:4}}>🔄 Sincronizzazione famiglia</div>
-        <div style={{fontSize:10.5,color:"#94a3b8",lineHeight:1.5,marginBottom:10}}>
+      <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #EFF3EC"}}>
+        <div style={{fontSize:11,fontWeight:800,color:"#4A6152",marginBottom:4}}>🔄 Sincronizzazione famiglia</div>
+        <div style={{fontSize:10.5,color:"#9DB1A2",lineHeight:1.5,marginBottom:10}}>
           Se i dati tra i tuoi dispositivi non coincidono, premi <strong>Riallinea dal cloud</strong>: scarica la versione più aggiornata dal server senza perdere nulla. Usa <strong>Scollega</strong> solo se l'accesso è bloccato.
         </div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -110,7 +110,7 @@ export function RecuperoDati({ personas }) {
               if (r?.error) setErr(r.error); else { setFatto("✓ Riallineato dal cloud"); setTimeout(()=>setFatto(""),2500); }
             } catch(e){ setErr(e?.message||"errore"); }
             setBusy(false);
-          }} disabled={busy} style={{padding:"9px 14px",borderRadius:9,border:"none",background:"#2563eb",color:"#fff",fontWeight:800,fontSize:11,cursor:"pointer"}}>
+          }} disabled={busy} style={{padding:"9px 14px",borderRadius:9,border:"none",background:"#18A957",color:"#fff",fontWeight:800,fontSize:11,cursor:"pointer"}}>
             🔄 Riallinea dal cloud
           </button>
           <button onClick={async()=>{

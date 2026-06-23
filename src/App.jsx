@@ -537,7 +537,7 @@ export function App() {
   },[]);
 
   if (!plan) return (
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#64748b"}}>
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#6E8576"}}>
       <div style={{textAlign:"center"}}><div style={{fontSize:32,marginBottom:12}}>🥗</div><div>Caricamento...</div></div>
     </div>
   );
@@ -630,14 +630,14 @@ export function App() {
     return <Onboarding onComplete={completaOnboarding}/>;
   }
   if (!booted) {
-    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f1f5f9",fontSize:32}}>🥗</div>;
+    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#EFF3EC",fontSize:32}}>🥗</div>;
   }
 
   return (
-    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%)",fontFamily:"'Segoe UI',system-ui,sans-serif",paddingBottom:80}}>
+    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#EAF2E2 0%,#E2EAD9 100%)",fontFamily:"'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif",paddingBottom:80}}>
       {/* AVVISO NUOVA VERSIONE */}
       {swUpdate && (
-        <div style={{position:"sticky",top:0,zIndex:50,background:"#1d4ed8",color:"#fff",
+        <div style={{position:"sticky",top:0,zIndex:50,background:"#0F8F47",color:"#fff",
                      padding:"calc(10px + env(safe-area-inset-top,0px)) 16px 10px",
                      display:"flex",alignItems:"center",justifyContent:"center",gap:12,fontSize:13}}>
           <span>✨ È disponibile una nuova versione.</span>
@@ -648,30 +648,30 @@ export function App() {
               // ricarica comunque dopo un attimo.
               setTimeout(()=>{ try { window.location.reload(); } catch {} }, 1500);
             }}
-            style={{background:"#fff",color:"#1d4ed8",border:"none",borderRadius:8,
+            style={{background:"#fff",color:"#0F8F47",border:"none",borderRadius:8,
                     padding:"6px 14px",fontWeight:700,fontSize:13,cursor:"pointer"}}>
             Aggiorna
           </button>
         </div>
       )}
       {/* HEADER */}
-      <div style={{background:"linear-gradient(90deg,#1e293b 0%,#334155 100%)",padding:"20px 20px 16px",paddingTop:"calc(20px + env(safe-area-inset-top,0px))"}}>
+      <div style={{background:"linear-gradient(120deg,#10271B 0%,#13402C 100%)",padding:"20px 20px 16px",paddingTop:"calc(20px + env(safe-area-inset-top,0px))"}}>
         <div style={{maxWidth:680,margin:"0 auto"}}>
-          <div style={{fontSize:9,color:"#94a3b8",letterSpacing:2,textTransform:"uppercase",marginBottom:2}}>Piano Alimentare Familiare</div>
+          <div style={{fontSize:9,color:"#9DB1A2",letterSpacing:2,textTransform:"uppercase",marginBottom:2}}>Piano Alimentare Familiare</div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:14}}>
-            <div style={{fontSize:19,fontWeight:800,color:"#f8fafc",letterSpacing:-0.5}}>
+            <div style={{fontSize:21,fontWeight:800,color:"#F5F8F1",letterSpacing:-0.5,fontFamily:"'Bricolage Grotesque',sans-serif"}}>
               {personas.length} {personas.length===1?"persona":"persone"} · 7 giorni
             </div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
               {regenNeeded&&<span style={{fontSize:10,color:"#fbbf24",fontWeight:700,background:"#78350f40",borderRadius:5,padding:"2px 6px"}}>⚠ Rigenera</span>}
-              <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#334155":"linear-gradient(135deg,#2563eb,#1d4ed8)",color:"#fff",border:"none",borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:11,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 4px 14px #2563eb55",transition:"all 0.2s"}}>
+              <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#2F5547":"linear-gradient(135deg,#18A957,#0F8F47)",color:"#fff",border:"none",borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:11,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 4px 14px #18A95755",transition:"all 0.2s"}}>
                 <span style={{display:"inline-block",animation:spinning?"spin 0.7s linear infinite":"none",fontSize:13}}>🔄</span>
                 {spinning?"...":"Nuovo piano"}
               </button>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
-            <span style={{fontSize:13,color:"#e2e8f0",fontWeight:700}}>{(()=>{
+            <span style={{fontSize:13,color:"#E7EDE2",fontWeight:700}}>{(()=>{
               const main = TABS_MAIN.find(t=>t.key===page);
               if (main) return `${main.icon} ${main.short}`;
               const sub = SUBMENU.find(s=>s.key===page);
@@ -684,12 +684,12 @@ export function App() {
               const nomiMesi = ["","Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
               const stagEmoji = m>=3&&m<=5?"🌸":m>=6&&m<=8?"☀️":m>=9&&m<=11?"🍂":"❄️";
               return (
-                <span style={{marginLeft:4,fontSize:10,background:"rgba(255,255,255,0.15)",borderRadius:5,padding:"2px 8px",color:"#e2e8f0",fontWeight:600}}>
+                <span style={{marginLeft:4,fontSize:10,background:"rgba(255,255,255,0.15)",borderRadius:5,padding:"2px 8px",color:"#E7EDE2",fontWeight:600}}>
                   {stagEmoji} {nomiMesi[m]} · stagionale
                 </span>
               );
             })()}
-            {history.length>0&&<button onClick={()=>setShowHistory(h=>!h)} style={{marginLeft:"auto",flexShrink:0,padding:"4px 10px",borderRadius:6,border:"none",background:showHistory?"#fff":"rgba(255,255,255,0.15)",color:showHistory?"#1e293b":"#e2e8f0",fontWeight:700,fontSize:11,cursor:"pointer"}}>🕐 Storico</button>}
+            {history.length>0&&<button onClick={()=>setShowHistory(h=>!h)} style={{marginLeft:"auto",flexShrink:0,padding:"4px 10px",borderRadius:6,border:"none",background:showHistory?"#fff":"rgba(255,255,255,0.15)",color:showHistory?"#13231A":"#E7EDE2",fontWeight:700,fontSize:11,cursor:"pointer"}}>🕐 Storico</button>}
           </div>
           {page==="piano"&&!showHistory&&(
             <div style={{display:"flex",gap:7,marginTop:12,flexWrap:"wrap"}}>
@@ -698,7 +698,7 @@ export function App() {
                 return (
                   <div key={p.id} style={{display:"flex",alignItems:"center",gap:5,background:"#ffffff12",borderRadius:7,padding:"3px 10px",border:`1px solid ${p.color}50`}}>
                     <div style={{width:6,height:6,borderRadius:"50%",background:p.color}}/>
-                    <span style={{color:"#e2e8f0",fontSize:11}}>{emojiBySesso(p)} {p.nome}</span>
+                    <span style={{color:"#E7EDE2",fontSize:11}}>{emojiBySesso(p)} {p.nome}</span>
                     <span style={{color:p.color,fontSize:11,fontFamily:"monospace",fontWeight:700}}>{t.kcal}</span>
                     <span style={{fontSize:10}}>{t.confidenza.dot}</span>
                   </div>
@@ -715,11 +715,11 @@ export function App() {
         {/* STORICO */}
         {showHistory&&(
           <div>
-            <div style={{fontWeight:800,fontSize:14,color:"#1e293b",marginBottom:12}}>🕐 Piani precedenti</div>
+            <div style={{fontWeight:800,fontSize:14,color:"#13231A",marginBottom:12}}>🕐 Piani precedenti</div>
             {history.map((h,i)=>(
-              <div key={i} onClick={()=>loadHistory(h.seed)} style={{background:"#fff",borderRadius:10,border:"1.5px solid #e2e8f0",padding:"12px 16px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div><div style={{fontWeight:700,fontSize:13,color:"#1e293b"}}>{h.label}</div><div style={{fontSize:10,color:"#94a3b8",fontFamily:"monospace"}}>seed: {h.seed}</div></div>
-                <span style={{fontSize:12,color:"#2563eb",fontWeight:700}}>Ricarica →</span>
+              <div key={i} onClick={()=>loadHistory(h.seed)} style={{background:"#fff",borderRadius:10,border:"1.5px solid #E7EDE2",padding:"12px 16px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div><div style={{fontWeight:700,fontSize:13,color:"#13231A"}}>{h.label}</div><div style={{fontSize:10,color:"#9DB1A2",fontFamily:"monospace"}}>seed: {h.seed}</div></div>
+                <span style={{fontSize:12,color:"#18A957",fontWeight:700}}>Ricarica →</span>
               </div>
             ))}
           </div>
@@ -751,7 +751,7 @@ export function App() {
               {personas.map(p=>{
                 const isMe=myPersonaId===p.id;
                 return (
-                  <button key={p.id} onClick={()=>setSelPersonaId(p.id)} style={{flexShrink:0,padding:"8px 14px",borderRadius:10,border:"2px solid",borderColor:selPersonaId===p.id?p.color:"#e2e8f0",background:selPersonaId===p.id?p.color+"12":"#fff",color:selPersonaId===p.id?p.color:"#64748b",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5}}>
+                  <button key={p.id} onClick={()=>setSelPersonaId(p.id)} style={{flexShrink:0,padding:"8px 14px",borderRadius:10,border:"2px solid",borderColor:selPersonaId===p.id?p.color:"#E7EDE2",background:selPersonaId===p.id?p.color+"12":"#fff",color:selPersonaId===p.id?p.color:"#6E8576",fontWeight:700,fontSize:12,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5}}>
                     {emojiBySesso(p)} {p.nome}
                     {isMe&&<span style={{fontSize:9,background:p.color,color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:900}}>IO</span>}
                   </button>
@@ -760,7 +760,7 @@ export function App() {
             </div>
             <div style={{display:"flex",gap:5,marginBottom:14,overflowX:"auto",paddingBottom:4}}>
               {DAYS.map((d,i)=>(
-                <button key={d} onClick={()=>setSelDay(i)} style={{flexShrink:0,padding:"6px 10px",borderRadius:8,border:"2px solid",borderColor:selDay===i?persona.color:"#e2e8f0",background:selDay===i?persona.color:"#fff",color:selDay===i?"#fff":"#64748b",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.2s"}}>
+                <button key={d} onClick={()=>setSelDay(i)} style={{flexShrink:0,padding:"6px 10px",borderRadius:8,border:"2px solid",borderColor:selDay===i?persona.color:"#E7EDE2",background:selDay===i?persona.color:"#fff",color:selDay===i?"#fff":"#6E8576",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.2s"}}>
                   {d.slice(0,3)}
                 </button>
               ))}
@@ -768,7 +768,7 @@ export function App() {
             <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"7px 11px",marginBottom:12,fontSize:11,color:"#92400e"}}>
               💡 Tocca ogni pasto per le porzioni · <strong>Nuovo piano</strong> per variare
             </div>
-            {spinning ? <div style={{textAlign:"center",padding:"40px 0",color:"#64748b"}}>🔄 Generando...</div> : (
+            {spinning ? <div style={{textAlign:"center",padding:"40px 0",color:"#6E8576"}}>🔄 Generando...</div> : (
               <>
                 {(()=>{
                   // Piano effettivo: stessa fonte usata dalla scheda Spesa.
@@ -866,21 +866,21 @@ export function App() {
                     </>
                   );
                 })()}
-                <div style={{marginTop:14,background:"#fff",borderRadius:12,border:"1.5px solid #e2e8f0",padding:"12px 16px"}}>
+                <div style={{marginTop:14,background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"12px 16px"}}>
                   {personaTarget && <>
                   {/* Intestazione con badge confidenza */}
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                    <div style={{fontSize:10,fontWeight:700,color:"#64748b",letterSpacing:1,textTransform:"uppercase"}}>
+                    <div style={{fontSize:10,fontWeight:700,color:"#6E8576",letterSpacing:1,textTransform:"uppercase"}}>
                       Target — {emojiBySesso(persona)} {persona.nome}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:5}}>
                       {(()=>{
                         const ob = OBIETTIVI.find(o=>o.key===persona.obiettivo);
                         const obStyle = {
-                          perdita:      {ic:"📉",bg:"#eff6ff",bd:"#bfdbfe",col:"#2563eb"},
+                          perdita:      {ic:"📉",bg:"#EDF7EF",bd:"#B7E0C4",col:"#18A957"},
                           mantenimento: {ic:"⚖️",bg:"#f0fdf4",bd:"#bbf7d0",col:"#16a34a"},
                           aumento:      {ic:"📈",bg:"#fef2f2",bd:"#fecaca",col:"#dc2626"},
-                        }[persona.obiettivo] || {ic:"⚖️",bg:"#f1f5f9",bd:"#e2e8f0",col:"#64748b"};
+                        }[persona.obiettivo] || {ic:"⚖️",bg:"#EFF3EC",bd:"#E7EDE2",col:"#6E8576"};
                         return (
                           <div style={{display:"flex",alignItems:"center",gap:4,background:obStyle.bg,border:`1px solid ${obStyle.bd}`,borderRadius:6,padding:"3px 8px"}}>
                             <span style={{fontSize:10}}>{obStyle.ic}</span>
@@ -898,22 +898,22 @@ export function App() {
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
                     {[{label:"Calorie",val:personaTarget.kcal,unit:"kcal"},{label:"Proteine",val:personaTarget.p,unit:"g/die"},{label:"Carboidrati",val:personaTarget.c,unit:"g/die"},{label:"Grassi",val:personaTarget.g,unit:"g/die"}].map(({label,val,unit})=>(
                       <div key={label} style={{background:persona.color+"08",borderRadius:8,padding:"8px 12px",border:`1px solid ${persona.color}20`}}>
-                        <div style={{fontSize:9,color:"#94a3b8",marginBottom:2,textTransform:"uppercase",letterSpacing:0.8}}>{label}</div>
+                        <div style={{fontSize:9,color:"#9DB1A2",marginBottom:2,textTransform:"uppercase",letterSpacing:0.8}}>{label}</div>
                         <div style={{fontSize:16,fontWeight:800,color:persona.color,fontFamily:"monospace"}}>{val}<span style={{fontSize:10,fontWeight:400,marginLeft:2}}>{unit}</span></div>
                       </div>
                     ))}
                   </div>
                   {/* Dettagli algoritmo */}
-                  <div style={{background:"#f8fafc",borderRadius:8,padding:"8px 12px",fontSize:10,color:"#64748b",lineHeight:1.8}}>
+                  <div style={{background:"#F5F8F1",borderRadius:8,padding:"8px 12px",fontSize:10,color:"#6E8576",lineHeight:1.8}}>
                     <div style={{display:"flex",justifyContent:"space-between"}}>
                       <span>TDEE stimato</span>
-                      <span style={{fontFamily:"monospace",fontWeight:700,color:"#1e293b"}}>{personaTarget.tdeeFinale} kcal</span>
+                      <span style={{fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{personaTarget.tdeeFinale} kcal</span>
                     </div>
                     {(()=>{
                       const d = personaTarget.kcal - personaTarget.tdeeFinale;
                       if (Math.abs(d) < 1) return null;
                       const txt = d < 0 ? `deficit ${-d} kcal` : `surplus +${d} kcal`;
-                      const col = d < 0 ? "#2563eb" : "#dc2626";
+                      const col = d < 0 ? "#18A957" : "#dc2626";
                       return (
                         <div style={{display:"flex",justifyContent:"space-between"}}>
                           <span>Aggiustamento obiettivo</span>
@@ -924,13 +924,13 @@ export function App() {
                     {personaTarget.pctGrasso!==null&&(
                       <div style={{display:"flex",justifyContent:"space-between"}}>
                         <span>Massa grassa stimata</span>
-                        <span style={{fontFamily:"monospace",fontWeight:700,color:"#1e293b"}}>{personaTarget.pctGrasso}%</span>
+                        <span style={{fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{personaTarget.pctGrasso}%</span>
                       </div>
                     )}
                     {personaTarget.usaTDEEAdattivo&&personaTarget.adattivoInfo&&(
                       <div style={{display:"flex",justifyContent:"space-between"}}>
                         <span>Dati usati</span>
-                        <span style={{fontFamily:"monospace",fontWeight:700,color:"#1e293b"}}>{personaTarget.nMisure} misurazioni · {personaTarget.adattivoInfo.settimane.toFixed(1)} sett.</span>
+                        <span style={{fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{personaTarget.nMisure} misurazioni · {personaTarget.adattivoInfo.settimane.toFixed(1)} sett.</span>
                       </div>
                     )}
                     {personaTarget.noteObiettivo==="ricomposizione"&&(
@@ -939,7 +939,7 @@ export function App() {
                   </div>
                   </>}
                 </div>
-                <div style={{marginTop:14,fontSize:10,color:"#94a3b8",textAlign:"center",lineHeight:1.8}}>
+                <div style={{marginTop:14,fontSize:10,color:"#9DB1A2",textAlign:"center",lineHeight:1.8}}>
                   DB: {DB.colazione.length} colazioni · {DB.pranzo.length} pranzi · {DB.cena.length} cene · {DB.spuntino.length} spuntini<br/>
                   Valori indicativi. Consulta un nutrizionista per un piano preciso.
                 </div>
@@ -968,7 +968,7 @@ export function App() {
       </div>
 
       {/* BOTTOM NAV — 3 voci principali */}
-      <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:"#fff",borderTop:"1px solid #e2e8f0",display:"flex",alignItems:"stretch",boxShadow:"0 -4px 20px #0000001a",paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
+      <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:"#fff",borderTop:"1px solid #E7EDE2",display:"flex",alignItems:"stretch",boxShadow:"0 -4px 20px #0000001a",paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
         {TABS_MAIN.map(tab=>{
           // "menu" è attivo se siamo in una delle 4 pagine secondarie
           const isSubPage = SUBMENU.some(s=>s.key===page);
@@ -999,8 +999,8 @@ export function App() {
                 if (tab.key==="menu") { setMenuOpen(true); return; }
                 navigaA(tab.key); setShowHistory(false); setMenuOpen(false);
               }}
-              style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 2px 8px",border:"none",background:"transparent",color:active?"#2563eb":"#94a3b8",cursor:"pointer",position:"relative",transition:"color 0.15s",gap:3,minWidth:0}}>
-              {active && <div style={{position:"absolute",top:0,left:"30%",right:"30%",height:2,background:"#2563eb",borderRadius:"0 0 3px 3px"}}/>}
+              style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 2px 8px",border:"none",background:"transparent",color:active?"#18A957":"#9DB1A2",cursor:"pointer",position:"relative",transition:"color 0.15s",gap:3,minWidth:0}}>
+              {active && <div style={{position:"absolute",top:0,left:"30%",right:"30%",height:2,background:"#18A957",borderRadius:"0 0 3px 3px"}}/>}
               <span style={{fontSize:20,lineHeight:1}}>{tab.icon}</span>
               <span style={{fontSize:11,fontWeight:active?800:600,letterSpacing:0.1,whiteSpace:"nowrap"}}>{tab.short}</span>
               {badge>0 && (
@@ -1023,8 +1023,8 @@ export function App() {
           {/* Foglio */}
           <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:201,background:"#fff",borderTopLeftRadius:20,borderTopRightRadius:20,boxShadow:"0 -10px 40px rgba(0,0,0,0.2)",paddingBottom:"calc(20px + env(safe-area-inset-bottom,0px))",animation:"slideUp 0.22s cubic-bezier(0.2,0.9,0.3,1)"}}>
             {/* Maniglia */}
-            <div style={{width:40,height:4,background:"#cbd5e1",borderRadius:2,margin:"10px auto 8px"}}/>
-            <div style={{padding:"4px 20px 16px",fontSize:11,fontWeight:700,color:"#94a3b8",letterSpacing:1,textTransform:"uppercase"}}>Menu</div>
+            <div style={{width:40,height:4,background:"#C2D0C6",borderRadius:2,margin:"10px auto 8px"}}/>
+            <div style={{padding:"4px 20px 16px",fontSize:11,fontWeight:700,color:"#9DB1A2",letterSpacing:1,textTransform:"uppercase"}}>Menu</div>
             <div style={{display:"flex",flexDirection:"column"}}>
               {SUBMENU.map(item=>{
                 const isActive = page===item.key && !showHistory;
@@ -1032,16 +1032,16 @@ export function App() {
                 return (
                   <button key={item.key}
                     onClick={()=>{ navigaA(item.key); setShowHistory(false); setMenuOpen(false); }}
-                    style={{display:"flex",alignItems:"center",gap:14,padding:"14px 20px",border:"none",background:isActive?"#eff6ff":"transparent",cursor:"pointer",textAlign:"left",borderLeft:isActive?"3px solid #2563eb":"3px solid transparent",transition:"background 0.12s"}}>
+                    style={{display:"flex",alignItems:"center",gap:14,padding:"14px 20px",border:"none",background:isActive?"#EDF7EF":"transparent",cursor:"pointer",textAlign:"left",borderLeft:isActive?"3px solid #18A957":"3px solid transparent",transition:"background 0.12s"}}>
                     <div style={{fontSize:24,width:36,textAlign:"center"}}>{item.icon}</div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:15,fontWeight:700,color:isActive?"#2563eb":"#1e293b"}}>{item.label}</div>
-                      <div style={{fontSize:11,color:"#94a3b8",marginTop:1}}>{item.desc}</div>
+                      <div style={{fontSize:15,fontWeight:700,color:isActive?"#18A957":"#13231A"}}>{item.label}</div>
+                      <div style={{fontSize:11,color:"#9DB1A2",marginTop:1}}>{item.desc}</div>
                     </div>
                     {itemBadge>0 && (
                       <div style={{minWidth:22,height:22,padding:"0 6px",background:"#ef4444",borderRadius:11,fontSize:11,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900}}>{itemBadge}</div>
                     )}
-                    <span style={{color:"#cbd5e1",fontSize:18}}>›</span>
+                    <span style={{color:"#C2D0C6",fontSize:18}}>›</span>
                   </button>
                 );
               })}

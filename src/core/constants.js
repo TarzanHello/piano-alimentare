@@ -21,7 +21,7 @@ export const MEAL_KEYS = ["colazione","spuntino_m","pranzo","spuntino_p","cena"]
 
 export const PERSONAS_KEYS = ["uomo","donna","bimbo"];
 
-export const COLORS = ["#2563eb","#db2777","#16a34a","#d97706","#7c3aed","#0891b2","#dc2626"];
+export const COLORS = ["#18A957","#db2777","#16a34a","#d97706","#7c3aed","#0891b2","#dc2626"];
 
 export const STILI = [
   { key:"sedentario",   label:"Sedentario",     mult:1.2   },
@@ -104,7 +104,7 @@ export const MEAL_HOUR = {
 // Usa todayDayIndex() per ancorare la settimana al giorno corrente.
 
 export const TUTTI_FIELDS = [
-  { key:"peso",     label:"Peso",         emoji:"⚖️",  color:"#1e293b", unit:"kg" },
+  { key:"peso",     label:"Peso",         emoji:"⚖️",  color:"#13231A", unit:"kg" },
   { key:"collo",    label:"Collo",        emoji:"🔵",  color:"#0ea5e9", unit:"cm" },
   { key:"petto",    label:"Petto / Seno", emoji:"🫁",  color:"#db2777", unit:"cm" },
   { key:"vita",     label:"Vita",         emoji:"⌛",  color:"#d97706", unit:"cm" },
@@ -114,7 +114,7 @@ export const TUTTI_FIELDS = [
 ];
 
 export const DEFAULT_PERSONAS = [
-  { id:"p1", nome:"Uomo",  sesso:"M", eta:38, peso:100, altezza:185, lavoro:"sedentario", allenamenti:3, obiettivo:"perdita",     color:"#2563eb" },
+  { id:"p1", nome:"Uomo",  sesso:"M", eta:38, peso:100, altezza:185, lavoro:"sedentario", allenamenti:3, obiettivo:"perdita",     color:"#18A957" },
   { id:"p2", nome:"Donna", sesso:"F", eta:31, peso:65,  altezza:160, lavoro:"sedentario", allenamenti:3, obiettivo:"perdita",     color:"#db2777" },
   { id:"p3", nome:"Bimbo", sesso:"M", eta:2,  peso:13,  altezza:87,  lavoro:"sedentario", allenamenti:2, obiettivo:"mantenimento",color:"#16a34a" },
 ];
@@ -125,7 +125,7 @@ export const CONFIDENZA = {
   BASSA:  { key:"bassa",  label:"Formula base",    color:"#f59e0b", bg:"#fffbeb", border:"#fde68a", dot:"🟡" },
   MEDIA:  { key:"media",  label:"Composizione",    color:"#f97316", bg:"#fff7ed", border:"#fed7aa", dot:"🟠" },
   ALTA:   { key:"alta",   label:"TDEE adattivo",   color:"#16a34a", bg:"#f0fdf4", border:"#bbf7d0", dot:"🟢" },
-  OTTIMA: { key:"ottima", label:"Piena precisione", color:"#0891b2", bg:"#f0f9ff", border:"#bae6fd", dot:"🔵" },
+  OTTIMA: { key:"ottima", label:"Piena precisione", color:"#0891b2", bg:"#EEF7F0", border:"#A9DDB8", dot:"🔵" },
 };
 
 // Converte "gg/mm/aaaa" in Date
@@ -219,7 +219,7 @@ export const WATER_MAX  = 14;    // bicchieri massimi visualizzati (2800ml)
 // così le alternative proposte non si ripetono tra un intervallo e l'altro.
 export const PREP_SLOTS = [
   { label:"0–10'",  min:0,  max:10,       color:"#16a34a", bg:"#f0fdf4" },
-  { label:"11–20'", min:11, max:20,       color:"#0891b2", bg:"#f0f9ff" },
+  { label:"11–20'", min:11, max:20,       color:"#0891b2", bg:"#EEF7F0" },
   { label:"21–30'", min:21, max:30,       color:"#d97706", bg:"#fffbeb" },
   { label:"31'+",   min:31, max:Infinity, color:"#dc2626", bg:"#fef2f2" },
 ];
