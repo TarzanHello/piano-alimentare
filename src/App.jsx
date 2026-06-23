@@ -22,6 +22,15 @@ import { cloudEnabled } from '@/db/cloud';
 import { MealCard, TotaleBar, WaterTracker } from '@/features/piano/MealParts';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
 
+// Rimappa i colori-profilo legacy sul nuovo sistema verde:
+// il vecchio blu brand (#2563eb) diventa il verde brand (#18A957).
+// Gli altri colori-persona (rosa, ecc.) restano identificatori distinti.
+const LEGACY_PERSONA_COLORS = { "#2563eb": "#18A957" };
+function remapPersonaColors(list) {
+  if (!Array.isArray(list)) return list;
+  return list.map(p => (p && LEGACY_PERSONA_COLORS[p.color]) ? { ...p, color: LEGACY_PERSONA_COLORS[p.color] } : p);
+}
+
 export function App() {
   const [page, setPage]               = useState("oggi");
   const [menuOpen, setMenuOpen]       = useState(false);  // bottom-sheet del menu secondario
@@ -83,7 +92,7 @@ export function App() {
       const k = e.detail?.key;
       const read = async (sk, fb) => { try { const r = await window.storage.get(sk); return JSON.parse(r.value); } catch { return fb; } };
       switch(k){
-        case "personas": { const v = await read(SK_PERSONAS, null); if (Array.isArray(v)&&v.length) setPersonas(v); break; }
+        case "personas": { const v = await read(SK_PERSONAS, null); if (Array.isArray(v)&&v.length) setPersonas(remapPersonaColors(v)); break; }
         case "misure":   { const v = await read(SK_MISURE, null); if (v) setMisureApp(v); break; }
         case "mealsLog": { const v = await read(SK_MEALS_LOG, null); if (v) setMealsLog(v); break; }
         case "prefs":    { const v = await read(SK_PREFS, null); if (v) setPrefs(normalizePrefs(v)); break; }
@@ -224,9 +233,9 @@ export function App() {
         const loadedPersBase = Array.isArray(loadedPersRaw) ? loadedPersRaw : [];
         // Migrazione attività: deriva lavoro+allenamenti dal vecchio `stile`
         // (coppie equivalenti: stesso LAF, nessun cambio di target) e ri-persiste.
-        const loadedPers = loadedPersBase.map(p =>
+        const loadedPers = remapPersonaColors(loadedPersBase.map(p =>
           (p.lavoro !== undefined && p.allenamenti !== undefined) ? p : { ...p, ...normalizeAttivita(p) }
-        );
+        ));
         if (JSON.stringify(loadedPers) !== JSON.stringify(loadedPersBase)) {
           window.storage.set(SK_PERSONAS, JSON.stringify(loadedPers)).catch(()=>{});
         }
