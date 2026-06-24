@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { calcPesoObiettivo } from '@/core';
+import { calcPesoObiettivo, localDateKey } from '@/core';
 import { MisurePage } from '@/features/misure/MisurePage';
 
 export function LineChart({ records, field, color, unit, label }) {
@@ -193,7 +193,7 @@ export function WeightProgressChart({ records, persona }) {
 
 export function CalorieChart({ personaId, mealsLog, target }) {
   const today=new Date();
-  const days=Array.from({length:7},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()-(6-i));const key=d.toISOString().slice(0,10);const dow=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][d.getDay()];const dayLog=(mealsLog[personaId]||{})[key]||{};const kcal=Object.values(dayLog).reduce((s,m)=>m.consumed?s+(m.kcal||0):s,0);return{key,label:dow,kcal,isToday:i===6};});
+  const days=Array.from({length:7},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()-(6-i));const key=localDateKey(d);const dow=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][d.getDay()];const dayLog=(mealsLog[personaId]||{})[key]||{};const kcal=Object.values(dayLog).reduce((s,m)=>m.consumed?s+(m.kcal||0):s,0);return{key,label:dow,kcal,isToday:i===6};});
   const maxKcal=Math.max(target||2000,...days.map(d=>d.kcal),100);
   const W=320,H=130,PAD={t:10,r:12,b:28,l:36},innerW=W-PAD.l-PAD.r,innerH=H-PAD.t-PAD.b;
   const barW=Math.floor(innerW/7)-4,barGap=Math.floor(innerW/7);
