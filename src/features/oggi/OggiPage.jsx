@@ -42,7 +42,7 @@ function MacroBar({ label, val, max, color }) {
 }
 
 // ─── Pagina Oggi ────────────────────────────────────────────────────
-export function OggiPage({ personas, selPersonaId, onSelPersona, persona, personaSlot, target, effectivePlan, misure, mealsLog, onToggleMeal, onGoPiano, onGoMisure }) {
+export function OggiPage({ personas, selPersonaId, onSelPersona, persona, personaSlot, target, effectivePlan, misure, mealsLog, onToggleMeal, onGoPiano, onGoMisure, readOnly }) {
   const dayIdx  = todayDayIndex();
   const dateKey = dateKeyForDayIdx(dayIdx);
   const day     = effectivePlan[dayIdx] || {};
@@ -133,11 +133,15 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
               <div style={{fontSize:16,fontWeight:800,color:"#F4F7EF",lineHeight:1.25,fontFamily:"'Bricolage Grotesque',sans-serif"}}>{day[prossimo]?.nome}</div>
               <div style={{fontSize:12,color:"#9DB1A2",fontWeight:600,marginTop:5}}>{Math.round(macroFor(prossimo).kcal)} kcal</div>
             </div>
+            {readOnly ? (
+              <span title="Profilo di un altro membro: sola lettura" style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",width:64,height:64,borderRadius:18,background:"rgba(255,255,255,0.12)",color:"#7FA890",fontSize:22}}>🔒</span>
+            ) : (
             <button onClick={()=>onToggleMeal(persona.id, dateKey, prossimo, macroFor(prossimo))}
               style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:64,height:64,borderRadius:18,border:"none",background:"#9DE837",color:"#10271B",cursor:"pointer",boxShadow:"0 8px 18px -6px rgba(157,232,55,0.6)"}}>
               <span style={{fontSize:20,fontWeight:900,lineHeight:1}}>✓</span>
               <span style={{fontSize:9.5,fontWeight:800}}>Mangia</span>
             </button>
+            )}
           </div>
         </div>
       )}
@@ -158,11 +162,15 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
                 <div style={{fontSize:13,fontWeight:700,color:"#13231A",textDecoration:isCons?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{day[mk]?.nome}</div>
               </div>
               <div style={{fontSize:11,fontWeight:800,color:"#6E8576",flexShrink:0}}>{Math.round(m.kcal)} kcal</div>
+              {readOnly ? (
+                <span title="Sola lettura" style={{flexShrink:0,width:32,height:32,borderRadius:"50%",background:"#EFF3EC",color:"#C2D0C6",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>{isCons?"✓":"🔒"}</span>
+              ) : (
               <button onClick={()=>onToggleMeal(persona.id, dateKey, mk, m)}
                 title={isCons?"Segna come non consumato":"Segna come mangiato"}
                 style={{flexShrink:0,width:32,height:32,borderRadius:"50%",border:isCons?"none":"2px solid #C2D0C6",background:isCons?"#16a34a":"#fff",color:isCons?"#fff":"#C2D0C6",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",animation:isCons?"pop 0.25s ease-out":"none"}}>
                 ✓
               </button>
+              )}
             </div>
           );
         })}

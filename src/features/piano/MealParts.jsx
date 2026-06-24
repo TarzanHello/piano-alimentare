@@ -87,7 +87,7 @@ export function WaterTracker({ dayKey, personaColor }) {
 
 // Soglie tempo per i pulsanti del selettore
 
-export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, onToggleConsumed, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta }) {
+export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, onToggleConsumed, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly }) {
   const [open, setOpen]               = useState(false);
   const [swapOpen, setSwapOpen]       = useState(false);
   const [editOpen, setEditOpen]       = useState(false);
@@ -155,12 +155,14 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
               <span style={{filter:prefEntry?.liked?"none":"grayscale(1) opacity(0.55)"}}>{prefEntry?.liked?"❤️":"🤍"}</span>
             </button>
             {/* Bottone consumato */}
+            {!readOnly && (
             <button onClick={e=>{ e.stopPropagation(); logSync("pasto-log", `${consumed?"Rimarca non consumato":"Segna consumato"}: ${mealKey}`, {dayIdx, mealKey, pasto:meal?.nome?.slice(0,25)}); onToggleConsumed&&onToggleConsumed(); }} title={consumed?"Segna come non consumato":"Segna come consumato"}
               style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${consumed?"#16a34a":"#E7EDE2"}`,background:consumed?"#f0fdf4":"#F5F8F1",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
               <span style={{filter:consumed?"none":"grayscale(1) opacity(0.4)"}}>{consumed?"✅":"☑️"}</span>
             </button>
+            )}
             {/* Bottone modifica calorie consumate — visibile solo se consumato */}
-            {consumed && (
+            {!readOnly && consumed && (
               <button
                 onClick={e=>{ e.stopPropagation(); setConsumedEditOpen(true); setOpen(false); setSwapOpen(false); }}
                 title="Modifica cosa hai mangiato davvero"
@@ -169,7 +171,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
               </button>
             )}
             {/* Bottone modifica ricetta (solo se NON consumato) */}
-            {!consumed && (
+            {!readOnly && !consumed && (
               <button
                 onClick={e=>{ e.stopPropagation(); setEditOpen(true); setOpen(false); setSwapOpen(false); }}
                 title="Modifica ingredienti e quantità"
@@ -178,12 +180,16 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
               </button>
             )}
             {/* Bottone swap (solo se NON consumato) */}
-            {!consumed && (
+            {!readOnly && !consumed && (
               <button
                 onClick={e=>{ e.stopPropagation(); setSwapOpen(s=>!s); setOpen(false); if(!swapOpen) setMaxPrep(null); }}
                 style={{flexShrink:0,padding:"5px 10px",borderRadius:7,border:`1.5px solid ${swapOpen?"#7c3aed":"#E7EDE2"}`,background:swapOpen?"#7c3aed":"#F5F8F1",color:swapOpen?"#fff":"#6E8576",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
                 {swapOpen?"✕":"⇄ Cambia"}
               </button>
+            )}
+            {/* Sola lettura: profilo di un altro membro */}
+            {readOnly && (
+              <span title="Profilo di un altro membro: sola lettura" style={{flexShrink:0,padding:"5px 9px",borderRadius:7,background:"#EFF3EC",color:"#9DB1A2",fontWeight:700,fontSize:11,display:"flex",alignItems:"center",gap:4}}>🔒 sola lettura</span>
             )}
           </div>
         </div>

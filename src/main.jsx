@@ -50,6 +50,18 @@ if ('serviceWorker' in navigator) {
           }
         });
       });
+
+      // Controllo proattivo: quando l'app torna in primo piano (o riprende il
+      // focus) chiede al browser di verificare se sul server c'è una nuova
+      // versione. Così il banner "Nuova versione" appare senza dover chiudere
+      // e riaprire l'app. reg.update() è un no-op se non c'è nulla di nuovo.
+      const checkAggiornamenti = () => {
+        if (document.visibilityState === 'visible') {
+          reg.update().catch(() => {});
+        }
+      };
+      document.addEventListener('visibilitychange', checkAggiornamenti);
+      window.addEventListener('focus', checkAggiornamenti);
     });
   } else {
     // ── Sviluppo: rimuovi SW e cache vecchie (altrimenti rompono l'HMR) ──

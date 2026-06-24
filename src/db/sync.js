@@ -55,7 +55,7 @@ function profiloToPersona(p) {
     lavoro:p.lavoro||"sedentario",allenamenti:p.allenamenti??3,obiettivo:p.obiettivo||"mantenimento",
     dietaIntensita:p.dieta_intensita??null,
     pesoTarget:p.peso_target!=null?+p.peso_target:null,
-    color:p.color||"#18A957",_uid:p.user_id||null,_gestito:!p.user_id};
+    color:p.color||"#18A957",_uid:p.user_id||null,_gestito:!p.user_id,_gestitoDa:p.gestito_da||null};
 }
 function personaToProfilo(p) {
   return {nome:p.nome,sesso:p.sesso==="F"?"F":"M",data_nascita:p.dataNascita||etaToDataNascita(p.eta),

@@ -5,9 +5,15 @@ import { CalorieChart } from '@/components/charts';
 import { SwipeContainer } from '@/components/shared';
 import { logSync } from '@/db/synclog';
 
-export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) {
+export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, inFamily, myUid }) {
   const [misure, setMisure]   = useState({});
   const [selPid, setSelPid]   = useState(myPersonaId || personas[0]?.id);
+  // Sola lettura: in famiglia, le misure di un altro membro (non mio profilo e
+  // non gestito da me) non sono modificabili.
+  const selPersona = personas.find(p=>p.id===selPid);
+  const readOnly = inFamily
+    ? !(selPid===myPersonaId || (!!myUid && selPersona?._gestitoDa===myUid))
+    : false;
 
   const [loaded, setLoaded]   = useState(false);
   const [view, setView]       = useState("stats");   // "stats" | "history" | "form"
@@ -161,10 +167,16 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
       </div>
 
       {/* Bottone aggiungi */}
+      {readOnly ? (
+        <div style={{width:"100%",padding:"11px",borderRadius:12,background:"#EFF3EC",color:"#6E8576",fontWeight:700,fontSize:12,textAlign:"center",marginBottom:16}}>
+          🔒 Misure di un altro membro: sola lettura
+        </div>
+      ) : (
       <button onClick={openNew}
         style={{width:"100%",padding:"11px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${persona.color},${persona.color}cc)`,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:16,boxShadow:`0 4px 14px ${persona.color}44`}}>
         ➕ Aggiungi misurazione
       </button>
+      )}
 
       {allRecs.length === 0 ? (
         <div style={{textAlign:"center",padding:"50px 0",color:"#9DB1A2"}}>
@@ -476,8 +488,8 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog }) 
                     <div style={{fontSize:10,color:"#9DB1A2",fontFamily:"monospace"}}>{rec.date}</div>
                   </div>
                   <div style={{display:"flex",gap:6}}>
-                    <button onClick={()=>openEdit(rec)} style={{padding:"6px 10px",borderRadius:7,border:"1.5px solid #E7EDE2",background:"#F5F8F1",color:"#4A6152",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
-                    <button onClick={()=>handleDelete(rec)} style={{padding:"6px 10px",borderRadius:7,border:"1.5px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑</button>
+                    {!readOnly && <button onClick={()=>openEdit(rec)} style={{padding:"6px 10px",borderRadius:7,border:"1.5px solid #E7EDE2",background:"#F5F8F1",color:"#4A6152",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>}
+                    {!readOnly && <button onClick={()=>handleDelete(rec)} style={{padding:"6px 10px",borderRadius:7,border:"1.5px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑</button>}
                   </div>
                 </div>
                 {/* Griglia valori */}

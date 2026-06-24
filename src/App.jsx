@@ -570,6 +570,15 @@ export function App() {
   //   con fallback al calcolo locale (già corretto una volta che profili+misure sono
   //   sincronizzati, ma potenzialmente stale durante i drag in-flight dell'owner).
   const isOwnerPersona = persona?.id === myPersonaId;
+  // Sola lettura: in famiglia, una persona è modificabile solo se è la mia o se
+  // la gestisco io (gestito_da == mio uid). I profili degli altri membri sono
+  // in sola lettura → niente log pasti, swap, modifica scheda o misure.
+  // Fuori dalla famiglia (modalità locale) tutto è modificabile.
+  const myUid = personas.find(p=>p.id===myPersonaId)?._uid || null;
+  const personaEditabile = (p)=> !cloudStatus.inFamily
+    ? true
+    : (p?.id===myPersonaId || (!!myUid && p?._gestitoDa===myUid));
+  const readOnlyPersona = !personaEditabile(persona);
   const personaTargetLocale = persona ? calcTargetAdattivo(persona, misureApp[persona?.id]) : null;
   const personaTarget = persona
     ? (isOwnerPersona
@@ -736,6 +745,7 @@ export function App() {
             misure={misureApp[persona?.id]}
             mealsLog={mealsLog}
             onToggleMeal={handleToggleMealLog}
+            readOnly={readOnlyPersona}
             onGoPiano={()=>{ setSelDay(todayDayIndex()); setPage("piano"); }}
             onGoMisure={()=>setPage("misure")}
           />
@@ -812,6 +822,7 @@ export function App() {
                             key={mk}
                             mealKey={mk}
                             dayIdx={selDay}
+                            readOnly={readOnlyPersona}
                             meal={effectiveDay[mk]}
                             personaKey={personaSlot}
                             color={persona.color}
@@ -956,7 +967,7 @@ export function App() {
         {!showHistory&&page==="test-sync"&&<SyncTestPage/>}
         {!showHistory&&page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}
         {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed}/>}
-        {!showHistory&&page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={handleMisureChange} mealsLog={mealsLog}/>}
+        {!showHistory&&page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={handleMisureChange} mealsLog={mealsLog} inFamily={cloudStatus.inFamily} myUid={myUid}/>}
         {!showHistory&&page==="utente"&&(
           <UtentePage personas={personas} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} onGoFamiglia={()=>setPage("famiglia")} onUpdatePersona={handleUpdatePersona} misureApp={misureApp} cloudStatus={cloudStatus}/>
         )}
