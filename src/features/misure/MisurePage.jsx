@@ -8,12 +8,10 @@ import { logSync } from '@/db/synclog';
 export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, inFamily, myUid }) {
   const [misure, setMisure]   = useState({});
   const [selPid, setSelPid]   = useState(myPersonaId || personas[0]?.id);
-  // Sola lettura: in famiglia, le misure di un altro membro (non mio profilo e
-  // non gestito da me) non sono modificabili.
+  // Sola lettura STRETTA: le misure sono modificabili solo sul proprio profilo
+  // (myPersonaId). I dati degli altri membri sono in sola lettura.
   const selPersona = personas.find(p=>p.id===selPid);
-  const readOnly = inFamily
-    ? !(selPid===myPersonaId || (!!myUid && selPersona?._gestitoDa===myUid))
-    : false;
+  const readOnly = inFamily ? (selPid !== myPersonaId) : false;
 
   const [loaded, setLoaded]   = useState(false);
   const [view, setView]       = useState("stats");   // "stats" | "history" | "form"

@@ -199,16 +199,13 @@ export function SeedSyncSection({ currentSeed, overrides, onApplySeed }) {
 // ─── FamigliaPage ────────────────────────────────────────────────────
 
 export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed, overrides, onApplySeed, myPersonaId, onSetMyPersona, misureApp , onGoUtente }) {
-  // Con il cloud attivo, i profili di ALTRI account e quelli gestiti da altri
-  // membri sono in sola lettura (la regola vera è imposta dal database via RLS;
-  // qui nascondiamo solo i comandi). Editabili: il MIO profilo e i profili che
-  // gestisco io (gestito_da == mio uid). In locale (nessun cloud) tutto editabile.
+  // Sola lettura STRETTA: con il cloud attivo, ogni utente modifica SOLO il
+  // proprio profilo (quello legato al suo account). Tutti gli altri membri sono
+  // in sola lettura (la regola vera è imposta dal database via RLS; qui
+  // nascondiamo i comandi). In locale (nessun cloud) tutto è modificabile.
   const cloudMe = (()=>{ try { return JSON.parse(localStorage.getItem("pa__pf-cloud-me")||"null"); } catch { return null; } })();
   const myCloudProfiloId = cloudMe?.profiloId || null;
-  const myUid = cloudMe?.userId || null;
-  const isEditable = (p) => !myCloudProfiloId
-    ? true
-    : (p.id === myCloudProfiloId || (!!myUid && p._gestitoDa === myUid));
+  const isEditable = (p) => !myCloudProfiloId ? true : (p.id === myCloudProfiloId);
   const [editing, setEditing] = useState(null);
   const [adding, setAdding]   = useState(false);
   const newPersona = () => ({ id:"p"+Date.now(), nome:"Nuovo", sesso:"M", eta:30, peso:70, altezza:170, lavoro:"sedentario", allenamenti:3, obiettivo:"mantenimento", color:COLORS[personas.length%COLORS.length] });

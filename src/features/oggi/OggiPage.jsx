@@ -177,7 +177,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
       </div>
 
       {/* Acqua */}
-      <WaterTracker dayKey={dateKey} personaColor={col}/>
+      <WaterTracker dayKey={dateKey} personaColor={col} personaId={persona?.id} readOnly={readOnly}/>
 
       {/* Nudge misure */}
       {lastMisuraGiorni > 7 && (

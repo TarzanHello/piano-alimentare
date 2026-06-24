@@ -570,14 +570,12 @@ export function App() {
   //   con fallback al calcolo locale (già corretto una volta che profili+misure sono
   //   sincronizzati, ma potenzialmente stale durante i drag in-flight dell'owner).
   const isOwnerPersona = persona?.id === myPersonaId;
-  // Sola lettura: in famiglia, una persona è modificabile solo se è la mia o se
-  // la gestisco io (gestito_da == mio uid). I profili degli altri membri sono
-  // in sola lettura → niente log pasti, swap, modifica scheda o misure.
-  // Fuori dalla famiglia (modalità locale) tutto è modificabile.
+  // Sola lettura STRETTA: ogni utente lavora SOLO sul proprio profilo (quello
+  // con cui è identificato su questo dispositivo, myPersonaId). Tutti gli altri
+  // profili della famiglia sono in sola lettura: niente log pasti, idratazione,
+  // swap o misure. Fuori dalla famiglia (modalità locale) tutto è modificabile.
   const myUid = personas.find(p=>p.id===myPersonaId)?._uid || null;
-  const personaEditabile = (p)=> !cloudStatus.inFamily
-    ? true
-    : (p?.id===myPersonaId || (!!myUid && p?._gestitoDa===myUid));
+  const personaEditabile = (p)=> !cloudStatus.inFamily ? true : (p?.id===myPersonaId);
   const readOnlyPersona = !personaEditabile(persona);
   const personaTargetLocale = persona ? calcTargetAdattivo(persona, misureApp[persona?.id]) : null;
   const personaTarget = persona

@@ -6,14 +6,16 @@ import { ConsumedEditorModal, RecipeEditorModal, RicettarioModal } from '@/compo
 import { MacroBadge, ProgressBar } from '@/components/shared';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
 
-export function WaterTracker({ dayKey, personaColor }) {
+export function WaterTracker({ dayKey, personaColor, personaId, readOnly }) {
   // glasses: numero bicchieri bevuti per questo giorno
   const [glasses, setGlasses] = useState(0);
   const [loaded,  setLoaded]  = useState(false);
   const [bounce,  setBounce]  = useState(null); // indice bicchiere animato
 
-  // Chiave storage per questo giorno
-  const storageKey = `${SK_WATER}:${dayKey}`;
+  // Chiave storage PER PERSONA e per giorno: l'idratazione è un dato del singolo
+  // profilo, non condiviso. (Retro-compatibile: se manca personaId usa la
+  // vecchia chiave solo-giorno.)
+  const storageKey = personaId ? `${SK_WATER}:${personaId}:${dayKey}` : `${SK_WATER}:${dayKey}`;
 
   useEffect(() => {
     window.storage.get(storageKey)
@@ -29,6 +31,7 @@ export function WaterTracker({ dayKey, personaColor }) {
   };
 
   const handleGlassClick = (idx) => {
+    if (readOnly) return;
     const next = idx + 1 === glasses ? idx : idx + 1;
     setBounce(idx);
     setTimeout(() => setBounce(null), 300);
@@ -68,9 +71,10 @@ export function WaterTracker({ dayKey, personaColor }) {
           const filled = i < glasses;
           const anim   = bounce === i;
           return (
-            <button key={i} onClick={() => handleGlassClick(i)} title={`${(i+1)*WATER_ML} ml`}
-              style={{flex:1,height:38,borderRadius:11,border:"none",cursor:"pointer",padding:0,
+            <button key={i} onClick={() => handleGlassClick(i)} title={readOnly?"Sola lettura":`${(i+1)*WATER_ML} ml`} disabled={readOnly}
+              style={{flex:1,height:38,borderRadius:11,border:"none",cursor:readOnly?"default":"pointer",padding:0,
                 background: filled ? "#38BDF8" : "#E8F1EC",
+                opacity: readOnly && !filled ? 0.6 : 1,
                 transform: anim ? "scaleY(1.15)" : "scaleY(1)",
                 transition:"transform 0.15s, background 0.25s",outline:"none"}}/>
           );
@@ -79,7 +83,7 @@ export function WaterTracker({ dayKey, personaColor }) {
 
       {/* Hint */}
       <div style={{marginTop:10,fontSize:10,color:"#9DB1A2",textAlign:"center"}}>
-        Tocca i segmenti per registrare l'acqua bevuta ({WATER_ML} ml l'uno)
+        {readOnly ? "🔒 Idratazione di un altro membro: sola lettura" : `Tocca i segmenti per registrare l'acqua bevuta (${WATER_ML} ml l'uno)`}
       </div>
     </div>
   );
