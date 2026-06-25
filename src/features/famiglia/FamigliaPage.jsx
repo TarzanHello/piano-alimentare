@@ -283,21 +283,16 @@ export function IntensitaDieta({ persona, onUpdate }) {
   const intensita = p.dietaIntensita ?? 50;
   const getLabel = v => v<=10?{txt:"Molto facile",sub:"−100 kcal",col:"#16a34a",emoji:"😊"}:v<=30?{txt:"Facile",sub:"~−320 kcal",col:"#65a30d",emoji:"🙂"}:v<=55?{txt:"Moderato",sub:"~−550 kcal",col:"#2F6B3A",emoji:"⚖️"}:v<=80?{txt:"Intenso",sub:"~−775 kcal",col:"#d97706",emoji:"😓"}:{txt:"Molto difficile",sub:"−1000 kcal",col:"#dc2626",emoji:"🔥"};
   const lbl = getLabel(intensita);
-  const off = Math.round(100+(intensita/100)*900);
   return (
-    <div style={{marginTop:10,padding:"10px 12px",background:"#F5F8F1",borderRadius:9,border:"1px solid #E7EDE2"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <span style={{fontSize:10,fontWeight:800,color:"#4A6152",textTransform:"uppercase",letterSpacing:0.5}}>⚡ Intensità dieta</span>
-        <span style={{fontSize:11,fontWeight:800,color:lbl.col}}>{lbl.emoji} {lbl.txt} <span style={{fontFamily:"monospace",fontSize:10}}>{lbl.sub}</span></span>
+    <div style={{marginTop:10,padding:"12px 14px",background:"#F5F8F1",borderRadius:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}}>
+        <span style={{fontSize:11,fontWeight:700,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.6}}>Intensità dieta</span>
+        <span style={{display:"flex",alignItems:"center",gap:5,fontSize:12,fontWeight:800,color:lbl.col}}>{lbl.emoji} {lbl.txt} · {lbl.sub}</span>
       </div>
-      <div style={{position:"relative",height:22,display:"flex",alignItems:"center"}}>
-        <div style={{position:"absolute",left:0,right:0,height:4,borderRadius:2,background:"linear-gradient(to right,#16a34a,#65a30d,#2F6B3A,#d97706,#dc2626)"}}/>
-        <input type="range" min={0} max={100} step={1} value={intensita} onChange={e=>onUpdate({...p,dietaIntensita:parseInt(e.target.value)})} style={{position:"relative",zIndex:1,width:"100%",margin:0,background:"transparent"}}/>
-      </div>
-      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-        <span style={{fontSize:9,color:"#16a34a",fontWeight:700}}>😊 −100 kcal</span>
-        <span style={{fontSize:9,color:"#4A6152",fontWeight:700,fontFamily:"monospace"}}>TDEE − {off} kcal</span>
-        <span style={{fontSize:9,color:"#dc2626",fontWeight:700}}>🔥 −1000 kcal</span>
+      <div style={{position:"relative",height:18,display:"flex",alignItems:"center"}}>
+        <div style={{position:"absolute",left:0,right:0,height:6,borderRadius:99,background:"linear-gradient(90deg,#16a34a,#65a30d 45%,#d97706 80%,#ef4444)"}}/>
+        <div style={{position:"absolute",top:"50%",left:`${intensita}%`,width:18,height:18,borderRadius:"50%",background:"#fff",border:`3px solid ${lbl.col}`,transform:"translate(-50%,-50%)",boxShadow:"0 2px 6px rgba(0,0,0,0.2)",pointerEvents:"none"}}/>
+        <input type="range" min={0} max={100} step={1} value={intensita} onChange={e=>onUpdate({...p,dietaIntensita:parseInt(e.target.value)})} style={{position:"relative",zIndex:1,width:"100%",margin:0,height:18,opacity:0,cursor:"pointer"}}/>
       </div>
     </div>
   );
@@ -305,8 +300,7 @@ export function IntensitaDieta({ persona, onUpdate }) {
 
 // ─── PesoTargetPicker ────────────────────────────────────────────────
 // Widget inline per selezionare il peso obiettivo: automatico (formula)
-// oppure manuale, dove l'utente digita il peso target in un campo numerico.
-// Usato in UtentePage e PersonaForm.
+// oppure manuale con slider. Usato in UtentePage e PersonaForm.
 export function PesoTargetPicker({ persona, lastMisura, onUpdate }) {
   const p = persona;
   const isManuale = p.pesoTarget != null;
@@ -321,71 +315,24 @@ export function PesoTargetPicker({ persona, lastMisura, onUpdate }) {
   const delta = pesoAttuale - valore;
   const deltaColor = Math.abs(delta) < 0.3 ? "#16a34a" : delta > 0 ? "#2F6B3A" : "#d97706";
   const deltaLabel = Math.abs(delta) < 0.3 ? "raggiunto" : (delta > 0 ? `−${delta.toFixed(1)} kg` : `+${Math.abs(delta).toFixed(1)} kg`);
-
-  // Testo digitato nel campo manuale: stato locale così l'utente può scrivere
-  // liberamente (anche cancellare) senza che il valore venga forzato a ogni tasto.
-  const [draft, setDraft] = useState(isManuale ? String(parseFloat(p.pesoTarget) || defaultManuale) : "");
-  useEffect(() => {
-    if (isManuale) setDraft(String(parseFloat(p.pesoTarget) ?? defaultManuale));
-  }, [p.id, isManuale]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const commitManuale = (raw) => {
-    const v = parseFloat(String(raw).replace(",", "."));
-    if (!isNaN(v) && v >= 30 && v <= 200) onUpdate({ ...p, pesoTarget: v });
-  };
-  const draftNum = parseFloat(String(draft).replace(",", "."));
-  const draftValido = !isNaN(draftNum) && draftNum >= 30 && draftNum <= 200;
-
+  const clamp = v => Math.min(bmiMax, Math.max(bmiMin, Math.round(v*2)/2));
+  const step = d => onUpdate({...p, pesoTarget: clamp(valore + d)});
   return (
-    <div style={{marginTop:10,padding:"10px 12px",background:"#F5F8F1",borderRadius:9,border:"1px solid #E7EDE2"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <span style={{fontSize:10,fontWeight:800,color:"#4A6152",textTransform:"uppercase",letterSpacing:0.5}}>🎯 Peso obiettivo</span>
-        <div style={{display:"flex",gap:4}}>
-          <button onClick={()=>onUpdate({...p,pesoTarget:null})}
-            style={{padding:"3px 9px",borderRadius:6,border:`1.5px solid ${!isManuale?"#2F6B3A":"#E7EDE2"}`,background:!isManuale?"#D6EFDD":"#fff",color:!isManuale?"#235029":"#6E8576",fontSize:10,fontWeight:700,cursor:"pointer"}}>
-            Auto
-          </button>
-          <button onClick={()=>onUpdate({...p,pesoTarget:isManuale?p.pesoTarget:defaultManuale})}
-            style={{padding:"3px 9px",borderRadius:6,border:`1.5px solid ${isManuale?"#7c3aed":"#E7EDE2"}`,background:isManuale?"#ede9fe":"#fff",color:isManuale?"#6d28d9":"#6E8576",fontSize:10,fontWeight:700,cursor:"pointer"}}>
-            Manuale
-          </button>
+    <div style={{marginTop:10,padding:"12px 14px",background:"#F5F8F1",borderRadius:12}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <span style={{fontSize:11,fontWeight:700,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.6}}>Peso obiettivo</span>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={()=>step(-0.5)} style={{width:28,height:28,borderRadius:8,border:"1.5px solid #E7EDE2",background:"#fff",color:"#6E8576",fontWeight:800,fontSize:15,cursor:"pointer",lineHeight:1}}>−</button>
+          <span style={{fontFamily:"'Outfit',sans-serif",fontSize:18,fontWeight:800,color:"#15251C"}}>{valore}<span style={{fontSize:11,color:"#9DB1A2",fontWeight:700}}> kg</span></span>
+          <button onClick={()=>step(0.5)} style={{width:28,height:28,borderRadius:8,border:"1.5px solid #E7EDE2",background:"#fff",color:"#6E8576",fontWeight:800,fontSize:15,cursor:"pointer",lineHeight:1}}>+</button>
         </div>
       </div>
-      {isManuale ? (
-        <>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-            <span style={{fontSize:11,color:"#6E8576",flexShrink:0}}>Peso target</span>
-            <input type="number" inputMode="decimal" min={30} max={200} step={0.5}
-              value={draft}
-              placeholder={String(defaultManuale)}
-              onChange={e=>{ setDraft(e.target.value); commitManuale(e.target.value); }}
-              onBlur={e=>{
-                if(!draftValido){ const fb=defaultManuale; setDraft(String(fb)); onUpdate({...p,pesoTarget:fb}); }
-              }}
-              style={{flex:1,minWidth:0,padding:"8px 10px",border:`1.5px solid ${draftValido?"#7c3aed":"#dc2626"}`,borderRadius:8,fontSize:18,fontWeight:800,fontFamily:"monospace",textAlign:"center",outline:"none",color:"#6d28d9",background:"#fff"}}/>
-            <span style={{fontSize:13,color:"#6E8576",fontWeight:700,flexShrink:0}}>kg</span>
-          </div>
-          {!draftValido && draft !== "" && (
-            <div style={{fontSize:9,color:"#dc2626",fontWeight:700,marginBottom:4}}>Inserisci un valore tra 30 e 200 kg</div>
-          )}
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#9DB1A2"}}>
-            <span>BMI 18.5 → {bmiMin} kg</span>
-            <span style={{color:deltaColor,fontWeight:700}}>{deltaLabel}</span>
-            <span>BMI 30 → {bmiMax} kg</span>
-          </div>
-        </>
-      ) : (
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{flex:1}}>
-            <span style={{fontSize:16,fontWeight:900,fontFamily:"monospace",color:"#15251C"}}>{autoResult.peso} </span>
-            <span style={{fontSize:11,color:"#6E8576"}}>kg</span>
-            <span style={{marginLeft:8,fontSize:10,color:deltaColor,fontWeight:700}}>({deltaLabel})</span>
-          </div>
-          <div style={{fontSize:9,color:"#9DB1A2",textAlign:"right",lineHeight:1.4}}>
-            {autoResult.metodo}<br/>{autoResult.descrizione}
-          </div>
-        </div>
-      )}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:7}}>
+        <span style={{fontSize:10,fontWeight:700,color:deltaColor}}>{deltaLabel}</span>
+        {isManuale
+          ? <button onClick={()=>onUpdate({...p,pesoTarget:null})} style={{fontSize:10,fontWeight:700,color:"#7c3aed",background:"none",border:"none",cursor:"pointer",padding:0}}>↺ Auto ({autoResult.peso} kg)</button>
+          : <span style={{fontSize:10,color:"#9DB1A2",fontWeight:600}}>Automatico · {autoResult.metodo}</span>}
+      </div>
     </div>
   );
 }
