@@ -211,6 +211,7 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
   const newPersona = () => ({ id:"p"+Date.now(), nome:"Nuovo", sesso:"M", eta:30, peso:70, altezza:170, lavoro:"sedentario", allenamenti:3, obiettivo:"mantenimento", color:COLORS[personas.length%COLORS.length] });
   return (
     <div>
+      <div style={{fontFamily:"'Outfit',sans-serif",fontWeight:800,fontSize:22,letterSpacing:"-0.02em",color:"#15251C",margin:"2px 0 14px"}}>La tua famiglia</div>
       <AccountCard myPersona={personas.find(p=>p.id===myPersonaId)} onGoUtente={onGoUtente}/>
       <div style={{fontSize:13,fontWeight:900,color:"#15251C",margin:"4px 0 10px"}}>👥 Membri della famiglia</div>
       <div style={{background:"#EEF7F0",border:"1px solid #A9DDB8",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:11,color:"#1F6B4A"}}>
@@ -304,8 +305,7 @@ export function IntensitaDieta({ persona, onUpdate }) {
 
 // ─── PesoTargetPicker ────────────────────────────────────────────────
 // Widget inline per selezionare il peso obiettivo: automatico (formula)
-// oppure manuale, dove l'utente digita il peso target in un campo numerico.
-// Usato in UtentePage e PersonaForm.
+// oppure manuale con slider. Usato in UtentePage e PersonaForm.
 export function PesoTargetPicker({ persona, lastMisura, onUpdate }) {
   const p = persona;
   const isManuale = p.pesoTarget != null;
@@ -320,21 +320,6 @@ export function PesoTargetPicker({ persona, lastMisura, onUpdate }) {
   const delta = pesoAttuale - valore;
   const deltaColor = Math.abs(delta) < 0.3 ? "#16a34a" : delta > 0 ? "#2F6B3A" : "#d97706";
   const deltaLabel = Math.abs(delta) < 0.3 ? "raggiunto" : (delta > 0 ? `−${delta.toFixed(1)} kg` : `+${Math.abs(delta).toFixed(1)} kg`);
-
-  // Testo digitato nel campo manuale: stato locale così l'utente può scrivere
-  // liberamente (anche cancellare) senza che il valore venga forzato a ogni tasto.
-  const [draft, setDraft] = useState(isManuale ? String(parseFloat(p.pesoTarget) || defaultManuale) : "");
-  useEffect(() => {
-    if (isManuale) setDraft(String(parseFloat(p.pesoTarget) ?? defaultManuale));
-  }, [p.id, isManuale]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const commitManuale = (raw) => {
-    const v = parseFloat(String(raw).replace(",", "."));
-    if (!isNaN(v) && v >= 30 && v <= 200) onUpdate({ ...p, pesoTarget: v });
-  };
-  const draftNum = parseFloat(String(draft).replace(",", "."));
-  const draftValido = !isNaN(draftNum) && draftNum >= 30 && draftNum <= 200;
-
   return (
     <div style={{marginTop:10,padding:"10px 12px",background:"#F5F8F1",borderRadius:9,border:"1px solid #E7EDE2"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
@@ -352,21 +337,16 @@ export function PesoTargetPicker({ persona, lastMisura, onUpdate }) {
       </div>
       {isManuale ? (
         <>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-            <span style={{fontSize:11,color:"#6E8576",flexShrink:0}}>Peso target</span>
-            <input type="number" inputMode="decimal" min={30} max={200} step={0.5}
-              value={draft}
-              placeholder={String(defaultManuale)}
-              onChange={e=>{ setDraft(e.target.value); commitManuale(e.target.value); }}
-              onBlur={e=>{
-                if(!draftValido){ const fb=defaultManuale; setDraft(String(fb)); onUpdate({...p,pesoTarget:fb}); }
-              }}
-              style={{flex:1,minWidth:0,padding:"8px 10px",border:`1.5px solid ${draftValido?"#7c3aed":"#dc2626"}`,borderRadius:8,fontSize:18,fontWeight:800,fontFamily:"monospace",textAlign:"center",outline:"none",color:"#6d28d9",background:"#fff"}}/>
-            <span style={{fontSize:13,color:"#6E8576",fontWeight:700,flexShrink:0}}>kg</span>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+            <input type="range" min={bmiMin} max={bmiMax} step={0.5} value={parseFloat(p.pesoTarget)||defaultManuale}
+              onChange={e=>onUpdate({...p,pesoTarget:parseFloat(e.target.value)})}
+              style={{flex:1,margin:0}}/>
+            <input type="number" min={bmiMin} max={bmiMax} step={0.5}
+              value={parseFloat(p.pesoTarget)||defaultManuale}
+              onChange={e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>=30&&v<=200)onUpdate({...p,pesoTarget:v});}}
+              style={{width:60,padding:"4px 6px",border:"1.5px solid #7c3aed60",borderRadius:7,fontSize:13,fontWeight:700,fontFamily:"monospace",textAlign:"center",outline:"none",color:"#6d28d9"}}/>
+            <span style={{fontSize:11,color:"#6E8576",flexShrink:0}}>kg</span>
           </div>
-          {!draftValido && draft !== "" && (
-            <div style={{fontSize:9,color:"#dc2626",fontWeight:700,marginBottom:4}}>Inserisci un valore tra 30 e 200 kg</div>
-          )}
           <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"#9DB1A2"}}>
             <span>BMI 18.5 → {bmiMin} kg</span>
             <span style={{color:deltaColor,fontWeight:700}}>{deltaLabel}</span>

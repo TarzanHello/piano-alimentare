@@ -126,18 +126,29 @@ export function AccountCard({ myPersona, onGoUtente }) {
         </>
       ) : !famiglia ? (
         <>
-          <div style={{fontSize:12,color:"#4A6152",marginBottom:12}}>
+          <div style={{fontSize:12,color:"#4A6152",marginBottom:6}}>
             Connesso come <strong>{session.user.email}</strong>
+          </div>
+          <div style={{fontSize:12,color:"#6E8576",lineHeight:1.5,marginBottom:14}}>
+            Crea un nucleo per condividere piano, spesa e misure con chi vuoi — oppure entra in quello di qualcun altro con un codice.
           </div>
           <div style={{fontSize:12,fontWeight:700,color:"#15251C",marginBottom:6}}>Crea la tua famiglia</div>
           <div style={{display:"flex",gap:8,marginBottom:14}}>
             <input style={S.input} placeholder="Nome (es. Famiglia Rossi)" value={nomeFam} onChange={e=>setNomeFam(e.target.value)}/>
             <button disabled={busy||!nomeFam.trim()} onClick={()=>azione(()=>createFamily(nomeFam))} style={S.btn("#2F6B3A")}>Crea</button>
           </div>
-          <div style={{fontSize:12,fontWeight:700,color:"#15251C",marginBottom:6}}>Oppure entra con un codice</div>
-          <div style={{display:"flex",gap:8,marginBottom:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+            <div style={{flex:1,height:1,background:"#EFF3EC"}}/>
+            <span style={{fontSize:10,fontWeight:700,color:"#C2D0C6",textTransform:"uppercase",letterSpacing:0.6}}>oppure</span>
+            <div style={{flex:1,height:1,background:"#EFF3EC"}}/>
+          </div>
+          <div style={{fontSize:12,fontWeight:700,color:"#15251C",marginBottom:6}}>Entra con un codice</div>
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
             <input style={{...S.input,textTransform:"uppercase",fontFamily:"monospace"}} placeholder="ES. PASTA-1234" value={codice} onChange={e=>setCodice(e.target.value)}/>
             <button disabled={busy||!codice.trim()} onClick={()=>azione(()=>joinFamily(codice))} style={S.btn("#16a34a")}>Unisciti</button>
+          </div>
+          <div style={{background:"#EEF7F0",border:"1px solid #A9DDB8",borderRadius:10,padding:"10px 14px",fontSize:11,color:"#1F6B4A",lineHeight:1.5}}>
+            💡 Finché non crei o entri in una famiglia, l'app funziona in locale su questo dispositivo: i tuoi dati restano salvati e verranno collegati quando ti unirai a un nucleo.
           </div>
         </>
       ) : (
