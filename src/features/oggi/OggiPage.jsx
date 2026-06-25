@@ -89,7 +89,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
     <div>
       {/* Saluto */}
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:24,fontWeight:800,color:"#15251C",fontFamily:"'Outfit',sans-serif"}}>{saluto}, {persona?.nome} 👋</div>
+        <div style={{fontSize:24,fontWeight:800,color:"#15251C",fontFamily:"'Outfit',sans-serif"}}>{saluto} {persona?.nome}</div>
       </div>
 
       {/* Anello kcal + macro */}
