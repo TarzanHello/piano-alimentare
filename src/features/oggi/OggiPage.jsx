@@ -87,22 +87,9 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
 
   return (
     <div>
-      {/* Selettore persona compatto */}
-      <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
-        {personas.map(p=>{
-          const sel = selPersonaId===p.id;
-          return (
-          <button key={p.id} onClick={()=>onSelPersona(p.id)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:7,padding:"8px 14px",borderRadius:999,border:sel?"none":"1.5px solid #E7EDE2",background:sel?p.color:"#fff",color:sel?"#fff":"#6E8576",fontWeight:700,fontSize:13,cursor:"pointer",whiteSpace:"nowrap",boxShadow:sel?`0 6px 14px -5px ${p.color}99`:"none"}}>
-            <span style={{width:8,height:8,borderRadius:"50%",background:sel?"#fff":p.color}}/>
-            {p.nome}
-          </button>
-        );})}
-      </div>
-
       {/* Saluto */}
       <div style={{marginBottom:14}}>
         <div style={{fontSize:24,fontWeight:800,color:"#15251C",fontFamily:"'Outfit',sans-serif"}}>{saluto}, {persona?.nome} 👋</div>
-        <div style={{fontSize:12,color:"#9DB1A2",fontWeight:600,textTransform:"capitalize"}}>{dataLabel}</div>
       </div>
 
       {/* Anello kcal + macro */}

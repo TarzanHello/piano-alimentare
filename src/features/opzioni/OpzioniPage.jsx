@@ -5,7 +5,7 @@ const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { DEFAULT_NOTIF, MEAL_KEYS, MEAL_META, scheduleNotifications, todayDayIndex } from '@/core';
 import { GustiPage } from '@/features/gusti/GustiPage';
 
-export function OpzioniPage({ notifSettings, onNotifChange, plan, personas, myPersonaId, currentSeed, overrides, onApplySeed }) {
+export function OpzioniPage({ notifSettings, onNotifChange, plan, personas, myPersonaId, currentSeed, overrides, onApplySeed, history, onLoadHistory }) {
   const [permStatus, setPermStatus] = React.useState("Notification" in window ? Notification.permission : "unsupported");
   const [requesting, setRequesting] = React.useState(false);
   const settings = {
@@ -27,6 +27,18 @@ export function OpzioniPage({ notifSettings, onNotifChange, plan, personas, myPe
     <div>
       <RecuperoDati personas={personas}/>
       <SeedSyncSection currentSeed={currentSeed} overrides={overrides} onApplySeed={onApplySeed}/>
+      {Array.isArray(history) && history.length>0 && (
+        <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E7EDE2",padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#15251C",marginBottom:4}}>🕐 Cronologia piani</div>
+          <div style={{fontSize:11,color:"#6E8576",marginBottom:14,lineHeight:1.6}}>Ricarica uno dei piani generati in precedenza.</div>
+          {history.map((h,i)=>(
+            <div key={i} onClick={()=>onLoadHistory&&onLoadHistory(h.seed)} style={{background:"#F8FAF5",borderRadius:10,border:"1.5px solid #E7EDE2",padding:"12px 14px",marginBottom:i<history.length-1?8:0,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div><div style={{fontWeight:700,fontSize:13,color:"#15251C"}}>{h.label}</div><div style={{fontSize:10,color:"#9DB1A2",fontFamily:"monospace"}}>seed: {h.seed}</div></div>
+              <span style={{fontSize:12,color:"#2F6B3A",fontWeight:700}}>Ricarica →</span>
+            </div>
+          ))}
+        </div>
+      )}
       <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E7EDE2",padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
         <div style={{fontSize:13,fontWeight:800,color:"#15251C",marginBottom:4}}>🔔 Notifiche pasto</div>
         <div style={{fontSize:11,color:"#6E8576",marginBottom:14,lineHeight:1.6}}>Ricevi un promemoria con il nome della ricetta prima di ogni pasto.</div>

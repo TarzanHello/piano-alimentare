@@ -585,6 +585,12 @@ export function App() {
     : null;
   const personaSlot = persona ? slotForPersona(persona) : "uomo";
 
+  // ── Oggi è una schermata PERSONALE: usa sempre il profilo dell'utente ──
+  const oggiPersona  = personas.find(p=>p.id===myPersonaId) || persona;
+  const oggiSlot     = oggiPersona ? slotForPersona(oggiPersona) : "uomo";
+  const oggiTarget   = oggiPersona ? calcTargetAdattivo(oggiPersona, misureApp[oggiPersona?.id]) : null;
+  const oggiReadOnly = !personaEditabile(oggiPersona);
+
   // Navigazione: 3 voci principali nella bottom-nav (Piano · Spesa · Menu).
   // "Menu" apre un bottom-sheet con le 4 voci secondarie:
   // Ingredienti · Gusti · Misure · Famiglia.
@@ -674,20 +680,17 @@ export function App() {
       <div style={{background:"linear-gradient(120deg,#15251C 0%,#1D3A28 100%)",padding:"13px 18px",paddingTop:"calc(13px + env(safe-area-inset-top,0px))"}}>
         <div style={{maxWidth:680,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{display:"flex",alignItems:"center",gap:11}}>
-            <div style={{width:34,height:34,borderRadius:10,background:"#0f1d15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}>
-              <svg width="21" height="21" viewBox="0 0 21 21" style={{transform:"rotate(-90deg)",display:"block"}}><circle cx="10.5" cy="10.5" r="7.5" fill="none" stroke="#28412f" strokeWidth="3"/><circle cx="10.5" cy="10.5" r="7.5" fill="none" stroke="#C7F23E" strokeWidth="3" strokeLinecap="round" strokeDasharray="47.1" strokeDashoffset="13"/></svg>
-              <div style={{position:"absolute",left:"50%",top:4,transform:"translateX(-50%)",width:3,height:3,borderRadius:"50%",background:"#C7F23E"}}/>
+            <div style={{width:40,height:40,borderRadius:12,background:"#0f1d15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}>
+              <svg width="24" height="24" viewBox="0 0 24 24" style={{transform:"rotate(-90deg)",display:"block"}}><circle cx="12" cy="12" r="9" fill="none" stroke="#28412f" strokeWidth="3.4"/><circle cx="12" cy="12" r="9" fill="none" stroke="#C7F23E" strokeWidth="3.4" strokeLinecap="round" strokeDasharray="56.5" strokeDashoffset="16"/></svg>
+              <div style={{position:"absolute",left:"50%",top:4,transform:"translateX(-50%)",width:3.4,height:3.4,borderRadius:"50%",background:"#C7F23E"}}/>
             </div>
-            <div>
-              <div style={{fontSize:19,fontWeight:800,color:"#F5F8F1",fontFamily:"'Outfit',sans-serif",lineHeight:1,letterSpacing:-0.6}}>f<span style={{color:"#C7F23E"}}>i</span>tsy</div>
-              <div style={{fontSize:10.5,color:"#7FA890",fontWeight:600,marginTop:3}}>{personas.length} {personas.length===1?"persona":"persone"} · 7 giorni</div>
-            </div>
+            <div style={{fontSize:30,fontWeight:800,color:"#F5F8F1",fontFamily:"'Outfit',sans-serif",lineHeight:1,letterSpacing:-1}}>f<span style={{color:"#C7F23E"}}>i</span>tsy</div>
           </div>
-          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <div style={{display:"flex",gap:9,alignItems:"center"}}>
             {regenNeeded&&<span style={{fontSize:11,color:"#fbbf24",fontWeight:800,background:"#78350f55",borderRadius:6,padding:"5px 7px"}}>⚠</span>}
-            {history.length>0&&<button onClick={()=>setShowHistory(h=>!h)} title="Storico piani" style={{flexShrink:0,width:36,height:36,borderRadius:10,border:"none",background:showHistory?"#fff":"rgba(255,255,255,0.12)",color:showHistory?"#15251C":"#E7EDE2",fontWeight:700,fontSize:14,cursor:"pointer"}}>🕐</button>}
-            <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#A8C96E":"#C7F23E",color:"#15251C",border:"none",borderRadius:10,padding:"9px 14px",fontWeight:700,fontSize:12,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 6px 16px -5px rgba(199,242,62,0.7)",transition:"all 0.2s"}}>
-              <span style={{display:"inline-block",animation:spinning?"spin 0.7s linear infinite":"none",fontSize:13}}>🔄</span>
+            <div style={{fontSize:12,color:"#9DB1A2",fontWeight:600,textTransform:"capitalize",textAlign:"right",lineHeight:1.2,maxWidth:96}}>{new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}</div>
+            <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#A8C96E":"#C7F23E",color:"#15251C",border:"none",borderRadius:11,padding:"9px 14px",fontWeight:700,fontSize:12,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 6px 16px -5px rgba(199,242,62,0.7)",transition:"all 0.2s",whiteSpace:"nowrap"}}>
+              {spinning&&<span style={{display:"inline-block",animation:"spin 0.7s linear infinite",fontSize:13}}>🔄</span>}
               {spinning?"...":"Nuovo piano"}
             </button>
           </div>
@@ -737,16 +740,14 @@ export function App() {
         {!showHistory&&page==="oggi"&&(
           <OggiPage
             personas={personas}
-            selPersonaId={selPersonaId}
-            onSelPersona={setSelPersonaId}
-            persona={persona}
-            personaSlot={personaSlot}
-            target={personaTarget}
+            persona={oggiPersona}
+            personaSlot={oggiSlot}
+            target={oggiTarget}
             effectivePlan={applyOverrides(plan, overrides)}
-            misure={misureApp[persona?.id]}
+            misure={misureApp[oggiPersona?.id]}
             mealsLog={mealsLog}
             onToggleMeal={handleToggleMealLog}
-            readOnly={readOnlyPersona}
+            readOnly={oggiReadOnly}
             onGoPiano={()=>{ setSelDay(todayDayIndex()); setPage("piano"); }}
             onGoMisure={()=>setPage("misure")}
           />
@@ -967,7 +968,7 @@ export function App() {
         {!showHistory&&page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={handleRicetteChange}/>}
         {!showHistory&&page==="test-sync"&&<SyncTestPage/>}
         {!showHistory&&page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}
-        {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed}/>}
+        {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} history={history} onLoadHistory={(s)=>{ loadHistory(s); setPage("piano"); }}/>}
         {!showHistory&&page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={handleMisureChange} mealsLog={mealsLog} inFamily={cloudStatus.inFamily} myUid={myUid}/>}
         {!showHistory&&page==="utente"&&(
           <UtentePage personas={personas} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} onGoFamiglia={()=>setPage("famiglia")} onUpdatePersona={handleUpdatePersona} misureApp={misureApp} cloudStatus={cloudStatus}/>
