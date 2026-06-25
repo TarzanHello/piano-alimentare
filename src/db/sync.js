@@ -85,6 +85,14 @@ async function pullProfili() {
     if (dalCloud.dietaIntensita===null && locale.dietaIntensita!=null) {
       dalCloud.dietaIntensita=locale.dietaIntensita;
     }
+    // Stessa difesa per il peso desiderato (pesoTarget): un cloud "null"
+    // — push non ancora arrivato, oppure colonna peso_target non visibile
+    // perché la cache schema PostgREST non è stata ricaricata dopo l'ALTER
+    // TABLE — NON deve azzerare un valore impostato in locale. Lo manteniamo,
+    // verrà ripropagato dal prossimo push.
+    if (dalCloud.pesoTarget===null && locale.pesoTarget!=null) {
+      dalCloud.pesoTarget=locale.pesoTarget;
+    }
     return {...locale,...dalCloud};
   });
   const soloLocali=await getLocal("pf-local-only",[]);
@@ -320,7 +328,11 @@ async function pushPersonas() {
     if (c) {
       if (!editable(profiloToPersona(c))) continue;
       const upd=personaToProfilo(p);const cambia=Object.keys(upd).some(k=>String(c[k]??"")!==String(upd[k]??""));
-      if(cambia) { await supabase.from("profili").update(upd).eq("id",p.id); logSync("push","Profilo aggiornato sul cloud",{profilo:p.id,nome:p.nome}); }
+      if(cambia) {
+        const {error:upErr}=await supabase.from("profili").update(upd).eq("id",p.id);
+        if(upErr) logSync("error","Push profilo: errore",{profilo:p.id,nome:p.nome,error:upErr.message});
+        else logSync("push","Profilo aggiornato sul cloud",{profilo:p.id,nome:p.nome});
+      }
     } else if (!p._uid) {
       const sl=await getLocal("pf-local-only",[]);if(sl.includes(p.id)) continue;
       const {data:nuovo}=await supabase.from("profili").insert({user_id:null,gestito_da:me.userId,famiglia_id:me.famigliaId,...personaToProfilo(p)}).select().single();
