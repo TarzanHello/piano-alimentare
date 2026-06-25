@@ -23,9 +23,9 @@ import { MealCard, TotaleBar, WaterTracker } from '@/features/piano/MealParts';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
 
 // Rimappa i colori-profilo legacy sul nuovo sistema verde:
-// il vecchio blu brand (#2563eb) diventa il verde brand (#18A957).
+// il vecchio blu brand (#2563eb) diventa il verde brand (#2F6B3A).
 // Gli altri colori-persona (rosa, ecc.) restano identificatori distinti.
-const LEGACY_PERSONA_COLORS = { "#2563eb": "#18A957" };
+const LEGACY_PERSONA_COLORS = { "#2563eb": "#2F6B3A" };
 function remapPersonaColors(list) {
   if (!Array.isArray(list)) return list;
   return list.map(p => (p && LEGACY_PERSONA_COLORS[p.color]) ? { ...p, color: LEGACY_PERSONA_COLORS[p.color] } : p);
@@ -650,10 +650,10 @@ export function App() {
   }
 
   return (
-    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#EAF2E2 0%,#E2EAD9 100%)",fontFamily:"'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif",paddingBottom:80}}>
+    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#ECF1E2 0%,#E2EAD9 100%)",fontFamily:"'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif",paddingBottom:80}}>
       {/* AVVISO NUOVA VERSIONE */}
       {swUpdate && (
-        <div style={{position:"sticky",top:0,zIndex:50,background:"#0F8F47",color:"#fff",
+        <div style={{position:"sticky",top:0,zIndex:50,background:"#235029",color:"#fff",
                      padding:"calc(10px + env(safe-area-inset-top,0px)) 16px 10px",
                      display:"flex",alignItems:"center",justifyContent:"center",gap:12,fontSize:13}}>
           <span>✨ È disponibile una nuova versione.</span>
@@ -664,26 +664,29 @@ export function App() {
               // ricarica comunque dopo un attimo.
               setTimeout(()=>{ try { window.location.reload(); } catch {} }, 1500);
             }}
-            style={{background:"#fff",color:"#0F8F47",border:"none",borderRadius:8,
+            style={{background:"#fff",color:"#235029",border:"none",borderRadius:8,
                     padding:"6px 14px",fontWeight:700,fontSize:13,cursor:"pointer"}}>
             Aggiorna
           </button>
         </div>
       )}
       {/* HEADER */}
-      <div style={{background:"linear-gradient(120deg,#10271B 0%,#13402C 100%)",padding:"13px 18px",paddingTop:"calc(13px + env(safe-area-inset-top,0px))"}}>
+      <div style={{background:"linear-gradient(120deg,#15251C 0%,#1D3A28 100%)",padding:"13px 18px",paddingTop:"calc(13px + env(safe-area-inset-top,0px))"}}>
         <div style={{maxWidth:680,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{display:"flex",alignItems:"center",gap:11}}>
-            <div style={{width:34,height:34,borderRadius:10,background:"#18A957",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🥗</div>
+            <div style={{width:34,height:34,borderRadius:10,background:"#0f1d15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}>
+              <svg width="21" height="21" viewBox="0 0 21 21" style={{transform:"rotate(-90deg)",display:"block"}}><circle cx="10.5" cy="10.5" r="7.5" fill="none" stroke="#28412f" strokeWidth="3"/><circle cx="10.5" cy="10.5" r="7.5" fill="none" stroke="#C7F23E" strokeWidth="3" strokeLinecap="round" strokeDasharray="47.1" strokeDashoffset="13"/></svg>
+              <div style={{position:"absolute",left:"50%",top:4,transform:"translateX(-50%)",width:3,height:3,borderRadius:"50%",background:"#C7F23E"}}/>
+            </div>
             <div>
-              <div style={{fontSize:16,fontWeight:800,color:"#F5F8F1",fontFamily:"'Bricolage Grotesque',sans-serif",lineHeight:1,letterSpacing:-0.3}}>Piano Alimentare</div>
+              <div style={{fontSize:19,fontWeight:800,color:"#F5F8F1",fontFamily:"'Outfit',sans-serif",lineHeight:1,letterSpacing:-0.6}}>f<span style={{color:"#C7F23E"}}>i</span>tsy</div>
               <div style={{fontSize:10.5,color:"#7FA890",fontWeight:600,marginTop:3}}>{personas.length} {personas.length===1?"persona":"persone"} · 7 giorni</div>
             </div>
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             {regenNeeded&&<span style={{fontSize:11,color:"#fbbf24",fontWeight:800,background:"#78350f55",borderRadius:6,padding:"5px 7px"}}>⚠</span>}
-            {history.length>0&&<button onClick={()=>setShowHistory(h=>!h)} title="Storico piani" style={{flexShrink:0,width:36,height:36,borderRadius:10,border:"none",background:showHistory?"#fff":"rgba(255,255,255,0.12)",color:showHistory?"#13231A":"#E7EDE2",fontWeight:700,fontSize:14,cursor:"pointer"}}>🕐</button>}
-            <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#2F5547":"linear-gradient(135deg,#18A957,#0F8F47)",color:"#fff",border:"none",borderRadius:10,padding:"9px 14px",fontWeight:700,fontSize:12,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 6px 16px -4px #18A95599",transition:"all 0.2s"}}>
+            {history.length>0&&<button onClick={()=>setShowHistory(h=>!h)} title="Storico piani" style={{flexShrink:0,width:36,height:36,borderRadius:10,border:"none",background:showHistory?"#fff":"rgba(255,255,255,0.12)",color:showHistory?"#15251C":"#E7EDE2",fontWeight:700,fontSize:14,cursor:"pointer"}}>🕐</button>}
+            <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#2F5547":"linear-gradient(135deg,#2F6B3A,#235029)",color:"#fff",border:"none",borderRadius:10,padding:"9px 14px",fontWeight:700,fontSize:12,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 6px 16px -4px #18A95599",transition:"all 0.2s"}}>
               <span style={{display:"inline-block",animation:spinning?"spin 0.7s linear infinite":"none",fontSize:13}}>🔄</span>
               {spinning?"...":"Nuovo piano"}
             </button>
@@ -717,11 +720,11 @@ export function App() {
         {/* STORICO */}
         {showHistory&&(
           <div>
-            <div style={{fontWeight:800,fontSize:14,color:"#13231A",marginBottom:12}}>🕐 Piani precedenti</div>
+            <div style={{fontWeight:800,fontSize:14,color:"#15251C",marginBottom:12}}>🕐 Piani precedenti</div>
             {history.map((h,i)=>(
               <div key={i} onClick={()=>loadHistory(h.seed)} style={{background:"#fff",borderRadius:10,border:"1.5px solid #E7EDE2",padding:"12px 16px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div><div style={{fontWeight:700,fontSize:13,color:"#13231A"}}>{h.label}</div><div style={{fontSize:10,color:"#9DB1A2",fontFamily:"monospace"}}>seed: {h.seed}</div></div>
-                <span style={{fontSize:12,color:"#18A957",fontWeight:700}}>Ricarica →</span>
+                <div><div style={{fontWeight:700,fontSize:13,color:"#15251C"}}>{h.label}</div><div style={{fontSize:10,color:"#9DB1A2",fontFamily:"monospace"}}>seed: {h.seed}</div></div>
+                <span style={{fontSize:12,color:"#2F6B3A",fontWeight:700}}>Ricarica →</span>
               </div>
             ))}
           </div>
@@ -770,7 +773,7 @@ export function App() {
                 return (
                 <button key={d} onClick={()=>setSelDay(i)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"9px 0",borderRadius:14,border:seld?"none":"1.5px solid #E7EDE2",background:seld?persona.color:"#fff",cursor:"pointer",transition:"all 0.2s",boxShadow:seld?`0 8px 16px -6px ${persona.color}88`:"none"}}>
                   <span style={{fontSize:9.5,fontWeight:700,color:seld?"#ffffffcc":"#9DB1A2",textTransform:"uppercase"}}>{d.slice(0,3)}</span>
-                  <span style={{fontSize:16,fontWeight:800,color:seld?"#fff":"#4A6152",fontFamily:"'Bricolage Grotesque',sans-serif"}}>{dn}</span>
+                  <span style={{fontSize:16,fontWeight:800,color:seld?"#fff":"#4A6152",fontFamily:"'Outfit',sans-serif"}}>{dn}</span>
                 </button>
               );})}
             </div>
@@ -887,7 +890,7 @@ export function App() {
                       {(()=>{
                         const ob = OBIETTIVI.find(o=>o.key===persona.obiettivo);
                         const obStyle = {
-                          perdita:      {ic:"📉",bg:"#EDF7EF",bd:"#B7E0C4",col:"#18A957"},
+                          perdita:      {ic:"📉",bg:"#EDF7EF",bd:"#B7E0C4",col:"#2F6B3A"},
                           mantenimento: {ic:"⚖️",bg:"#f0fdf4",bd:"#bbf7d0",col:"#16a34a"},
                           aumento:      {ic:"📈",bg:"#fef2f2",bd:"#fecaca",col:"#dc2626"},
                         }[persona.obiettivo] || {ic:"⚖️",bg:"#EFF3EC",bd:"#E7EDE2",col:"#6E8576"};
@@ -917,13 +920,13 @@ export function App() {
                   <div style={{background:"#F5F8F1",borderRadius:8,padding:"8px 12px",fontSize:10,color:"#6E8576",lineHeight:1.8}}>
                     <div style={{display:"flex",justifyContent:"space-between"}}>
                       <span>TDEE stimato</span>
-                      <span style={{fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{personaTarget.tdeeFinale} kcal</span>
+                      <span style={{fontFamily:"monospace",fontWeight:700,color:"#15251C"}}>{personaTarget.tdeeFinale} kcal</span>
                     </div>
                     {(()=>{
                       const d = personaTarget.kcal - personaTarget.tdeeFinale;
                       if (Math.abs(d) < 1) return null;
                       const txt = d < 0 ? `deficit ${-d} kcal` : `surplus +${d} kcal`;
-                      const col = d < 0 ? "#18A957" : "#dc2626";
+                      const col = d < 0 ? "#2F6B3A" : "#dc2626";
                       return (
                         <div style={{display:"flex",justifyContent:"space-between"}}>
                           <span>Aggiustamento obiettivo</span>
@@ -934,13 +937,13 @@ export function App() {
                     {personaTarget.pctGrasso!==null&&(
                       <div style={{display:"flex",justifyContent:"space-between"}}>
                         <span>Massa grassa stimata</span>
-                        <span style={{fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{personaTarget.pctGrasso}%</span>
+                        <span style={{fontFamily:"monospace",fontWeight:700,color:"#15251C"}}>{personaTarget.pctGrasso}%</span>
                       </div>
                     )}
                     {personaTarget.usaTDEEAdattivo&&personaTarget.adattivoInfo&&(
                       <div style={{display:"flex",justifyContent:"space-between"}}>
                         <span>Dati usati</span>
-                        <span style={{fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{personaTarget.nMisure} misurazioni · {personaTarget.adattivoInfo.settimane.toFixed(1)} sett.</span>
+                        <span style={{fontFamily:"monospace",fontWeight:700,color:"#15251C"}}>{personaTarget.nMisure} misurazioni · {personaTarget.adattivoInfo.settimane.toFixed(1)} sett.</span>
                       </div>
                     )}
                     {personaTarget.noteObiettivo==="ricomposizione"&&(
@@ -1009,8 +1012,8 @@ export function App() {
                 if (tab.key==="menu") { setMenuOpen(true); return; }
                 navigaA(tab.key); setShowHistory(false); setMenuOpen(false);
               }}
-              style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 2px 8px",border:"none",background:"transparent",color:active?"#18A957":"#9DB1A2",cursor:"pointer",position:"relative",transition:"color 0.15s",gap:3,minWidth:0}}>
-              {active && <div style={{position:"absolute",top:0,left:"30%",right:"30%",height:2,background:"#18A957",borderRadius:"0 0 3px 3px"}}/>}
+              style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 2px 8px",border:"none",background:"transparent",color:active?"#2F6B3A":"#9DB1A2",cursor:"pointer",position:"relative",transition:"color 0.15s",gap:3,minWidth:0}}>
+              {active && <div style={{position:"absolute",top:0,left:"30%",right:"30%",height:2,background:"#2F6B3A",borderRadius:"0 0 3px 3px"}}/>}
               <span style={{fontSize:20,lineHeight:1}}>{tab.icon}</span>
               <span style={{fontSize:11,fontWeight:active?800:600,letterSpacing:0.1,whiteSpace:"nowrap"}}>{tab.short}</span>
               {badge>0 && (
@@ -1042,10 +1045,10 @@ export function App() {
                 return (
                   <button key={item.key}
                     onClick={()=>{ navigaA(item.key); setShowHistory(false); setMenuOpen(false); }}
-                    style={{display:"flex",alignItems:"center",gap:14,padding:"14px 20px",border:"none",background:isActive?"#EDF7EF":"transparent",cursor:"pointer",textAlign:"left",borderLeft:isActive?"3px solid #18A957":"3px solid transparent",transition:"background 0.12s"}}>
+                    style={{display:"flex",alignItems:"center",gap:14,padding:"14px 20px",border:"none",background:isActive?"#EDF7EF":"transparent",cursor:"pointer",textAlign:"left",borderLeft:isActive?"3px solid #2F6B3A":"3px solid transparent",transition:"background 0.12s"}}>
                     <div style={{fontSize:24,width:36,textAlign:"center"}}>{item.icon}</div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:15,fontWeight:700,color:isActive?"#18A957":"#13231A"}}>{item.label}</div>
+                      <div style={{fontSize:15,fontWeight:700,color:isActive?"#2F6B3A":"#15251C"}}>{item.label}</div>
                       <div style={{fontSize:11,color:"#9DB1A2",marginTop:1}}>{item.desc}</div>
                     </div>
                     {itemBadge>0 && (

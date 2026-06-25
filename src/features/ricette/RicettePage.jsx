@@ -22,7 +22,7 @@ const UNIT_OPTIONS = [
 ];
 
 const card      = { background:"#fff", borderRadius:16, padding:16, boxShadow:"0 1px 3px rgba(0,0,0,0.08)", marginBottom:12 };
-const btnPrimary = { padding:"12px 16px", borderRadius:12, border:"none", fontWeight:700, color:"#fff", background:"#18A957", cursor:"pointer" };
+const btnPrimary = { padding:"12px 16px", borderRadius:12, border:"none", fontWeight:700, color:"#fff", background:"#2F6B3A", cursor:"pointer" };
 const btnGhost   = { padding:"8px 12px", borderRadius:10, border:"1px solid #C2D0C6", background:"#fff", color:"#4A6152", fontWeight:600, cursor:"pointer", fontSize:12 };
 
 // ── Calcolo macro da quantita {ing_id: {g, unit}} (batch) ────────────────
@@ -72,7 +72,7 @@ function IngRow({ id, v, onSetG, onSetUnit, onRimuovi }) {
   return (
     <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:"1px solid #f5f7fa" }}>
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:13, fontWeight:600, color:"#13231A", lineHeight:1.2 }}>{ing?.nome || id}</div>
+        <div style={{ fontSize:13, fontWeight:600, color:"#15251C", lineHeight:1.2 }}>{ing?.nome || id}</div>
         {kcalIng !== null && <div style={{ fontSize:11, color:"#9DB1A2", marginTop:1 }}>{kcalIng} kcal</div>}
       </div>
       <input type="number" value={v.g} min={0} step={v.unit==="g"||v.unit==="ml"?5:0.5}
@@ -189,8 +189,8 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
           {CAT.map(c => (
             <button key={c.key} onClick={() => setCat(c.key)}
               style={{ padding:"6px 11px", borderRadius:8, border:"2px solid",
-                       borderColor: categoria===c.key ? "#18A957" : "#E7EDE2",
-                       background:  categoria===c.key ? "#18A957" : "#fff",
+                       borderColor: categoria===c.key ? "#2F6B3A" : "#E7EDE2",
+                       background:  categoria===c.key ? "#2F6B3A" : "#fff",
                        color:       categoria===c.key ? "#fff"    : "#6E8576",
                        fontWeight:700, fontSize:12, cursor:"pointer" }}>
               {c.icon} {c.label}
@@ -280,7 +280,7 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
 
   return (
     <div style={{ ...card, opacity: r.esclusa ? 0.6 : 1,
-                  borderLeft: "4px solid #18A957" }}>
+                  borderLeft: "4px solid #2F6B3A" }}>
       <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginBottom:2 }}>
@@ -296,7 +296,7 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
           </div>
           {r.descrizione && <div style={{ fontSize:12, color:"#6E8576", marginBottom:3 }}>{r.descrizione}</div>}
           <div style={{ fontSize:12, color:"#9DB1A2" }}>
-            <span style={{ fontWeight:700, color:"#13231A" }}>{macro.kcal} kcal</span>
+            <span style={{ fontWeight:700, color:"#15251C" }}>{macro.kcal} kcal</span>
             {" · "}P {macro.p} C {macro.c} G {macro.g_}
           </div>
         </div>
@@ -380,7 +380,7 @@ function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
                                         color:"#dc2626", borderRadius:5, padding:"1px 5px" }}>🚫</span>}
           </div>
           <div style={{ fontSize:11, color:"#9DB1A2" }}>
-            <span style={{ fontWeight:700, color:"#13231A" }}>{macro.kcal} kcal</span>
+            <span style={{ fontWeight:700, color:"#15251C" }}>{macro.kcal} kcal</span>
             {" · "}P {macro.p} C {macro.c} G {macro.g_}
             <span style={{ marginLeft:6, fontSize:10 }}>(batch di riferimento)</span>
           </div>
@@ -527,8 +527,8 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
           <button key={key} onClick={() => setTab(key)}
             style={{ ...btnGhost, flex:1, padding:"8px 4px", textAlign:"center",
                      background:   tab===key ? "#D6EFDD" : "#fff",
-                     borderColor:  tab===key ? "#18A957" : "#C2D0C6",
-                     color:        tab===key ? "#0F8F47" : "#4A6152",
+                     borderColor:  tab===key ? "#2F6B3A" : "#C2D0C6",
+                     color:        tab===key ? "#235029" : "#4A6152",
                      fontWeight:   tab===key ? 800 : 600 }}>
             {label}
           </button>
@@ -579,7 +579,7 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
                 <button onClick={() => setCatAperte(p => ({ ...p, [c.key]: !aperta }))}
                   style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between",
                            padding:"12px 14px", borderRadius:12, border:"1px solid #E7EDE2",
-                           background:"#fff", cursor:"pointer", fontWeight:700, fontSize:14, color:"#13231A" }}>
+                           background:"#fff", cursor:"pointer", fontWeight:700, fontSize:14, color:"#15251C" }}>
                   <span>{c.icon} {c.label}
                     <span style={{ color:"#9DB1A2", fontWeight:600, fontSize:12 }}> · {rs.length} ricette</span>
                     {[...escluseCatalogo].some(id => rs.some(r => r.id===id)) &&

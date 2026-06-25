@@ -98,7 +98,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
         ← Indietro
       </button>
       <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E7EDE2",padding:"16px",boxShadow:"0 4px 20px #0000000f"}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#13231A",marginBottom:16}}>
+        <div style={{fontSize:14,fontWeight:800,color:"#15251C",marginBottom:16}}>
           {editRec ? "✏️ Modifica misurazione" : "➕ Nuova misurazione"}
         </div>
         {/* Data */}
@@ -109,10 +109,10 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
         </div>
         {/* Peso separato — campo grande */}
         <div style={{marginBottom:14}}>
-          <label style={{fontSize:10,fontWeight:700,color:"#13231A",textTransform:"uppercase",letterSpacing:0.8,display:"block",marginBottom:5}}>⚖️ Peso <span style={{color:"#9DB1A2",fontWeight:400}}>(kg)</span></label>
+          <label style={{fontSize:10,fontWeight:700,color:"#15251C",textTransform:"uppercase",letterSpacing:0.8,display:"block",marginBottom:5}}>⚖️ Peso <span style={{color:"#9DB1A2",fontWeight:400}}>(kg)</span></label>
           <input type="number" inputMode="decimal" min="1" max="500" step="0.1"
             value={form.peso} onChange={e=>setForm(v=>({...v,peso:e.target.value}))} placeholder="—"
-            style={{width:"100%",padding:"12px",border:"2px solid #13231A30",borderRadius:9,fontSize:20,fontFamily:"monospace",fontWeight:800,outline:"none",boxSizing:"border-box",color:"#13231A",textAlign:"center"}}/>
+            style={{width:"100%",padding:"12px",border:"2px solid #15251C30",borderRadius:9,fontSize:20,fontFamily:"monospace",fontWeight:800,outline:"none",boxSizing:"border-box",color:"#15251C",textAlign:"center"}}/>
         </div>
         {/* Circonferenze 2 colonne */}
         <div style={{fontSize:10,fontWeight:700,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>Circonferenze (cm)</div>
@@ -124,7 +124,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
               </label>
               <input type="number" inputMode="decimal" min="0" max="300" step="0.1"
                 value={form[f.key]} onChange={e=>setForm(v=>({...v,[f.key]:e.target.value}))} placeholder="—"
-                style={{width:"100%",padding:"9px 12px",border:`1.5px solid ${f.color}40`,borderRadius:8,fontSize:15,fontFamily:"monospace",fontWeight:700,outline:"none",boxSizing:"border-box",color:"#13231A"}}/>
+                style={{width:"100%",padding:"9px 12px",border:`1.5px solid ${f.color}40`,borderRadius:8,fontSize:15,fontFamily:"monospace",fontWeight:700,outline:"none",boxSizing:"border-box",color:"#15251C"}}/>
             </div>
           ))}
         </div>
@@ -158,7 +158,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
       <div style={{display:"flex",gap:0,marginBottom:16,background:"#EFF3EC",borderRadius:10,padding:3}}>
         {[{k:"stats",l:"📊 Statistiche"},{k:"calories",l:"🍽️ Calorie"},{k:"history",l:"📋 Storico"}].map(({k,l})=>(
           <button key={k} onClick={()=>setView(k)}
-            style={{flex:1,padding:"8px",borderRadius:8,border:"none",background:view===k?"#fff":"transparent",color:view===k?"#13231A":"#9DB1A2",fontWeight:700,fontSize:12,cursor:"pointer",boxShadow:view===k?"0 1px 4px #0000001a":"none",transition:"all 0.15s"}}>
+            style={{flex:1,padding:"8px",borderRadius:8,border:"none",background:view===k?"#fff":"transparent",color:view===k?"#15251C":"#9DB1A2",fontWeight:700,fontSize:12,cursor:"pointer",boxShadow:view===k?"0 1px 4px #0000001a":"none",transition:"all 0.15s"}}>
             {l}
           </button>
         ))}
@@ -227,15 +227,15 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
               <div style={{marginTop:14}}>
                 <div style={{display:"flex",justifyContent:"flex-end",marginBottom:6}}>
                   <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(157,232,55,0.16)",borderRadius:999,padding:"5px 11px"}}>
-                    <span style={{fontSize:12,color:"#9DE837",fontWeight:900}}>{delta<=0?"↓":"↑"}</span>
-                    <span style={{fontSize:12,fontWeight:800,color:"#9DE837"}}>{delta>0?"+":""}{delta.toFixed(1)} kg</span>
+                    <span style={{fontSize:12,color:"#C7F23E",fontWeight:900}}>{delta<=0?"↓":"↑"}</span>
+                    <span style={{fontSize:12,fontWeight:800,color:"#C7F23E"}}>{delta>0?"+":""}{delta.toFixed(1)} kg</span>
                   </div>
                 </div>
                 <svg width="100%" height="72" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{display:"block",overflow:"visible"}}>
-                  <defs><linearGradient id="ms-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#9DE837" stopOpacity="0.34"/><stop offset="1" stopColor="#9DE837" stopOpacity="0"/></linearGradient></defs>
+                  <defs><linearGradient id="ms-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#C7F23E" stopOpacity="0.34"/><stop offset="1" stopColor="#C7F23E" stopOpacity="0"/></linearGradient></defs>
                   <path d={area} fill="url(#ms-area)"/>
-                  <path d={line} fill="none" stroke="#9DE837" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
-                  <circle cx={lastPt.x} cy={lastPt.y} r="4" fill="#9DE837" stroke="#10271B" strokeWidth="2"/>
+                  <path d={line} fill="none" stroke="#C7F23E" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+                  <circle cx={lastPt.x} cy={lastPt.y} r="4" fill="#C7F23E" stroke="#15251C" strokeWidth="2"/>
                 </svg>
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
                   <span style={{fontSize:10,fontWeight:600,color:"#5E7D6C"}}>{mFirst}</span>
@@ -251,12 +251,12 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
           const SlideRiepilogo = () => (
             <>
               {/* Hero peso + grafico unico */}
-              <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:18,padding:"18px 20px",marginBottom:12}}>
+              <div style={{background:"linear-gradient(140deg,#15251C,#1D3A28)",borderRadius:18,padding:"18px 20px",marginBottom:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
                   <div>
                     <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Peso attuale</div>
                     <div style={{display:"flex",alignItems:"baseline",gap:5,marginTop:4}}>
-                      <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:38,fontWeight:800,color:"#F4F7EF",lineHeight:1,letterSpacing:-1}}>{pesoVal||"—"}</span>
+                      <span style={{fontFamily:"'Outfit',sans-serif",fontSize:38,fontWeight:800,color:"#F4F7EF",lineHeight:1,letterSpacing:-1}}>{pesoVal||"—"}</span>
                       <span style={{fontSize:14,fontWeight:700,color:"#9DB1A2"}}>kg</span>
                     </div>
                     {persona.pesoTarget>0 && pesoVal>0 && (
@@ -266,7 +266,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
                   <div style={{textAlign:"right"}}>
                     <div style={{fontSize:10,color:"#7FA890",textTransform:"uppercase",letterSpacing:1,fontWeight:800}}>Altezza</div>
                     <div style={{display:"flex",alignItems:"baseline",gap:4,marginTop:4,justifyContent:"flex-end"}}>
-                      <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:28,fontWeight:800,color:"#F4F7EF",lineHeight:1}}>{altezzaCm||"—"}</span>
+                      <span style={{fontFamily:"'Outfit',sans-serif",fontSize:28,fontWeight:800,color:"#F4F7EF",lineHeight:1}}>{altezzaCm||"—"}</span>
                       <span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>cm</span>
                     </div>
                   </div>
@@ -280,8 +280,8 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
                   <div style={{fontSize:10,fontWeight:700,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.6}}>Massa grassa</div>
                   {pctG!==null ? (
                     <>
-                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:23,fontWeight:800,color:"#10271B",marginTop:4}}>{pctG.toFixed(1)}<span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>%</span></div>
-                      <div style={{fontSize:11,fontWeight:700,marginTop:2,color:pctGdelta===null?"#7C9183":pctGdelta<0?"#18A957":pctGdelta>0?"#ef4444":"#9DB1A2"}}>
+                      <div style={{fontFamily:"'Outfit',sans-serif",fontSize:23,fontWeight:800,color:"#15251C",marginTop:4}}>{pctG.toFixed(1)}<span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>%</span></div>
+                      <div style={{fontSize:11,fontWeight:700,marginTop:2,color:pctGdelta===null?"#7C9183":pctGdelta<0?"#2F6B3A":pctGdelta>0?"#ef4444":"#9DB1A2"}}>
                         {pctGdelta===null?"metodo US Navy":`${pctGdelta>0?"+":""}${pctGdelta.toFixed(1)}% finora`}
                       </div>
                     </>
@@ -291,7 +291,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
                 </div>
                 <div style={{...cardBox,flex:1,padding:"15px 16px"}}>
                   <div style={{fontSize:10,fontWeight:700,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.6}}>TDEE adattivo</div>
-                  <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:23,fontWeight:800,color:"#10271B",marginTop:4}}>{target.tdeeFinale}<span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}> kcal</span></div>
+                  <div style={{fontFamily:"'Outfit',sans-serif",fontSize:23,fontWeight:800,color:"#15251C",marginTop:4}}>{target.tdeeFinale}<span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}> kcal</span></div>
                   <div style={{fontSize:11,fontWeight:700,color:"#7C9183",marginTop:2}}>{allRecs.length} misurazion{allRecs.length===1?"e":"i"}</div>
                 </div>
               </div>
@@ -307,11 +307,11 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
                     <div key={f.key} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderTop:i?"1px solid #F1F5EE":"none"}}>
                       <div style={{width:34,height:34,borderRadius:11,background:f.color+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{f.emoji}</div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:13.5,fontWeight:700,color:"#13231A"}}>{f.label}</div>
+                        <div style={{fontSize:13.5,fontWeight:700,color:"#15251C"}}>{f.label}</div>
                         <div style={{fontSize:11,color:"#9DB1A2",fontWeight:600}}>{s.n} rilevazion{s.n===1?"e":"i"}</div>
                       </div>
-                      <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:16,fontWeight:800,color:"#10271B"}}>{s.last}<span style={{fontSize:11,color:"#9DB1A2"}}> {f.unit}</span></span>
-                      <span style={{fontSize:11,fontWeight:800,minWidth:42,textAlign:"right",color:neu?"#9DB1A2":d<0?"#18A957":"#ef4444"}}>{neu?"=":`${d<0?"−":"+"}${Math.abs(d)}`}</span>
+                      <span style={{fontFamily:"'Outfit',sans-serif",fontSize:16,fontWeight:800,color:"#15251C"}}>{s.last}<span style={{fontSize:11,color:"#9DB1A2"}}> {f.unit}</span></span>
+                      <span style={{fontSize:11,fontWeight:800,minWidth:42,textAlign:"right",color:neu?"#9DB1A2":d<0?"#2F6B3A":"#ef4444"}}>{neu?"=":`${d<0?"−":"+"}${Math.abs(d)}`}</span>
                     </div>
                   );
                 })}
@@ -329,7 +329,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
                   <span style={{fontSize:12,fontWeight:800,color:bmiClass.c,background:bmiClass.c+"18",borderRadius:999,padding:"4px 11px"}}>{bmiClass.l}</span>
                 </div>
                 <div style={{display:"flex",alignItems:"baseline",gap:5,marginBottom:bmi>0?14:0}}>
-                  <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:36,fontWeight:800,color:"#10271B",lineHeight:1,letterSpacing:-1}}>{bmi>0?bmi.toFixed(1):"—"}</span>
+                  <span style={{fontFamily:"'Outfit',sans-serif",fontSize:36,fontWeight:800,color:"#15251C",lineHeight:1,letterSpacing:-1}}>{bmi>0?bmi.toFixed(1):"—"}</span>
                   <span style={{fontSize:13,fontWeight:700,color:"#9DB1A2"}}>kg/m²</span>
                 </div>
                 {bmi>0 && (
@@ -346,11 +346,11 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
                   <div style={{display:"flex",gap:10}}>
                     <div style={{flex:1,background:"#fef2f8",borderRadius:14,padding:"13px 12px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"#db2777",textTransform:"uppercase",letterSpacing:0.6,fontWeight:700}}>Massa grassa</div>
-                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:22,fontWeight:800,color:"#db2777",marginTop:3}}>{massaGrassaKg.toFixed(1)}<span style={{fontSize:11}}> kg</span></div>
+                      <div style={{fontFamily:"'Outfit',sans-serif",fontSize:22,fontWeight:800,color:"#db2777",marginTop:3}}>{massaGrassaKg.toFixed(1)}<span style={{fontSize:11}}> kg</span></div>
                     </div>
                     <div style={{flex:1,background:"#f0fdf4",borderRadius:14,padding:"13px 12px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"#16a34a",textTransform:"uppercase",letterSpacing:0.6,fontWeight:700}}>Massa magra</div>
-                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:22,fontWeight:800,color:"#16a34a",marginTop:3}}>{massaMagraKg.toFixed(1)}<span style={{fontSize:11}}> kg</span></div>
+                      <div style={{fontFamily:"'Outfit',sans-serif",fontSize:22,fontWeight:800,color:"#16a34a",marginTop:3}}>{massaMagraKg.toFixed(1)}<span style={{fontSize:11}}> kg</span></div>
                     </div>
                   </div>
                 </div>
@@ -360,23 +360,23 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
               <div style={{...cardBox,padding:"16px 18px",marginBottom:12}}>
                 <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:12}}>
                   <div style={{fontSize:10,color:"#9DB1A2",textTransform:"uppercase",letterSpacing:0.8,fontWeight:800}}>Fabbisogno giornaliero</div>
-                  <div><span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:24,fontWeight:800,color:"#10271B"}}>{target.kcal}</span><span style={{fontSize:12,fontWeight:700,color:"#9DB1A2"}}> kcal</span></div>
+                  <div><span style={{fontFamily:"'Outfit',sans-serif",fontSize:24,fontWeight:800,color:"#15251C"}}>{target.kcal}</span><span style={{fontSize:12,fontWeight:700,color:"#9DB1A2"}}> kcal</span></div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:8,fontSize:13}}>
                   <div style={{display:"flex",justifyContent:"space-between",padding:"9px 12px",background:"#F5F8F1",borderRadius:10}}>
                     <span style={{color:"#6E8576",fontWeight:600}}>Metabolismo + attività (TDEE)</span>
-                    <span style={{fontWeight:800,color:"#13231A"}}>{target.tdeeFinale} kcal</span>
+                    <span style={{fontWeight:800,color:"#15251C"}}>{target.tdeeFinale} kcal</span>
                   </div>
                   {Math.abs(deficit)>=1 && (
                     <div style={{display:"flex",justifyContent:"space-between",padding:"9px 12px",background:deficit<0?"#EDF7EF":"#fef2f2",borderRadius:10}}>
                       <span style={{color:"#6E8576",fontWeight:600}}>Aggiustamento obiettivo</span>
-                      <span style={{fontWeight:800,color:deficit<0?"#18A957":"#dc2626"}}>{deficit<0?`deficit ${-deficit}`:`surplus +${deficit}`} kcal</span>
+                      <span style={{fontWeight:800,color:deficit<0?"#2F6B3A":"#dc2626"}}>{deficit<0?`deficit ${-deficit}`:`surplus +${deficit}`} kcal</span>
                     </div>
                   )}
                   {target.larnInfo && (
                     <div style={{display:"flex",justifyContent:"space-between",padding:"9px 12px",background:"#F5F8F1",borderRadius:10}}>
                       <span style={{color:"#6E8576",fontWeight:600}}>Metabolismo basale (LARN)</span>
-                      <span style={{fontWeight:800,color:"#13231A"}}>{target.larnInfo.mb} kcal</span>
+                      <span style={{fontWeight:800,color:"#15251C"}}>{target.larnInfo.mb} kcal</span>
                     </div>
                   )}
                 </div>
@@ -389,7 +389,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
                   {[{l:"Proteine",v:target.p,c:"#1FA2D8",e:"🥩"},{l:"Carboidrati",v:target.c,c:"#F2A93B",e:"🌾"},{l:"Grassi",v:target.g,c:"#8E7BE8",e:"🥑"}].map(m=>(
                     <div key={m.l} style={{flex:1,background:m.c+"12",borderRadius:14,padding:"14px 8px",textAlign:"center"}}>
                       <div style={{fontSize:20}}>{m.e}</div>
-                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:23,fontWeight:800,color:m.c,lineHeight:1.1,marginTop:4}}>{m.v}<span style={{fontSize:11}}>g</span></div>
+                      <div style={{fontFamily:"'Outfit',sans-serif",fontSize:23,fontWeight:800,color:m.c,lineHeight:1.1,marginTop:4}}>{m.v}<span style={{fontSize:11}}>g</span></div>
                       <div style={{fontSize:9,color:m.c,fontWeight:700,textTransform:"uppercase",letterSpacing:0.4,marginTop:2}}>{m.l}</div>
                       <div style={{fontSize:9,color:"#9DB1A2",marginTop:2}}>{Math.round(m.v*(m.l==="Grassi"?9:4))} kcal</div>
                     </div>
@@ -414,7 +414,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
               <div style={{display:"flex",gap:0,marginBottom:14,background:"#EFF3EC",borderRadius:12,padding:3}}>
                 {SLIDES.map((s,i)=>(
                   <button key={s.id} onClick={()=>setCalcCard(i)}
-                    style={{flex:1,padding:"9px",borderRadius:9,border:"none",background:i===idx?"#fff":"transparent",color:i===idx?"#10271B":"#9DB1A2",fontWeight:800,fontSize:12.5,cursor:"pointer",boxShadow:i===idx?"0 2px 6px #0000001a":"none",transition:"all 0.15s"}}>
+                    style={{flex:1,padding:"9px",borderRadius:9,border:"none",background:i===idx?"#fff":"transparent",color:i===idx?"#15251C":"#9DB1A2",fontWeight:800,fontSize:12.5,cursor:"pointer",boxShadow:i===idx?"0 2px 6px #0000001a":"none",transition:"all 0.15s"}}>
                     {s.titolo}
                   </button>
                 ))}
@@ -432,7 +432,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
               <div style={{display:"flex",justifyContent:"center",gap:7,margin:"16px 0 4px"}}>
                 {SLIDES.map((s,i)=>(
                   <button key={s.id} onClick={()=>setCalcCard(i)}
-                    style={{width:i===idx?22:8,height:8,borderRadius:4,border:"none",background:i===idx?"#18A957":"#C2D0C6",cursor:"pointer",transition:"all 0.2s",padding:0}}
+                    style={{width:i===idx?22:8,height:8,borderRadius:4,border:"none",background:i===idx?"#2F6B3A":"#C2D0C6",cursor:"pointer",transition:"all 0.2s",padding:0}}
                     aria-label={s.titolo}/>
                 ))}
               </div>
@@ -452,7 +452,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
           return (
             <>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
-                {[{l:"Oggi",v:todayData.totKcal||"—",c:persona.color,bg:persona.color+"10"},{l:"Media/g.",v:media||"—",c:"#16a34a",bg:"#f0fdf4"},{l:"Target",v:target2.kcal,c:"#18A957",bg:"#EDF7EF"}].map(item=>(
+                {[{l:"Oggi",v:todayData.totKcal||"—",c:persona.color,bg:persona.color+"10"},{l:"Media/g.",v:media||"—",c:"#16a34a",bg:"#f0fdf4"},{l:"Target",v:target2.kcal,c:"#2F6B3A",bg:"#EDF7EF"}].map(item=>(
                   <div key={item.l} style={{background:item.bg,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${item.c}25`}}>
                     <div style={{fontSize:9,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.5,fontWeight:700}}>{item.l}</div>
                     <div style={{fontSize:20,fontWeight:800,color:item.c,fontFamily:"monospace",lineHeight:1.2}}>{item.v}</div>
@@ -461,11 +461,11 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
                 ))}
               </div>
               <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"14px 16px",marginBottom:12}}>
-                <div style={{fontSize:11,fontWeight:800,color:"#13231A",marginBottom:12}}>📊 Ultimi 7 giorni</div>
+                <div style={{fontSize:11,fontWeight:800,color:"#15251C",marginBottom:12}}>📊 Ultimi 7 giorni</div>
                 <CalorieChart personaId={selPid} mealsLog={mealsLog||{}} target={target2.kcal}/>
               </div>
               {todayData.meals.length>0&&(<div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"14px 16px",marginBottom:12}}>
-                <div style={{fontSize:11,fontWeight:800,color:"#13231A",marginBottom:10}}>✅ Pasti di oggi</div>
+                <div style={{fontSize:11,fontWeight:800,color:"#15251C",marginBottom:10}}>✅ Pasti di oggi</div>
                 {todayData.meals.map(m=>(<div key={m.mk} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #EFF3EC"}}><span style={{fontSize:12,color:"#4A6152",fontWeight:600}}>{MLABEL[m.mk]||m.mk}</span><span style={{fontFamily:"monospace",fontSize:12,fontWeight:700}}>{m.kcal} kcal</span></div>))}
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:8,paddingTop:6,borderTop:"1.5px solid #E7EDE2"}}><span style={{fontSize:12,fontWeight:800}}>Totale</span><span style={{fontFamily:"monospace",fontSize:13,fontWeight:800,color:todayData.totKcal>=target2.kcal*0.9?"#16a34a":"#d97706"}}>{todayData.totKcal} kcal · {Math.round(todayData.totKcal/target2.kcal*100)}%</span></div>
               </div>)}
@@ -482,7 +482,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
               <div key={idx} style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"14px 16px",marginBottom:10,boxShadow:"0 2px 8px #0000000a"}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                   <div>
-                    <div style={{fontSize:14,fontWeight:800,color:"#13231A"}}>{dateToLabel(rec.date)}</div>
+                    <div style={{fontSize:14,fontWeight:800,color:"#15251C"}}>{dateToLabel(rec.date)}</div>
                     <div style={{fontSize:10,color:"#9DB1A2",fontFamily:"monospace"}}>{rec.date}</div>
                   </div>
                   <div style={{display:"flex",gap:6}}>
@@ -502,7 +502,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
                     return (
                       <div key={f.key} style={{background:f.color+"08",borderRadius:8,padding:"8px 6px",border:`1px solid ${f.color}20`,textAlign:"center"}}>
                         <div style={{fontSize:9,color:f.color,fontWeight:700,textTransform:"uppercase",letterSpacing:0.4,marginBottom:2}}>{f.emoji} {f.label}</div>
-                        <div style={{fontSize:15,fontWeight:800,color:hasVal?"#13231A":"#C2D0C6",fontFamily:"monospace"}}>
+                        <div style={{fontSize:15,fontWeight:800,color:hasVal?"#15251C":"#C2D0C6",fontFamily:"monospace"}}>
                           {hasVal?val:"—"}
                           {hasVal&&<span style={{fontSize:8,color:"#9DB1A2",marginLeft:1}}>{f.unit}</span>}
                         </div>

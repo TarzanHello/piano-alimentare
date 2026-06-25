@@ -114,7 +114,7 @@ export function SyncTestPage() {
 
   const colorFor = (tipo) => {
     if (tipo === "WARN" || tipo === "ERROR") return "#dc2626";
-    if (tipo === "CLOUD→APP") return "#18A957";
+    if (tipo === "CLOUD→APP") return "#2F6B3A";
     if (tipo === "CLOUD STATUS") return "#7c3aed";
     if (tipo === "STORAGE SET") return "#d97706";
     if (tipo === "SYNC") return "#16a34a";
@@ -123,7 +123,7 @@ export function SyncTestPage() {
 
   return (
     <div>
-      <div style={{fontSize:16,fontWeight:900,color:"#13231A",marginBottom:4}}>🔬 Diagnostica Sync</div>
+      <div style={{fontSize:16,fontWeight:900,color:"#15251C",marginBottom:4}}>🔬 Diagnostica Sync</div>
       <div style={{fontSize:11,color:"#9DB1A2",marginBottom:14,lineHeight:1.5}}>
         Avvia il monitoraggio, esegui le operazioni (seleziona/deseleziona spesa, cambia piano), poi fermalo e copia il log. Fai la stessa cosa sull'altro device e manda entrambi i log.
       </div>
@@ -146,7 +146,7 @@ export function SyncTestPage() {
           ■ Ferma
         </button>
         <button onClick={copyLog} disabled={logs.length===0}
-          style={{padding:"10px 18px",borderRadius:10,border:"none",background:logs.length===0?"#C2D0C6":"#18A957",color:"#fff",fontWeight:800,fontSize:12,cursor:logs.length===0?"default":"pointer"}}>
+          style={{padding:"10px 18px",borderRadius:10,border:"none",background:logs.length===0?"#C2D0C6":"#2F6B3A",color:"#fff",fontWeight:800,fontSize:12,cursor:logs.length===0?"default":"pointer"}}>
           {copied?"✓ Copiato":"📋 Copia log"}
         </button>
         <button onClick={()=>{logsRef.current=[];setLogs([]);}}
@@ -174,7 +174,7 @@ export function SyncTestPage() {
       <div style={{marginTop:10,fontSize:10,color:"#9DB1A2",lineHeight:1.5}}>
         <strong>Legenda colori:</strong>{" "}
         <span style={{color:"#16a34a"}}>verde = sync interno</span> ·{" "}
-        <span style={{color:"#18A957"}}>blu = evento cloud→app</span> ·{" "}
+        <span style={{color:"#2F6B3A"}}>blu = evento cloud→app</span> ·{" "}
         <span style={{color:"#d97706"}}>arancio = scrittura storage</span> ·{" "}
         <span style={{color:"#7c3aed"}}>viola = stato cloud</span> ·{" "}
         <span style={{color:"#dc2626"}}>rosso = warning/errore</span>

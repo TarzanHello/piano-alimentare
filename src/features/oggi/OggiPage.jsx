@@ -18,7 +18,7 @@ function KcalRing({ consumed, target, color }) {
           style={{transition:"stroke-dashoffset 0.6s cubic-bezier(0.2,0.9,0.3,1), stroke 0.3s"}}/>
       </svg>
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{fontSize:26,fontWeight:900,color:over?"#dc2626":"#13231A",lineHeight:1}}>{Math.round(consumed)}</div>
+        <div style={{fontSize:26,fontWeight:900,color:over?"#dc2626":"#15251C",lineHeight:1}}>{Math.round(consumed)}</div>
         <div style={{fontSize:10,fontWeight:700,color:"#9DB1A2",marginTop:2}}>di {Math.round(target)} kcal</div>
         {over && <div style={{fontSize:9,fontWeight:800,color:"#dc2626",marginTop:2}}>oltre il target</div>}
       </div>
@@ -83,7 +83,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
 
   const saluto = nowH < 12 ? "Buongiorno" : nowH < 18 ? "Buon pomeriggio" : "Buonasera";
   const dataLabel = new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
-  const col = persona?.color || "#18A957";
+  const col = persona?.color || "#2F6B3A";
 
   return (
     <div>
@@ -101,7 +101,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
 
       {/* Saluto */}
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:24,fontWeight:800,color:"#13231A",fontFamily:"'Bricolage Grotesque',sans-serif"}}>{saluto}, {persona?.nome} 👋</div>
+        <div style={{fontSize:24,fontWeight:800,color:"#15251C",fontFamily:"'Outfit',sans-serif"}}>{saluto}, {persona?.nome} 👋</div>
         <div style={{fontSize:12,color:"#9DB1A2",fontWeight:600,textTransform:"capitalize"}}>{dataLabel}</div>
       </div>
 
@@ -124,20 +124,20 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
           <div style={{fontSize:11,color:"#16a34a",marginTop:2}}>Tutti i pasti registrati. Ottimo lavoro.</div>
         </div>
       ) : prossimo && (
-        <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:20,padding:"16px 18px",marginBottom:12,position:"relative",overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(140deg,#15251C,#1D3A28)",borderRadius:20,padding:"16px 18px",marginBottom:12,position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",right:-30,top:-30,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(157,232,55,0.20),transparent 70%)"}}/>
-          <div style={{fontSize:10,fontWeight:800,color:"#9DE837",letterSpacing:1.2,textTransform:"uppercase",marginBottom:9}}>Prossimo · ore {String(Math.floor(MEAL_HOUR[prossimo])).padStart(2,"0")}:{MEAL_HOUR[prossimo]%1?"30":"00"}</div>
+          <div style={{fontSize:10,fontWeight:800,color:"#C7F23E",letterSpacing:1.2,textTransform:"uppercase",marginBottom:9}}>Prossimo · ore {String(Math.floor(MEAL_HOUR[prossimo])).padStart(2,"0")}:{MEAL_HOUR[prossimo]%1?"30":"00"}</div>
           <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:12,fontWeight:700,color:"#7FA890",marginBottom:2}}>{MEAL_META[prossimo].label}</div>
-              <div style={{fontSize:16,fontWeight:800,color:"#F4F7EF",lineHeight:1.25,fontFamily:"'Bricolage Grotesque',sans-serif"}}>{day[prossimo]?.nome}</div>
+              <div style={{fontSize:16,fontWeight:800,color:"#F4F7EF",lineHeight:1.25,fontFamily:"'Outfit',sans-serif"}}>{day[prossimo]?.nome}</div>
               <div style={{fontSize:12,color:"#9DB1A2",fontWeight:600,marginTop:5}}>{Math.round(macroFor(prossimo).kcal)} kcal</div>
             </div>
             {readOnly ? (
               <span title="Profilo di un altro membro: sola lettura" style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",width:64,height:64,borderRadius:18,background:"rgba(255,255,255,0.12)",color:"#7FA890",fontSize:22}}>🔒</span>
             ) : (
             <button onClick={()=>onToggleMeal(persona.id, dateKey, prossimo, macroFor(prossimo))}
-              style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:64,height:64,borderRadius:18,border:"none",background:"#9DE837",color:"#10271B",cursor:"pointer",boxShadow:"0 8px 18px -6px rgba(157,232,55,0.6)"}}>
+              style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:64,height:64,borderRadius:18,border:"none",background:"#C7F23E",color:"#15251C",cursor:"pointer",boxShadow:"0 8px 18px -6px rgba(157,232,55,0.6)"}}>
               <span style={{fontSize:20,fontWeight:900,lineHeight:1}}>✓</span>
               <span style={{fontSize:9.5,fontWeight:800}}>Mangia</span>
             </button>
@@ -159,7 +159,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
             <div key={mk} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",borderTop:i>0?"1px solid #EFF3EC":"none",opacity:isCons?0.75:1}}>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#9DB1A2"}}>{MEAL_META[mk].label}</div>
-                <div style={{fontSize:13,fontWeight:700,color:"#13231A",textDecoration:isCons?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{day[mk]?.nome}</div>
+                <div style={{fontSize:13,fontWeight:700,color:"#15251C",textDecoration:isCons?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{day[mk]?.nome}</div>
               </div>
               <div style={{fontSize:11,fontWeight:800,color:"#6E8576",flexShrink:0}}>{Math.round(m.kcal)} kcal</div>
               {readOnly ? (

@@ -33,7 +33,7 @@ export function MigrationWizard({ personas, onDone }) {
         data_nascita: io.dataNascita || etaToDataNascita(io.eta),
         peso: io.peso ?? null, altezza: io.altezza ?? null,
         lavoro: io.lavoro || "sedentario", allenamenti: io.allenamenti ?? 3,
-        obiettivo: io.obiettivo || "mantenimento", color: io.color || "#18A957",
+        obiettivo: io.obiettivo || "mantenimento", color: io.color || "#2F6B3A",
       }).eq("id", me.profiloId);
       mapping.push({ localId: io.id, cloudId: me.profiloId });
 
@@ -66,13 +66,13 @@ export function MigrationWizard({ personas, onDone }) {
 
   const S = {
     chip: (sel,color)=>({padding:"8px 13px",borderRadius:10,border:"2px solid",borderColor:sel?color:"#E7EDE2",background:sel?color+"14":"#fff",color:sel?color:"#6E8576",fontWeight:700,fontSize:12,cursor:"pointer"}),
-    sel:  {padding:"7px 10px",borderRadius:8,border:"1.5px solid #E7EDE2",fontSize:12,fontWeight:600,color:"#13231A",background:"#fff"},
+    sel:  {padding:"7px 10px",borderRadius:8,border:"1.5px solid #E7EDE2",fontSize:12,fontWeight:600,color:"#15251C",background:"#fff"},
   };
 
   return (
     <div style={{position:"fixed",inset:0,background:"#0f172acc",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:"#fff",borderRadius:18,padding:"22px 20px",maxWidth:520,width:"100%",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 24px 60px #00000040"}}>
-        <div style={{fontSize:17,fontWeight:900,color:"#13231A",marginBottom:4}}>☁️ Colleghiamo i profili</div>
+        <div style={{fontSize:17,fontWeight:900,color:"#15251C",marginBottom:4}}>☁️ Colleghiamo i profili</div>
         <div style={{fontSize:12,color:"#6E8576",lineHeight:1.5,marginBottom:16}}>
           Un solo passaggio, una volta sola: dimmi chi sei e cosa fare delle altre persone salvate su questo dispositivo. Misure e dati non si perdono.
         </div>
@@ -91,7 +91,7 @@ export function MigrationWizard({ personas, onDone }) {
             <div style={{fontSize:11,fontWeight:800,color:"#9DB1A2",letterSpacing:0.7,textTransform:"uppercase",marginBottom:8}}>2 · E le altre persone?</div>
             {altri.map(p=>(
               <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid #EFF3EC"}}>
-                <div style={{flex:1,fontSize:13,fontWeight:700,color:"#13231A"}}>{emojiBySesso(p)} {p.nome} <span style={{color:"#9DB1A2",fontWeight:600,fontSize:11}}>· {p.eta} anni</span></div>
+                <div style={{flex:1,fontSize:13,fontWeight:700,color:"#15251C"}}>{emojiBySesso(p)} {p.nome} <span style={{color:"#9DB1A2",fontWeight:600,fontSize:11}}>· {p.eta} anni</span></div>
                 <select style={S.sel} value={JSON.stringify(scelte[p.id]||"")} onChange={e=>setScelte({...scelte,[p.id]:JSON.parse(e.target.value)})}>
                   <option value='""' disabled>Scegli…</option>
                   {membriAltrui.map(m=>(
@@ -111,7 +111,7 @@ export function MigrationWizard({ personas, onDone }) {
         {err && <div style={{marginTop:12,background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#b91c1c",fontWeight:600}}>⚠️ {err}</div>}
 
         <button disabled={!pronto||busy} onClick={completa}
-          style={{marginTop:16,width:"100%",padding:"13px",borderRadius:12,border:"none",background:pronto&&!busy?"#18A957":"#C2D0C6",color:"#fff",fontWeight:900,fontSize:14,cursor:pronto&&!busy?"pointer":"default"}}>
+          style={{marginTop:16,width:"100%",padding:"13px",borderRadius:12,border:"none",background:pronto&&!busy?"#2F6B3A":"#C2D0C6",color:"#fff",fontWeight:900,fontSize:14,cursor:pronto&&!busy?"pointer":"default"}}>
           {busy ? "Sincronizzazione…" : "Collega e sincronizza"}
         </button>
       </div>

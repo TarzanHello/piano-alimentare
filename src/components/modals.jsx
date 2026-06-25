@@ -230,7 +230,7 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
             <input
               value={nome}
               onChange={e=>setNome(e.target.value)}
-              style={{fontSize:15,fontWeight:800,color:"#13231A",border:"none",outline:"none",padding:0,background:"transparent",width:"100%",minWidth:0}}
+              style={{fontSize:15,fontWeight:800,color:"#15251C",border:"none",outline:"none",padding:0,background:"transparent",width:"100%",minWidth:0}}
               placeholder="Nome ricetta…"
             />
           </div>
@@ -242,7 +242,7 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
 
         {/* ── Macro live ── */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,padding:"10px 18px",background:"#F5F8F1",flexShrink:0,borderBottom:"1px solid #EFF3EC"}}>
-          {[["kcal","#13231A"],["P","#1FA2D8"],["C","#d97706"],["G","#16a34a"]].map(([lbl,col])=>(
+          {[["kcal","#15251C"],["P","#1FA2D8"],["C","#d97706"],["G","#16a34a"]].map(([lbl,col])=>(
             <div key={lbl} style={{textAlign:"center"}}>
               <div style={{fontSize:8,color:"#9DB1A2",fontWeight:700,textTransform:"uppercase"}}>{lbl}</div>
               <div style={{fontSize:16,fontWeight:800,color:col,fontFamily:"monospace",lineHeight:1.2}}>
@@ -386,7 +386,7 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
                     value={search}
                     onChange={e=>setSearch(e.target.value)}
                     placeholder="Cerca ingrediente…"
-                    style={{width:"100%",padding:"9px 12px",border:"1.5px solid #18A957",borderRadius:9,fontSize:13,outline:"none",boxSizing:"border-box"}}
+                    style={{width:"100%",padding:"9px 12px",border:"1.5px solid #2F6B3A",borderRadius:9,fontSize:13,outline:"none",boxSizing:"border-box"}}
                   />
                   <button onClick={()=>{setShowSearch(false);setSearch("");}}
                     style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#9DB1A2",fontSize:16}}>✕</button>
@@ -421,7 +421,7 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
             Annulla
           </button>
           <button onClick={handleSave}
-            style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#18A957,#0F8F47)",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",boxShadow:"0 4px 14px #18A95733"}}>
+            style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#2F6B3A,#235029)",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",boxShadow:"0 4px 14px #2F6B3A33"}}>
             ✓ Salva ricetta personalizzata
           </button>
         </div>
@@ -494,7 +494,7 @@ export function ConsumedEditorModal({ meal, mealKey, personaKey, initialIngs, on
             <div style={{fontSize:11,color:"#16a34a",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>
               ✅ Cosa hai mangiato davvero?
             </div>
-            <div style={{fontSize:14,fontWeight:800,color:"#13231A"}}>{meal.nome}</div>
+            <div style={{fontSize:14,fontWeight:800,color:"#15251C"}}>{meal.nome}</div>
           </div>
           <button onClick={onClose}
             style={{width:32,height:32,borderRadius:"50%",border:"none",background:"#EFF3EC",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
@@ -502,7 +502,7 @@ export function ConsumedEditorModal({ meal, mealKey, personaKey, initialIngs, on
 
         {/* Macro live */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,padding:"10px 18px",background:"#f0fdf4",flexShrink:0,borderBottom:"1px solid #dcfce7"}}>
-          {[["kcal","#13231A"],["P","#1FA2D8"],["C","#d97706"],["G","#16a34a"]].map(([lbl,col])=>(
+          {[["kcal","#15251C"],["P","#1FA2D8"],["C","#d97706"],["G","#16a34a"]].map(([lbl,col])=>(
             <div key={lbl} style={{textAlign:"center"}}>
               <div style={{fontSize:8,color:"#9DB1A2",fontWeight:700,textTransform:"uppercase"}}>{lbl}</div>
               <div style={{fontSize:16,fontWeight:800,color:col,fontFamily:"monospace",lineHeight:1.2}}>
@@ -527,7 +527,7 @@ export function ConsumedEditorModal({ meal, mealKey, personaKey, initialIngs, on
                 const q = ings[ingId];
                 return (
                   <div key={ingId} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #EFF3EC"}}>
-                    <div style={{flex:1,fontSize:13,fontWeight:600,color:"#13231A",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    <div style={{flex:1,fontSize:13,fontWeight:600,color:"#15251C",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       {ING_MAP[ingId]?.nome || ingId}
                     </div>
                     <input type="number" min="0" step="1"
@@ -634,9 +634,9 @@ function RicettarioCard({ r, personaKey, onPick, badge }) {
         <span style={{fontSize:12,fontWeight:800,color:prepColor,lineHeight:1.1}}>⏱{prepLabel}</span>
       </div>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:12,fontWeight:700,color:"#13231A",lineHeight:1.3,marginBottom:5}}>{r.nome}</div>
+        <div style={{fontSize:12,fontWeight:700,color:"#15251C",lineHeight:1.3,marginBottom:5}}>{r.nome}</div>
         <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{m.kcal} kcal</span>
+          <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#15251C"}}>{m.kcal} kcal</span>
           <span style={{fontSize:10,color:"#9DB1A2"}}>P{m.p} C{m.c} G{m.g}</span>
           {badge}
         </div>
@@ -693,7 +693,7 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
             <div style={{fontSize:11,color:"#9DB1A2",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>
               📖 Ricettario
             </div>
-            <div style={{fontSize:15,fontWeight:800,color:"#13231A"}}>{meta.icon} {meta.label}</div>
+            <div style={{fontSize:15,fontWeight:800,color:"#15251C"}}>{meta.icon} {meta.label}</div>
           </div>
           <button onClick={onClose}
             style={{width:32,height:32,borderRadius:"50%",border:"none",background:"#EFF3EC",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -717,7 +717,7 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
           {/* Ricette mie */}
           {cloudStatus?.loggedIn && (
             <>
-              <div style={{fontSize:10,fontWeight:800,color:"#13231A",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
+              <div style={{fontSize:10,fontWeight:800,color:"#15251C",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
                 ✏️ Le mie ricette
               </div>
               {loading ? (
@@ -728,13 +728,13 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
                 <div style={{marginBottom:14}}>
                   {mie.map(r => (
                     <RicettarioCard key={r.id} r={r} personaKey={personaKey} onPick={x=>handlePick(x,true)}
-                      badge={<span style={{fontSize:9,background:"#D6EFDD",color:"#0F8F47",borderRadius:4,padding:"1px 5px",fontWeight:700}}>mia</span>}/>
+                      badge={<span style={{fontSize:9,background:"#D6EFDD",color:"#235029",borderRadius:4,padding:"1px 5px",fontWeight:700}}>mia</span>}/>
                   ))}
                 </div>
               )}
 
               {/* Ricette di famiglia */}
-              <div style={{fontSize:10,fontWeight:800,color:"#13231A",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
+              <div style={{fontSize:10,fontWeight:800,color:"#15251C",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
                 👨‍👩‍👧 Ricette di famiglia
               </div>
               {loading ? (
@@ -753,7 +753,7 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
           )}
 
           {/* Catalogo */}
-          <div style={{fontSize:10,fontWeight:800,color:"#13231A",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
+          <div style={{fontSize:10,fontWeight:800,color:"#15251C",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
             {meta.icon} Catalogo {meta.label.toLowerCase()} · {catalogo.length} ricette
           </div>
           {catalogo.map(r => (

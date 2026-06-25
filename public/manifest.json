@@ -1,37 +1,37 @@
 {
-  "name": "Piano Alimentare Familiare",
-  "short_name": "Piano Alimentare",
-  "description": "Gestisci il piano alimentare settimanale della tua famiglia: ricette stagionali, lista della spesa, monitoraggio misure e idratazione.",
+  "name": "Fitsy — Nutrizione intelligente",
+  "short_name": "Fitsy",
+  "description": "Pianifica i pasti settimanali della famiglia: ricette stagionali, lista della spesa, monitoraggio misure e idratazione.",
   "lang": "it",
   "dir": "ltr",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#EAF2E2",
-  "theme_color": "#10271B",
+  "background_color": "#ECF1E2",
+  "theme_color": "#15251C",
   "orientation": "portrait",
   "categories": ["health", "lifestyle", "food"],
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%2310271B'/><text x='96' y='130' font-size='110' text-anchor='middle'>🥗</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='44' fill='%2315251C'/><g transform='rotate(-90 96 96)'><circle cx='96' cy='96' r='48' fill='none' stroke='%2328412f' stroke-width='17'/><circle cx='96' cy='96' r='48' fill='none' stroke='%23C7F23E' stroke-width='17' stroke-linecap='round' stroke-dasharray='301.6' stroke-dashoffset='84'/></g><circle cx='96' cy='48' r='8.5' fill='%23C7F23E'/></svg>",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%2310271B'/><text x='96' y='130' font-size='96' text-anchor='middle'>🥗</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%2315251C'/><g transform='rotate(-90 96 96)'><circle cx='96' cy='96' r='40' fill='none' stroke='%2328412f' stroke-width='14'/><circle cx='96' cy='96' r='40' fill='none' stroke='%23C7F23E' stroke-width='14' stroke-linecap='round' stroke-dasharray='251.3' stroke-dashoffset='70'/></g><circle cx='96' cy='56' r='7' fill='%23C7F23E'/></svg>",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "maskable"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%2310271B'/><text x='256' y='340' font-size='300' text-anchor='middle'>🥗</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='116' fill='%2315251C'/><g transform='rotate(-90 256 256)'><circle cx='256' cy='256' r='128' fill='none' stroke='%2328412f' stroke-width='45'/><circle cx='256' cy='256' r='128' fill='none' stroke='%23C7F23E' stroke-width='45' stroke-linecap='round' stroke-dasharray='804.2' stroke-dashoffset='224'/></g><circle cx='256' cy='128' r='23' fill='%23C7F23E'/></svg>",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%2310271B'/><text x='256' y='340' font-size='256' text-anchor='middle'>🥗</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%2315251C'/><g transform='rotate(-90 256 256)'><circle cx='256' cy='256' r='108' fill='none' stroke='%2328412f' stroke-width='38'/><circle cx='256' cy='256' r='108' fill='none' stroke='%23C7F23E' stroke-width='38' stroke-linecap='round' stroke-dasharray='678.6' stroke-dashoffset='189'/></g><circle cx='256' cy='148' r='19' fill='%23C7F23E'/></svg>",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "maskable"

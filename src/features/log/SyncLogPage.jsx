@@ -6,7 +6,7 @@ import { getCloudMe, riallineaForzato } from '@/db/sync';
 const LEVEL_META = {
   // Sincronizzazione cloud
   info:            { icon: "ℹ️",  color: "#6E8576" },
-  status:          { icon: "🔌",  color: "#18A957" },
+  status:          { icon: "🔌",  color: "#2F6B3A" },
   update:          { icon: "📥",  color: "#7c3aed" },
   push:            { icon: "⬆️",  color: "#0891b2" },
   "push-schedule": { icon: "⏳",  color: "#9DB1A2" },
@@ -20,7 +20,7 @@ const LEVEL_META = {
   "piano-persona": { icon: "🧩",  color: "#16a34a" },
   // Azioni utente
   "nav":           { icon: "🧭",  color: "#4A6152" },  // navigazione pagine
-  "persona":       { icon: "👤",  color: "#18A957" },  // modifica/aggiunta/rimozione profili
+  "persona":       { icon: "👤",  color: "#2F6B3A" },  // modifica/aggiunta/rimozione profili
   "misure":        { icon: "📏",  color: "#7c3aed" },  // inserimento misurazioni
   "pasto-log":     { icon: "✅",  color: "#16a34a" },  // segna pasto consumato
   "acqua":         { icon: "💧",  color: "#0ea5e9" },  // tracciamento acqua
@@ -32,7 +32,7 @@ const LEVEL_META = {
   "storage":       { icon: "💾",  color: "#9DB1A2" },  // lettura/scrittura locale
   // Famiglia
   family:          { icon: "👨‍👩‍👧", color: "#7c3aed" },
-  auth:            { icon: "🔐",  color: "#18A957" },  // login/logout/sessione
+  auth:            { icon: "🔐",  color: "#2F6B3A" },  // login/logout/sessione
   // Problemi
   warn:            { icon: "⚠️",  color: "#d97706" },
   error:           { icon: "⛔",  color: "#dc2626" },
@@ -97,7 +97,7 @@ export function SyncLogPage({ cloudStatus }) {
 
   const fullText = useMemo(() => {
     const header = [
-      "Piano Alimentare Familiare — Log sincronizzazione",
+      "Fitsy — Log sincronizzazione",
       `Generato: ${new Date().toLocaleString("it-IT")}`,
       `Stato: collegato=${cloudStatus?.loggedIn ? "sì" : "no"}  in famiglia=${cloudStatus?.inFamily ? "sì" : "no"}`,
       me ? `Profilo: ${me.profiloId}` : null,
@@ -141,7 +141,7 @@ export function SyncLogPage({ cloudStatus }) {
   return (
     <div>
       <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E7EDE2", padding: "16px", marginBottom: 14, boxShadow: "0 2px 10px #0000000a" }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "#13231A", marginBottom: 4 }}>📡 Log sincronizzazione</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#15251C", marginBottom: 4 }}>📡 Log sincronizzazione</div>
         <div style={{ fontSize: 11, color: "#6E8576", lineHeight: 1.6, marginBottom: 10 }}>
           Traccia in tempo reale cosa fanno la sincronizzazione cloud (login, push, pull, eventi realtime) e il motore (calcolo calorie 🧮 e scaling ingredienti ⚖️).
           Utile per confrontare due dispositivi: apri questa pagina su entrambi e osserva cosa succede quando
@@ -154,17 +154,17 @@ export function SyncLogPage({ cloudStatus }) {
           <span style={{ padding: "4px 9px", borderRadius: 7, background: cloudStatus?.inFamily ? "#f0fdf4" : "#EFF3EC", color: cloudStatus?.inFamily ? "#16a34a" : "#9DB1A2" }}>
             {cloudStatus?.inFamily ? "✓ In famiglia" : "Nessuna famiglia"}
           </span>
-          {me && <span style={{ padding: "4px 9px", borderRadius: 7, background: "#EDF7EF", color: "#18A957", fontFamily: "monospace" }}>profilo {String(me.profiloId).slice(0, 8)}…</span>}
-          {me && <span style={{ padding: "4px 9px", borderRadius: 7, background: "#EDF7EF", color: "#18A957", fontFamily: "monospace" }}>famiglia {String(me.famigliaId).slice(0, 8)}…</span>}
+          {me && <span style={{ padding: "4px 9px", borderRadius: 7, background: "#EDF7EF", color: "#2F6B3A", fontFamily: "monospace" }}>profilo {String(me.profiloId).slice(0, 8)}…</span>}
+          {me && <span style={{ padding: "4px 9px", borderRadius: 7, background: "#EDF7EF", color: "#2F6B3A", fontFamily: "monospace" }}>famiglia {String(me.famigliaId).slice(0, 8)}…</span>}
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-        <button onClick={copyAll} style={{ flex: "1 1 auto", padding: "10px 14px", borderRadius: 10, border: "none", background: "#18A957", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+        <button onClick={copyAll} style={{ flex: "1 1 auto", padding: "10px 14px", borderRadius: 10, border: "none", background: "#2F6B3A", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
           📋 Copia tutto
         </button>
         <button onClick={onRiallinea} disabled={busy || !cloudStatus?.inFamily}
-          style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #B7E0C4", background: "#EDF7EF", color: "#18A957", fontWeight: 800, fontSize: 12, cursor: "pointer", opacity: (busy || !cloudStatus?.inFamily) ? 0.5 : 1 }}>
+          style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #B7E0C4", background: "#EDF7EF", color: "#2F6B3A", fontWeight: 800, fontSize: 12, cursor: "pointer", opacity: (busy || !cloudStatus?.inFamily) ? 0.5 : 1 }}>
           {busy ? "⏳ …" : "🔄 Riallinea ora"}
         </button>
         <button onClick={onClear} style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #fed7aa", background: "#fff7ed", color: "#c2410c", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
@@ -176,7 +176,7 @@ export function SyncLogPage({ cloudStatus }) {
       <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
         {FILTERS.map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            style={{ padding: "5px 11px", borderRadius: 20, border: "1.5px solid " + (filter === f.key ? "#18A957" : "#E7EDE2"), background: filter === f.key ? "#EDF7EF" : "#fff", color: filter === f.key ? "#18A957" : "#6E8576", fontWeight: 700, fontSize: 10.5, cursor: "pointer" }}>
+            style={{ padding: "5px 11px", borderRadius: 20, border: "1.5px solid " + (filter === f.key ? "#2F6B3A" : "#E7EDE2"), background: filter === f.key ? "#EDF7EF" : "#fff", color: filter === f.key ? "#2F6B3A" : "#6E8576", fontWeight: 700, fontSize: 10.5, cursor: "pointer" }}>
             {f.label}
           </button>
         ))}
@@ -195,7 +195,7 @@ export function SyncLogPage({ cloudStatus }) {
                 <span style={{ fontSize: 10, fontFamily: "monospace", color: "#9DB1A2", flexShrink: 0 }}>{fmtTime(e.t)}</span>
                 <span style={{ fontSize: 10, fontWeight: 800, color: meta.color, flexShrink: 0,
                   textTransform: "uppercase", letterSpacing: 0.4 }}>{e.level}</span>
-                <span style={{ fontSize: 11.5, color: "#13231A", fontWeight: 600, flex: 1, minWidth: 0 }}>{e.msg}</span>
+                <span style={{ fontSize: 11.5, color: "#15251C", fontWeight: 600, flex: 1, minWidth: 0 }}>{e.msg}</span>
               </div>
               {e.data !== undefined && (
                 <pre style={{ margin: "4px 0 0 30px", fontSize: 10, color: "#6E8576", background: "#F5F8F1",

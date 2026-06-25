@@ -61,7 +61,7 @@ export function RecuperoDati({ personas }) {
 
   return (
     <div style={{background:"#fff",border:"1.5px solid #E7EDE2",borderRadius:14,padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
-      <div style={{fontSize:13,fontWeight:800,color:"#13231A",marginBottom:4}}>🛟 Recupero misurazioni</div>
+      <div style={{fontSize:13,fontWeight:800,color:"#15251C",marginBottom:4}}>🛟 Recupero misurazioni</div>
       <div style={{fontSize:11,color:"#6E8576",lineHeight:1.5,marginBottom:12}}>
         Serie di misurazioni presenti su questo dispositivo. Quelle "orfane" appartengono a profili che non esistono più dopo una migrazione: riassegnale alla persona giusta e verranno sincronizzate.
       </div>
@@ -71,7 +71,7 @@ export function RecuperoDati({ personas }) {
         return (
           <div key={s.key} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid #EFF3EC",flexWrap:"wrap"}}>
             <div style={{flex:1,minWidth:160}}>
-              <div style={{fontSize:12,fontWeight:800,color:s.orfana?"#d97706":"#13231A"}}>
+              <div style={{fontSize:12,fontWeight:800,color:s.orfana?"#d97706":"#15251C"}}>
                 {s.orfana ? "⚠️ Serie orfana" : `${emojiBySesso(p)} ${p.nome}`}
                 <span style={{fontWeight:600,color:"#9DB1A2"}}> · {s.count} misurazioni</span>
               </div>
@@ -110,7 +110,7 @@ export function RecuperoDati({ personas }) {
               if (r?.error) setErr(r.error); else { setFatto("✓ Riallineato dal cloud"); setTimeout(()=>setFatto(""),2500); }
             } catch(e){ setErr(e?.message||"errore"); }
             setBusy(false);
-          }} disabled={busy} style={{padding:"9px 14px",borderRadius:9,border:"none",background:"#18A957",color:"#fff",fontWeight:800,fontSize:11,cursor:"pointer"}}>
+          }} disabled={busy} style={{padding:"9px 14px",borderRadius:9,border:"none",background:"#2F6B3A",color:"#fff",fontWeight:800,fontSize:11,cursor:"pointer"}}>
             🔄 Riallinea dal cloud
           </button>
           <button onClick={async()=>{

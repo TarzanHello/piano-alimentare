@@ -68,7 +68,7 @@ export function AccountCard({ myPersona, onGoUtente }) {
   };
 
   const condividi = async () => {
-    const testo = `Unisciti alla nostra famiglia su Piano Alimentare! Codice: ${famiglia.invite_code}`;
+    const testo = `Unisciti alla nostra famiglia su Fitsy! Codice: ${famiglia.invite_code}`;
     if (navigator.share) { try { await navigator.share({ text: testo }); } catch {} }
     else {
       try { await navigator.clipboard.writeText(famiglia.invite_code); setCopiato(true); setTimeout(()=>setCopiato(false), 1500); } catch {}
@@ -122,19 +122,19 @@ export function AccountCard({ myPersona, onGoUtente }) {
           <div style={{fontSize:12,color:"#6E8576",lineHeight:1.5,marginBottom:10}}>
             Per creare una famiglia o entrare con un codice serve prima l'accesso con Google, dalla pagina Utente.
           </div>
-          <button onClick={onGoUtente} style={S.btn("#13231A")}>👤 Vai alla pagina Utente</button>
+          <button onClick={onGoUtente} style={S.btn("#15251C")}>👤 Vai alla pagina Utente</button>
         </>
       ) : !famiglia ? (
         <>
           <div style={{fontSize:12,color:"#4A6152",marginBottom:12}}>
             Connesso come <strong>{session.user.email}</strong>
           </div>
-          <div style={{fontSize:12,fontWeight:700,color:"#13231A",marginBottom:6}}>Crea la tua famiglia</div>
+          <div style={{fontSize:12,fontWeight:700,color:"#15251C",marginBottom:6}}>Crea la tua famiglia</div>
           <div style={{display:"flex",gap:8,marginBottom:14}}>
             <input style={S.input} placeholder="Nome (es. Famiglia Rossi)" value={nomeFam} onChange={e=>setNomeFam(e.target.value)}/>
-            <button disabled={busy||!nomeFam.trim()} onClick={()=>azione(()=>createFamily(nomeFam))} style={S.btn("#18A957")}>Crea</button>
+            <button disabled={busy||!nomeFam.trim()} onClick={()=>azione(()=>createFamily(nomeFam))} style={S.btn("#2F6B3A")}>Crea</button>
           </div>
-          <div style={{fontSize:12,fontWeight:700,color:"#13231A",marginBottom:6}}>Oppure entra con un codice</div>
+          <div style={{fontSize:12,fontWeight:700,color:"#15251C",marginBottom:6}}>Oppure entra con un codice</div>
           <div style={{display:"flex",gap:8,marginBottom:10}}>
             <input style={{...S.input,textTransform:"uppercase",fontFamily:"monospace"}} placeholder="ES. PASTA-1234" value={codice} onChange={e=>setCodice(e.target.value)}/>
             <button disabled={busy||!codice.trim()} onClick={()=>azione(()=>joinFamily(codice))} style={S.btn("#16a34a")}>Unisciti</button>
@@ -144,7 +144,7 @@ export function AccountCard({ myPersona, onGoUtente }) {
         <>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:15,fontWeight:800,color:"#13231A"}}>👨‍👩‍👧 {famiglia.nome}</div>
+              <div style={{fontSize:15,fontWeight:800,color:"#15251C"}}>👨‍👩‍👧 {famiglia.nome}</div>
               <div style={{fontSize:11,color:"#9DB1A2",fontWeight:600}}>
                 {utentiRegistrati.length} {utentiRegistrati.length===1?"membro":"membri"} · {session.user.email}
               </div>
@@ -160,7 +160,7 @@ export function AccountCard({ myPersona, onGoUtente }) {
           <div style={{display:"flex",alignItems:"center",gap:8,background:"#F5F8F1",border:"1.5px dashed #C2D0C6",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
             <div style={{flex:1}}>
               <div style={{fontSize:9,fontWeight:800,color:"#9DB1A2",letterSpacing:0.6,textTransform:"uppercase"}}>Codice invito</div>
-              <div style={{fontSize:17,fontWeight:900,fontFamily:"monospace",color:"#13231A",letterSpacing:1}}>{famiglia.invite_code}</div>
+              <div style={{fontSize:17,fontWeight:900,fontFamily:"monospace",color:"#15251C",letterSpacing:1}}>{famiglia.invite_code}</div>
             </div>
             <button onClick={condividi} style={S.btn("#0ea5e9")}>{copiato ? "✓ Copiato" : "📤 Condividi"}</button>
           </div>
@@ -187,9 +187,9 @@ export function AccountCard({ myPersona, onGoUtente }) {
                       {isMembroCapo ? "👑" : i+1}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:12,color:"#13231A",display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{fontWeight:700,fontSize:12,color:"#15251C",display:"flex",alignItems:"center",gap:5}}>
                         {m.nome}
-                        {isMe && <span style={{fontSize:8,background:"#18A957",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:900}}>IO</span>}
+                        {isMe && <span style={{fontSize:8,background:"#2F6B3A",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:900}}>IO</span>}
                         {isMembroCapo && !isMe && <span style={{fontSize:8,background:"#f59e0b",color:"#fff",borderRadius:4,padding:"1px 5px",fontWeight:900}}>CAPO</span>}
                       </div>
                       {profiliACarico.length > 0 && (

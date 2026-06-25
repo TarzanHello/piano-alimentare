@@ -35,7 +35,7 @@ export function MacroBadge({ label, value, color }) {
   return (
     <span style={{ display:"inline-flex",alignItems:"baseline",gap:4,background:color+"1f",borderRadius:8,padding:"5px 10px",fontSize:11.5,fontWeight:700 }}>
       <span style={{color,fontWeight:800,fontSize:10.5}}>{label}</span>
-      <span style={{color:"#13231A"}}>{value}g</span>
+      <span style={{color:"#15251C"}}>{value}g</span>
     </span>
   );
 }
@@ -61,10 +61,10 @@ export function EmptyState({ emoji, title, text, ctaLabel, onCta }) {
   return (
     <div style={{textAlign:"center",padding:"44px 24px",background:"#fff",border:"1.5px dashed #E7EDE2",borderRadius:16}}>
       <div style={{fontSize:40,marginBottom:10}}>{emoji}</div>
-      <div style={{fontSize:15,fontWeight:800,color:"#13231A",marginBottom:4}}>{title}</div>
+      <div style={{fontSize:15,fontWeight:800,color:"#15251C",marginBottom:4}}>{title}</div>
       <div style={{fontSize:12,color:"#9DB1A2",lineHeight:1.5,maxWidth:300,margin:"0 auto"}}>{text}</div>
       {ctaLabel && onCta && (
-        <button onClick={onCta} style={{marginTop:14,padding:"9px 18px",borderRadius:10,border:"none",background:"#18A957",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer"}}>{ctaLabel}</button>
+        <button onClick={onCta} style={{marginTop:14,padding:"9px 18px",borderRadius:10,border:"none",background:"#2F6B3A",color:"#fff",fontWeight:800,fontSize:12,cursor:"pointer"}}>{ctaLabel}</button>
       )}
     </div>
   );

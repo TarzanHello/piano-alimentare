@@ -45,7 +45,7 @@ export function LineChart({ records, field, color, unit, label }) {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
         <span style={{fontSize:12,fontWeight:700,color}}>{label}</span>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <span style={{fontSize:13,fontFamily:"monospace",fontWeight:800,color:"#13231A"}}>{pts[pts.length-1]} {unit}</span>
+          <span style={{fontSize:13,fontFamily:"monospace",fontWeight:800,color:"#15251C"}}>{pts[pts.length-1]} {unit}</span>
           <span style={{fontSize:11,fontWeight:700,color:deltaNeu?"#9DB1A2":deltaPos?"#ef4444":"#16a34a",background:deltaNeu?"#EFF3EC":deltaPos?"#fef2f2":"#f0fdf4",borderRadius:6,padding:"2px 7px"}}>
             {deltaNeu?"—":deltaPos?`▲ +${deltaTotal}`:`▼ ${deltaTotal}`}
           </span>
@@ -142,24 +142,24 @@ export function WeightProgressChart({ records, persona }) {
   const totalDays=(tsEnd-tsMin)/(24*3600*1000),dStep=totalDays<=30?7:totalDays<=60?14:totalDays<=120?30:60;
   const xTicks=[]; for (let ts=tsMin;ts<=tsEnd+1;ts+=dStep*24*3600*1000){const d=new Date(ts);xTicks.push({ts,label:`${d.getDate()}/${d.getMonth()+1}`});}
   const xTicksSliced=xTicks.length>5?xTicks.filter((_,i)=>i%Math.ceil(xTicks.length/5)===0):xTicks;
-  const mainColor=persona.obiettivo==="perdita"?"#18A957":persona.obiettivo==="aumento"?"#16a34a":"#4A6152";
+  const mainColor=persona.obiettivo==="perdita"?"#2F6B3A":persona.obiettivo==="aumento"?"#16a34a":"#4A6152";
   const goalColor="#f59e0b",deltaKg=pesoAttuale-realPts[0].v;
   return (
     <div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
         <div style={{background:"#fff",borderRadius:14,padding:"11px 9px",textAlign:"center",boxShadow:"0 8px 22px -16px rgba(15,58,41,0.3)"}}>
           <div style={{fontSize:9,color:"#9DB1A2",textTransform:"uppercase",fontWeight:700,marginBottom:3,letterSpacing:0.3}}>Variazione</div>
-          <div style={{fontSize:18,fontWeight:800,fontFamily:"'Bricolage Grotesque',sans-serif",lineHeight:1,color:Math.abs(deltaKg)<0.05?"#9DB1A2":deltaKg>0?"#ef4444":"#16a34a"}}>{Math.abs(deltaKg)<0.05?"±0":(deltaKg>0?"+":"")+deltaKg.toFixed(1)}</div>
+          <div style={{fontSize:18,fontWeight:800,fontFamily:"'Outfit',sans-serif",lineHeight:1,color:Math.abs(deltaKg)<0.05?"#9DB1A2":deltaKg>0?"#ef4444":"#16a34a"}}>{Math.abs(deltaKg)<0.05?"±0":(deltaKg>0?"+":"")+deltaKg.toFixed(1)}</div>
           <div style={{fontSize:9,color:"#9DB1A2",marginTop:3}}>kg totali</div>
         </div>
         <div style={{background:"#fff",borderRadius:14,padding:"11px 9px",textAlign:"center",boxShadow:"0 8px 22px -16px rgba(15,58,41,0.3)"}}>
           <div style={{fontSize:9,color:"#9DB1A2",textTransform:"uppercase",fontWeight:700,marginBottom:3,letterSpacing:0.3}}>Ritmo</div>
-          <div style={{fontSize:18,fontWeight:800,fontFamily:"'Bricolage Grotesque',sans-serif",lineHeight:1,color:mainColor}}>{velMedia!==null?(parseFloat(velMedia)>0?"+":"")+velMedia:"—"}</div>
+          <div style={{fontSize:18,fontWeight:800,fontFamily:"'Outfit',sans-serif",lineHeight:1,color:mainColor}}>{velMedia!==null?(parseFloat(velMedia)>0?"+":"")+velMedia:"—"}</div>
           <div style={{fontSize:9,color:"#9DB1A2",marginTop:3}}>kg/sett.</div>
         </div>
         <div style={{background:dataGoalStr?goalColor+"12":"#fff",borderRadius:14,padding:"11px 9px",textAlign:"center",boxShadow:"0 8px 22px -16px rgba(15,58,41,0.3)"}}>
           <div style={{fontSize:9,color:"#9DB1A2",textTransform:"uppercase",fontWeight:700,marginBottom:3,letterSpacing:0.3}}>Traguardo</div>
-          <div style={{fontSize:dataGoalStr?11:16,fontWeight:800,lineHeight:1.2,fontFamily:"'Bricolage Grotesque',sans-serif",color:dataGoalStr?goalColor:needsProjection?"#9DB1A2":"#16a34a"}}>{dataGoalStr||(needsProjection?"n/d":"✓")}</div>
+          <div style={{fontSize:dataGoalStr?11:16,fontWeight:800,lineHeight:1.2,fontFamily:"'Outfit',sans-serif",color:dataGoalStr?goalColor:needsProjection?"#9DB1A2":"#16a34a"}}>{dataGoalStr||(needsProjection?"n/d":"✓")}</div>
           <div style={{fontSize:9,color:"#9DB1A2",marginTop:3}}>{dataGoalStr?`≈${settimaneRim} sett.`:needsProjection?"misurare ancora":"raggiunto"}</div>
         </div>
       </div>
@@ -202,8 +202,8 @@ export function CalorieChart({ personaId, mealsLog, target }) {
     <div><svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",maxWidth:W,display:"block",margin:"0 auto"}}>
       {[0.25,0.5,0.75,1].map(f=><line key={f} x1={PAD.l} x2={W-PAD.r} y1={PAD.t+innerH*(1-f)} y2={PAD.t+innerH*(1-f)} stroke="#E7EDE2" strokeWidth="1"/>)}
       {[0,0.5,1].map(f=><text key={f} x={PAD.l-4} y={PAD.t+innerH*(1-f)+4} textAnchor="end" fontSize="8" fill="#9DB1A2">{Math.round(maxKcal*f)}</text>)}
-      {target>0&&<line x1={PAD.l} x2={W-PAD.r} y1={targetY} y2={targetY} stroke="#18A957" strokeWidth="1.5" strokeDasharray="4,3"/>}
-      {days.map((day,i)=>{const x=PAD.l+i*barGap+(barGap-barW)/2;if(day.kcal===0)return <g key={day.key}><rect x={x} y={PAD.t} width={barW} height={innerH} fill={day.isToday?"#EDF7EF":"#F5F8F1"} rx="3"/><text x={x+barW/2} y={H-PAD.b+10} textAnchor="middle" fontSize="8" fill={day.isToday?"#18A957":"#9DB1A2"} fontWeight={day.isToday?"700":"400"}>{day.label}</text></g>;const barH=Math.max(2,(day.kcal/maxKcal)*innerH),barY=PAD.t+innerH-barH;const pct=Math.round(day.kcal/(target||day.kcal)*100);const col=pct>=100?"#16a34a":pct>=70?"#18A957":pct>=40?"#d97706":"#9DB1A2";return <g key={day.key}><rect x={x} y={PAD.t} width={barW} height={innerH} fill={day.isToday?"#EDF7EF":"#F5F8F1"} rx="3"/><rect x={x} y={barY} width={barW} height={barH} fill={col} rx="3" opacity={day.isToday?1:0.8}/><text x={x+barW/2} y={barY-2} textAnchor="middle" fontSize="7" fill={col} fontWeight="700">{day.kcal}</text><text x={x+barW/2} y={H-PAD.b+10} textAnchor="middle" fontSize="8" fill={day.isToday?"#18A957":"#6E8576"} fontWeight={day.isToday?"700":"400"}>{day.label}</text></g>;})}
+      {target>0&&<line x1={PAD.l} x2={W-PAD.r} y1={targetY} y2={targetY} stroke="#2F6B3A" strokeWidth="1.5" strokeDasharray="4,3"/>}
+      {days.map((day,i)=>{const x=PAD.l+i*barGap+(barGap-barW)/2;if(day.kcal===0)return <g key={day.key}><rect x={x} y={PAD.t} width={barW} height={innerH} fill={day.isToday?"#EDF7EF":"#F5F8F1"} rx="3"/><text x={x+barW/2} y={H-PAD.b+10} textAnchor="middle" fontSize="8" fill={day.isToday?"#2F6B3A":"#9DB1A2"} fontWeight={day.isToday?"700":"400"}>{day.label}</text></g>;const barH=Math.max(2,(day.kcal/maxKcal)*innerH),barY=PAD.t+innerH-barH;const pct=Math.round(day.kcal/(target||day.kcal)*100);const col=pct>=100?"#16a34a":pct>=70?"#2F6B3A":pct>=40?"#d97706":"#9DB1A2";return <g key={day.key}><rect x={x} y={PAD.t} width={barW} height={innerH} fill={day.isToday?"#EDF7EF":"#F5F8F1"} rx="3"/><rect x={x} y={barY} width={barW} height={barH} fill={col} rx="3" opacity={day.isToday?1:0.8}/><text x={x+barW/2} y={barY-2} textAnchor="middle" fontSize="7" fill={col} fontWeight="700">{day.kcal}</text><text x={x+barW/2} y={H-PAD.b+10} textAnchor="middle" fontSize="8" fill={day.isToday?"#2F6B3A":"#6E8576"} fontWeight={day.isToday?"700":"400"}>{day.label}</text></g>;})}
     </svg></div>
   );
 }

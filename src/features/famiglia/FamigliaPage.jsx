@@ -10,7 +10,7 @@ export function PersonaForm({ persona, onSave, onCancel, isNew }) {
   const isBambino = form.eta < 12;
   return (
     <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E7EDE2",padding:"16px",marginBottom:14,boxShadow:"0 4px 20px #0000000f"}}>
-      <div style={{fontSize:13,fontWeight:800,color:"#13231A",marginBottom:14}}>{isNew ? "➕ Aggiungi persona" : `✏️ Modifica — ${emojiBySesso(form)} ${form.nome}`}</div>
+      <div style={{fontSize:13,fontWeight:800,color:"#15251C",marginBottom:14}}>{isNew ? "➕ Aggiungi persona" : `✏️ Modifica — ${emojiBySesso(form)} ${form.nome}`}</div>
       <div style={{marginBottom:12}}>
         <label style={{fontSize:10,fontWeight:700,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.8,display:"block",marginBottom:4}}>Nome</label>
         <input value={form.nome} onChange={e=>set("nome",e.target.value)} style={{width:"100%",padding:"9px 12px",border:"1.5px solid #E7EDE2",borderRadius:8,fontSize:13,outline:"none",boxSizing:"border-box"}} placeholder="es. Matteo"/>
@@ -80,7 +80,7 @@ export function PersonaForm({ persona, onSave, onCancel, isNew }) {
       )}
       <div style={{marginBottom:14}}>
         <label style={{fontSize:10,fontWeight:700,color:"#6E8576",textTransform:"uppercase",letterSpacing:0.8,display:"block",marginBottom:6}}>Colore</label>
-        <div style={{display:"flex",gap:8}}>{COLORS.map(c=><div key={c} onClick={()=>set("color",c)} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",border:form.color===c?"3px solid #13231A":"3px solid transparent",boxSizing:"border-box"}}/>)}</div>
+        <div style={{display:"flex",gap:8}}>{COLORS.map(c=><div key={c} onClick={()=>set("color",c)} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",border:form.color===c?"3px solid #15251C":"3px solid transparent",boxSizing:"border-box"}}/>)}</div>
       </div>
       <div style={{background:form.color+"08",border:`1px solid ${form.color}25`,borderRadius:10,padding:"10px 14px",marginBottom:14}}>
         <div style={{fontSize:10,fontWeight:700,color:form.color,marginBottom:6,textTransform:"uppercase",letterSpacing:0.8}}>Target calcolato</div>
@@ -137,7 +137,7 @@ export function SeedSyncSection({ currentSeed, overrides, onApplySeed }) {
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
         <span style={{fontSize:20}}>🔗</span>
         <div>
-          <div style={{fontSize:13,fontWeight:800,color:"#13231A"}}>Sincronizzazione piano</div>
+          <div style={{fontSize:13,fontWeight:800,color:"#15251C"}}>Sincronizzazione piano</div>
           <div style={{fontSize:10,color:"#6E8576",marginTop:1}}>Condividi il seme per avere lo stesso piano su tutti i dispositivi</div>
         </div>
       </div>
@@ -153,7 +153,7 @@ export function SeedSyncSection({ currentSeed, overrides, onApplySeed }) {
           )}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{flex:1,fontFamily:"monospace",fontSize:hasOverrides?11:17,fontWeight:800,color:"#13231A",letterSpacing:hasOverrides?0:1,wordBreak:"break-all",lineHeight:1.4}}>
+          <div style={{flex:1,fontFamily:"monospace",fontSize:hasOverrides?11:17,fontWeight:800,color:"#15251C",letterSpacing:hasOverrides?0:1,wordBreak:"break-all",lineHeight:1.4}}>
             {hasOverrides ? (
               <>
                 <span style={{fontSize:15,letterSpacing:1}}>{currentSeed}</span>
@@ -161,7 +161,7 @@ export function SeedSyncSection({ currentSeed, overrides, onApplySeed }) {
               </>
             ) : String(currentSeed)}
           </div>
-          <button onClick={handleCopy} style={{flexShrink:0,padding:"9px 14px",borderRadius:8,border:"none",background:copied?"#16a34a":"#18A957",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",transition:"background 0.2s",whiteSpace:"nowrap"}}>
+          <button onClick={handleCopy} style={{flexShrink:0,padding:"9px 14px",borderRadius:8,border:"none",background:copied?"#16a34a":"#2F6B3A",color:"#fff",fontWeight:700,fontSize:12,cursor:"pointer",transition:"background 0.2s",whiteSpace:"nowrap"}}>
             {copied?"✓ Copiato!":"📋 Copia"}
           </button>
         </div>
@@ -179,9 +179,9 @@ export function SeedSyncSection({ currentSeed, overrides, onApplySeed }) {
           <input value={inputSeed} onChange={e=>{setInputSeed(e.target.value);setError("");}}
             onKeyDown={e=>e.key==="Enter"&&handleApply()}
             placeholder="Incolla il seme ricevuto..."
-            style={{flex:1,padding:"10px 12px",border:`1.5px solid ${error?"#ef4444":"#E7EDE2"}`,borderRadius:9,fontSize:13,fontFamily:"monospace",outline:"none",boxSizing:"border-box",color:"#13231A"}}/>
+            style={{flex:1,padding:"10px 12px",border:`1.5px solid ${error?"#ef4444":"#E7EDE2"}`,borderRadius:9,fontSize:13,fontFamily:"monospace",outline:"none",boxSizing:"border-box",color:"#15251C"}}/>
           <button onClick={handleApply} disabled={!inputSeed.trim()}
-            style={{flexShrink:0,padding:"10px 16px",borderRadius:9,border:"none",background:!inputSeed.trim()?"#E7EDE2":applied?"#16a34a":"#18A957",color:!inputSeed.trim()?"#9DB1A2":"#fff",fontWeight:700,fontSize:12,cursor:!inputSeed.trim()?"not-allowed":"pointer",transition:"all 0.2s",whiteSpace:"nowrap"}}>
+            style={{flexShrink:0,padding:"10px 16px",borderRadius:9,border:"none",background:!inputSeed.trim()?"#E7EDE2":applied?"#16a34a":"#2F6B3A",color:!inputSeed.trim()?"#9DB1A2":"#fff",fontWeight:700,fontSize:12,cursor:!inputSeed.trim()?"not-allowed":"pointer",transition:"all 0.2s",whiteSpace:"nowrap"}}>
             {applied?"✓ Applicato!":"Applica →"}
           </button>
         </div>
@@ -212,7 +212,7 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
   return (
     <div>
       <AccountCard myPersona={personas.find(p=>p.id===myPersonaId)} onGoUtente={onGoUtente}/>
-      <div style={{fontSize:13,fontWeight:900,color:"#13231A",margin:"4px 0 10px"}}>👥 Membri della famiglia</div>
+      <div style={{fontSize:13,fontWeight:900,color:"#15251C",margin:"4px 0 10px"}}>👥 Membri della famiglia</div>
       <div style={{background:"#EEF7F0",border:"1px solid #A9DDB8",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:11,color:"#1F6B4A"}}>
         ℹ️ I target calorici vengono calcolati automaticamente da BMR + TDEE. I valori delle ricette sono approssimazioni medie.
       </div>
@@ -228,12 +228,12 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
                   <div style={{width:40,height:40,borderRadius:"50%",background:p.color+"18",border:`2px solid ${p.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{emojiBySesso(p)}</div>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:15,fontWeight:800,color:"#13231A"}}>{p.nome}</div>
+                    <div style={{fontSize:15,fontWeight:800,color:"#15251C"}}>{p.nome}</div>
                     <div style={{fontSize:11,color:"#6E8576"}}>{p.eta} anni · {p.peso}kg · {p.altezza}cm · {(()=>{const a=normalizeAttivita(p);const lav=(LAVORI.find(l=>l.key===a.lavoro)||LAVORI[0]).label;return p.eta<12?`${a.allenamenti}× sport/sett`:`Lavoro ${lav.toLowerCase()} · ${a.allenamenti}× allenamento/sett`;})()}</div>
                   </div>
                   <div style={{display:"flex",gap:6}}>
                     {p.id===myPersonaId ? (
-                      <button onClick={onGoUtente} title="La tua scheda si modifica nella pagina Utente" style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #B7E0C4",background:"#EDF7EF",color:"#18A957",fontSize:11,fontWeight:700,cursor:"pointer"}}>👤 Utente</button>
+                      <button onClick={onGoUtente} title="La tua scheda si modifica nella pagina Utente" style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #B7E0C4",background:"#EDF7EF",color:"#2F6B3A",fontSize:11,fontWeight:700,cursor:"pointer"}}>👤 Utente</button>
                     ) : isEditable(p) ? (
                       <button onClick={()=>setEditing(p.id)} style={{padding:"6px 12px",borderRadius:7,border:"1.5px solid #E7EDE2",background:"#F5F8F1",color:"#4A6152",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
                     ) : (
@@ -280,7 +280,7 @@ export function FamigliaPage({ personas, onUpdate, onAdd, onDelete, currentSeed,
 export function IntensitaDieta({ persona, onUpdate }) {
   const p = persona;
   const intensita = p.dietaIntensita ?? 50;
-  const getLabel = v => v<=10?{txt:"Molto facile",sub:"−100 kcal",col:"#16a34a",emoji:"😊"}:v<=30?{txt:"Facile",sub:"~−320 kcal",col:"#65a30d",emoji:"🙂"}:v<=55?{txt:"Moderato",sub:"~−550 kcal",col:"#18A957",emoji:"⚖️"}:v<=80?{txt:"Intenso",sub:"~−775 kcal",col:"#d97706",emoji:"😓"}:{txt:"Molto difficile",sub:"−1000 kcal",col:"#dc2626",emoji:"🔥"};
+  const getLabel = v => v<=10?{txt:"Molto facile",sub:"−100 kcal",col:"#16a34a",emoji:"😊"}:v<=30?{txt:"Facile",sub:"~−320 kcal",col:"#65a30d",emoji:"🙂"}:v<=55?{txt:"Moderato",sub:"~−550 kcal",col:"#2F6B3A",emoji:"⚖️"}:v<=80?{txt:"Intenso",sub:"~−775 kcal",col:"#d97706",emoji:"😓"}:{txt:"Molto difficile",sub:"−1000 kcal",col:"#dc2626",emoji:"🔥"};
   const lbl = getLabel(intensita);
   const off = Math.round(100+(intensita/100)*900);
   return (
@@ -290,7 +290,7 @@ export function IntensitaDieta({ persona, onUpdate }) {
         <span style={{fontSize:11,fontWeight:800,color:lbl.col}}>{lbl.emoji} {lbl.txt} <span style={{fontFamily:"monospace",fontSize:10}}>{lbl.sub}</span></span>
       </div>
       <div style={{position:"relative",height:22,display:"flex",alignItems:"center"}}>
-        <div style={{position:"absolute",left:0,right:0,height:4,borderRadius:2,background:"linear-gradient(to right,#16a34a,#65a30d,#18A957,#d97706,#dc2626)"}}/>
+        <div style={{position:"absolute",left:0,right:0,height:4,borderRadius:2,background:"linear-gradient(to right,#16a34a,#65a30d,#2F6B3A,#d97706,#dc2626)"}}/>
         <input type="range" min={0} max={100} step={1} value={intensita} onChange={e=>onUpdate({...p,dietaIntensita:parseInt(e.target.value)})} style={{position:"relative",zIndex:1,width:"100%",margin:0,background:"transparent"}}/>
       </div>
       <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
@@ -317,7 +317,7 @@ export function PesoTargetPicker({ persona, lastMisura, onUpdate }) {
   const defaultManuale = Math.min(bmiMax, Math.max(bmiMin, autoResult.peso));
   const valore = isManuale ? parseFloat(p.pesoTarget) : autoResult.peso;
   const delta = pesoAttuale - valore;
-  const deltaColor = Math.abs(delta) < 0.3 ? "#16a34a" : delta > 0 ? "#18A957" : "#d97706";
+  const deltaColor = Math.abs(delta) < 0.3 ? "#16a34a" : delta > 0 ? "#2F6B3A" : "#d97706";
   const deltaLabel = Math.abs(delta) < 0.3 ? "raggiunto" : (delta > 0 ? `−${delta.toFixed(1)} kg` : `+${Math.abs(delta).toFixed(1)} kg`);
   return (
     <div style={{marginTop:10,padding:"10px 12px",background:"#F5F8F1",borderRadius:9,border:"1px solid #E7EDE2"}}>
@@ -325,7 +325,7 @@ export function PesoTargetPicker({ persona, lastMisura, onUpdate }) {
         <span style={{fontSize:10,fontWeight:800,color:"#4A6152",textTransform:"uppercase",letterSpacing:0.5}}>🎯 Peso obiettivo</span>
         <div style={{display:"flex",gap:4}}>
           <button onClick={()=>onUpdate({...p,pesoTarget:null})}
-            style={{padding:"3px 9px",borderRadius:6,border:`1.5px solid ${!isManuale?"#18A957":"#E7EDE2"}`,background:!isManuale?"#D6EFDD":"#fff",color:!isManuale?"#0F8F47":"#6E8576",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+            style={{padding:"3px 9px",borderRadius:6,border:`1.5px solid ${!isManuale?"#2F6B3A":"#E7EDE2"}`,background:!isManuale?"#D6EFDD":"#fff",color:!isManuale?"#235029":"#6E8576",fontSize:10,fontWeight:700,cursor:"pointer"}}>
             Auto
           </button>
           <button onClick={()=>onUpdate({...p,pesoTarget:isManuale?p.pesoTarget:defaultManuale})}
@@ -355,7 +355,7 @@ export function PesoTargetPicker({ persona, lastMisura, onUpdate }) {
       ) : (
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <div style={{flex:1}}>
-            <span style={{fontSize:16,fontWeight:900,fontFamily:"monospace",color:"#13231A"}}>{autoResult.peso} </span>
+            <span style={{fontSize:16,fontWeight:900,fontFamily:"monospace",color:"#15251C"}}>{autoResult.peso} </span>
             <span style={{fontSize:11,color:"#6E8576"}}>kg</span>
             <span style={{marginLeft:8,fontSize:10,color:deltaColor,fontWeight:700}}>({deltaLabel})</span>
           </div>

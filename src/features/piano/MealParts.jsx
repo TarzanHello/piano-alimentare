@@ -55,12 +55,12 @@ export function WaterTracker({ dayKey, personaColor, personaId, readOnly }) {
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:34,height:34,borderRadius:11,background:"#E8F6FC",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>💧</div>
           <div>
-            <div style={{fontSize:13.5,fontWeight:800,color:"#13231A"}}>Idratazione</div>
+            <div style={{fontSize:13.5,fontWeight:800,color:"#15251C"}}>Idratazione</div>
             <div style={{fontSize:11,color:"#9DB1A2",fontWeight:600}}>Obiettivo {WATER_GOAL/1000} L</div>
           </div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div><span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:21,fontWeight:800,color:"#38BDF8"}}>{(ml/1000).toFixed(1)}</span><span style={{fontSize:12,fontWeight:700,color:"#9DB1A2"}}> L</span></div>
+          <div><span style={{fontFamily:"'Outfit',sans-serif",fontSize:21,fontWeight:800,color:"#38BDF8"}}>{(ml/1000).toFixed(1)}</span><span style={{fontSize:12,fontWeight:700,color:"#9DB1A2"}}> L</span></div>
           <div style={{fontSize:9.5,color:goal_ok?"#16a34a":"#9DB1A2",fontWeight:700}}>{label}</div>
         </div>
       </div>
@@ -125,7 +125,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
         <div style={{width:32,height:32,borderRadius:10,background:iconBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{mealEmoji}</div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-            <span style={{fontWeight:800,fontSize:isSnack?12:13.5,color:"#10271B"}}>{label}</span>
+            <span style={{fontWeight:800,fontSize:isSnack?12:13.5,color:"#15251C"}}>{label}</span>
             {isOverride && <span style={{fontSize:9,background:"#7c3aed",color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:800}}>MOD</span>}
             {consumed && loggedMacros && <span style={{fontSize:9,background:"#16a34a",color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:800}}>✓ reale</span>}
             {isAdattato && <span style={{fontSize:9,background:"#0891b2",color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:800}}>⚖ riadattato</span>}
@@ -133,11 +133,11 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           {prepLabel && (
-            <span style={{fontSize:10.5,fontWeight:700,color:"#18A957",background:"#EAF7EE",borderRadius:7,padding:"3px 8px"}}>
+            <span style={{fontSize:10.5,fontWeight:700,color:"#2F6B3A",background:"#EAF7EE",borderRadius:7,padding:"3px 8px"}}>
               {prepLabel}
             </span>
           )}
-          <span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:14,fontWeight:800,color:consumed&&loggedMacros?"#16a34a":"#10271B"}}>{m.kcal}</span>
+          <span style={{fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:800,color:consumed&&loggedMacros?"#16a34a":"#15251C"}}>{m.kcal}</span>
           <span style={{color:"#C2D0C6",fontSize:10}}>{open?"▲":"▼"}</span>
         </div>
       </div>
@@ -146,7 +146,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
       <div style={{padding:"10px 14px"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:8}}>
           <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}
-            style={{fontSize:isSnack?13:14.5,fontWeight:600,color:"#13231A",lineHeight:1.35,flex:1,cursor:"pointer",userSelect:"none"}}>
+            style={{fontSize:isSnack?13:14.5,fontWeight:600,color:"#15251C",lineHeight:1.35,flex:1,cursor:"pointer",userSelect:"none"}}>
             {meal.nome}
           </div>
           <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
@@ -287,7 +287,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
           })()}
           {/* Selettore tempo + accesso al ricettario completo */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,gap:8}}>
-            <div style={{fontSize:10,fontWeight:800,color:"#13231A",textTransform:"uppercase",letterSpacing:0.8}}>
+            <div style={{fontSize:10,fontWeight:800,color:"#15251C",textTransform:"uppercase",letterSpacing:0.8}}>
               ⏱ Quanto tempo hai?
             </div>
             <button onClick={()=>setRicettarioOpen(true)}
@@ -333,10 +333,10 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
                     onMouseEnter={e=>e.currentTarget.style.borderColor="#7c3aed80"}
                     onMouseLeave={e=>e.currentTarget.style.borderColor="#E7EDE2"}>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12,fontWeight:700,color:"#13231A",lineHeight:1.3,marginBottom:5}}>{alt.nome}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:"#15251C",lineHeight:1.3,marginBottom:5}}>{alt.nome}</div>
                       <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
                         <span style={{fontSize:10,fontWeight:700,color:altPrepColor,background:altPrepColor+"18",borderRadius:5,padding:"1px 6px"}}>⏱ {altPrep}'</span>
-                        <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#13231A"}}>{altM?.kcal} kcal</span>
+                        <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#15251C"}}>{altM?.kcal} kcal</span>
                         <span style={{fontSize:10,fontWeight:700,color:diffColor}}>
                           {kcalDiff===0?"=":`${kcalDiff>0?"+":""}${kcalDiff} kcal`}
                         </span>
@@ -391,9 +391,9 @@ export function TotaleBar({ dayData, personaKey, color, target, macroPerPasto, d
   },{kcal:0,p:0,c:0,g:0});
   const t = target||{kcal:2000,p:150,c:200,g:65};
   return (
-    <div style={{background:"linear-gradient(140deg,#10271B,#13402C)",borderRadius:18,padding:"16px 18px",marginTop:6}}>
-      <div style={{fontSize:10,fontWeight:800,color:"#9DE837",marginBottom:13,letterSpacing:1.2,textTransform:"uppercase"}}>Totale giornaliero</div>
-      {[{l:"Kcal",v:tot.kcal,m:t.kcal,c:"#9DE837"},{l:"Proteine",v:tot.p,m:t.p,c:"#1FA2D8"},{l:"Carbo",v:tot.c,m:t.c,c:"#F2A93B"},{l:"Grassi",v:tot.g,m:t.g,c:"#8E7BE8"}].map(({l,v,m,c})=>{
+    <div style={{background:"linear-gradient(140deg,#15251C,#1D3A28)",borderRadius:18,padding:"16px 18px",marginTop:6}}>
+      <div style={{fontSize:10,fontWeight:800,color:"#C7F23E",marginBottom:13,letterSpacing:1.2,textTransform:"uppercase"}}>Totale giornaliero</div>
+      {[{l:"Kcal",v:tot.kcal,m:t.kcal,c:"#C7F23E"},{l:"Proteine",v:tot.p,m:t.p,c:"#1FA2D8"},{l:"Carbo",v:tot.c,m:t.c,c:"#F2A93B"},{l:"Grassi",v:tot.g,m:t.g,c:"#8E7BE8"}].map(({l,v,m,c})=>{
         const pct = m>0?Math.min(100,Math.round(v/m*100)):0;
         return (
         <div key={l} style={{display:"flex",alignItems:"center",gap:11,marginBottom:l==="Grassi"?0:10}}>

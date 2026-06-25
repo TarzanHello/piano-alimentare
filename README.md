@@ -1,7 +1,7 @@
-# Piano Alimentare Familiare
+# Fitsy — Nutrizione intelligente
 
-Migrazione del monolite `index.html` (6.500 righe, React + Babel a runtime) in un
-progetto **Vite + React** modulare, pronto a diventare app Android/iPhone con Capacitor.
+App di nutrizione familiare (ex *Piano Alimentare*). Progetto **Vite + React**
+modulare, pronto a diventare app Android/iPhone con Capacitor.
 
 ## Avvio rapido (Windows / Linux / Mac)
 

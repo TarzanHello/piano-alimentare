@@ -55,12 +55,12 @@ function profiloToPersona(p) {
     lavoro:p.lavoro||"sedentario",allenamenti:p.allenamenti??3,obiettivo:p.obiettivo||"mantenimento",
     dietaIntensita:p.dieta_intensita??null,
     pesoTarget:p.peso_target!=null?+p.peso_target:null,
-    color:p.color||"#18A957",_uid:p.user_id||null,_gestito:!p.user_id,_gestitoDa:p.gestito_da||null};
+    color:p.color||"#2F6B3A",_uid:p.user_id||null,_gestito:!p.user_id,_gestitoDa:p.gestito_da||null};
 }
 function personaToProfilo(p) {
   return {nome:p.nome,sesso:p.sesso==="F"?"F":"M",data_nascita:p.dataNascita||etaToDataNascita(p.eta),
     peso:p.peso??null,altezza:p.altezza??null,lavoro:p.lavoro||"sedentario",
-    allenamenti:p.allenamenti??3,obiettivo:p.obiettivo||"mantenimento",color:p.color||"#18A957",
+    allenamenti:p.allenamenti??3,obiettivo:p.obiettivo||"mantenimento",color:p.color||"#2F6B3A",
     dieta_intensita:p.dietaIntensita??null,
     peso_target:p.pesoTarget??null};
 }
@@ -613,7 +613,7 @@ export async function finishMigration(mapping) {
 export async function autoClaimSingle(persona) {
   if(!supabase||!me) throw new Error("cloud non pronto");
   logSync("info","Associazione automatica profilo unico",{persona:persona.id,cloudProfilo:me.profiloId});
-  await supabase.from("profili").update({nome:persona.nome,sesso:persona.sesso==="F"?"F":"M",data_nascita:persona.dataNascita||etaToDataNascita(persona.eta),peso:persona.peso??null,altezza:persona.altezza??null,lavoro:persona.lavoro||"sedentario",allenamenti:persona.allenamenti??3,obiettivo:persona.obiettivo||"mantenimento",color:persona.color||"#18A957"}).eq("id",me.profiloId);
+  await supabase.from("profili").update({nome:persona.nome,sesso:persona.sesso==="F"?"F":"M",data_nascita:persona.dataNascita||etaToDataNascita(persona.eta),peso:persona.peso??null,altezza:persona.altezza??null,lavoro:persona.lavoro||"sedentario",allenamenti:persona.allenamenti??3,obiettivo:persona.obiettivo||"mantenimento",color:persona.color||"#2F6B3A"}).eq("id",me.profiloId);
   await finishMigration([{localId:persona.id,cloudId:me.profiloId}]);
 }
 

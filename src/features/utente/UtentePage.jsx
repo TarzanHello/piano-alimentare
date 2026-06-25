@@ -98,18 +98,18 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
             <div style={{fontSize:12,color:"#6E8576",lineHeight:1.6,marginBottom:12}}>
               Accedi con il tuo account Google per sincronizzare profilo, misure, piano e spesa su tutti i tuoi dispositivi e con la tua famiglia. <strong>I dati già presenti su questo dispositivo non si perdono</strong>: vengono collegati al tuo account.
             </div>
-            <button disabled={busy} onClick={()=>azione(signInWithGoogle)} style={S.btn("#13231A")}>🔑 Accedi con Google</button>
+            <button disabled={busy} onClick={()=>azione(signInWithGoogle)} style={S.btn("#15251C")}>🔑 Accedi con Google</button>
           </>
         ) : (
           <>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-              <div style={{width:42,height:42,borderRadius:"50%",background:"#18A95718",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
+              <div style={{width:42,height:42,borderRadius:"50%",background:"#2F6B3A18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
                 {session.user.user_metadata?.avatar_url
                   ? <img src={session.user.user_metadata.avatar_url} alt="" style={{width:42,height:42,borderRadius:"50%"}}/>
                   : "👤"}
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:14,fontWeight:800,color:"#13231A",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{session.user.user_metadata?.name || "Connesso"}</div>
+                <div style={{fontSize:14,fontWeight:800,color:"#15251C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{session.user.user_metadata?.name || "Connesso"}</div>
                 <div style={{fontSize:11,color:"#9DB1A2",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{session.user.email}</div>
               </div>
             </div>
@@ -136,7 +136,7 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
                 : "Accedi per attivare la sincronizzazione."}
           </div>
           {session && !famiglia && (
-            <button onClick={onGoFamiglia} style={{...S.btn("#18A957"),marginTop:12,fontSize:12,padding:"9px 16px"}}>👨‍👩‍👧 Vai alla pagina Famiglia</button>
+            <button onClick={onGoFamiglia} style={{...S.btn("#2F6B3A"),marginTop:12,fontSize:12,padding:"9px 16px"}}>👨‍👩‍👧 Vai alla pagina Famiglia</button>
           )}
         </div>
       )}

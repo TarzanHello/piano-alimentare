@@ -105,7 +105,7 @@ function AddIngredientModal({ onSave, onClose }) {
 
         <div style={{ width: 36, height: 4, background: "#E7EDE2", borderRadius: 2, margin: "0 auto 16px" }} />
 
-        <div style={{ fontSize: 15, fontWeight: 800, color: "#13231A", marginBottom: 16 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#15251C", marginBottom: 16 }}>
           ➕ Nuovo ingrediente
         </div>
 
@@ -144,8 +144,8 @@ function AddIngredientModal({ onSave, onClose }) {
             {[1, 3, 7, 14, 30, 90, 180, 365].map(d => (
               <button key={d} onClick={() => set("deperibile", d)} style={{
                 padding: "5px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer",
-                border: `1.5px solid ${form.deperibile === d ? "#18A957" : "#E7EDE2"}`,
-                background: form.deperibile === d ? "#18A957" : "#F5F8F1",
+                border: `1.5px solid ${form.deperibile === d ? "#2F6B3A" : "#E7EDE2"}`,
+                background: form.deperibile === d ? "#2F6B3A" : "#F5F8F1",
                 color: form.deperibile === d ? "#fff" : "#6E8576",
               }}>
                 {d >= 365 ? "Stabile" : `${d}g`}
@@ -170,8 +170,8 @@ function AddIngredientModal({ onSave, onClose }) {
                 return (
                   <button key={m} onClick={() => toggleMese(idx)} style={{
                     padding: "4px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: "pointer",
-                    border: `1.5px solid ${active ? "#18A957" : "#E7EDE2"}`,
-                    background: active ? "#18A957" : "#F5F8F1",
+                    border: `1.5px solid ${active ? "#2F6B3A" : "#E7EDE2"}`,
+                    background: active ? "#2F6B3A" : "#F5F8F1",
                     color: active ? "#fff" : "#6E8576",
                   }}>{m}</button>
                 );
@@ -182,7 +182,7 @@ function AddIngredientModal({ onSave, onClose }) {
 
         {/* Valori nutrizionali */}
         <div style={{ background: "#F5F8F1", borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#13231A", marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#15251C", marginBottom: 4 }}>
             Valori nutrizionali per 100g
           </div>
           <div style={{ fontSize: 10, color: "#f97316", fontWeight: 600, marginBottom: 10 }}>
@@ -211,7 +211,7 @@ function AddIngredientModal({ onSave, onClose }) {
           }}>Annulla</button>
           <button onClick={handleSave} style={{
             flex: 2, padding: "11px", borderRadius: 10, border: "none",
-            background: "#18A957", fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer",
+            background: "#2F6B3A", fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer",
           }}>Salva ingrediente</button>
         </div>
       </div>
@@ -303,7 +303,7 @@ export function IngredientiPage({ excluded, onToggle }) {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Cerca ingrediente..."
             style={{ flex: 1, padding: "7px 10px", border: "1.5px solid #E7EDE2", borderRadius: 8, fontSize: 13, outline: "none" }} />
           <button onClick={() => setShowModal(true)}
-            style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#18A957", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>
+            style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#2F6B3A", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>
             {syncing ? "↻" : "+ Aggiungi"}
           </button>
         </div>
@@ -311,8 +311,8 @@ export function IngredientiPage({ excluded, onToggle }) {
           {cats.map(c => (
             <button key={c} onClick={() => setFilterCat(c)} style={{
               padding: "4px 10px", borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
-              border: `1.5px solid ${filterCat === c ? "#18A957" : "#E7EDE2"}`,
-              background: filterCat === c ? "#18A957" : "#F5F8F1",
+              border: `1.5px solid ${filterCat === c ? "#2F6B3A" : "#E7EDE2"}`,
+              background: filterCat === c ? "#2F6B3A" : "#F5F8F1",
               color: filterCat === c ? "#fff" : "#6E8576",
             }}>
               {c === "Tutte" ? "Tutte" : c.split(" ").slice(1).join(" ")}
@@ -334,7 +334,7 @@ export function IngredientiPage({ excluded, onToggle }) {
         visible.forEach(ing => { (grouped[ing.cat] ||= []).push(ing); });
         return Object.entries(grouped).map(([cat, items]) => (
           <div key={cat} style={{ background: "#fff", borderRadius: 12, border: "1.5px solid #E7EDE2", marginBottom: 10, overflow: "hidden" }}>
-            <div style={{ background: "#F5F8F1", borderBottom: "1px solid #EFF3EC", padding: "9px 14px", fontWeight: 800, fontSize: 12, color: "#13231A", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ background: "#F5F8F1", borderBottom: "1px solid #EFF3EC", padding: "9px 14px", fontWeight: 800, fontSize: 12, color: "#15251C", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span>{cat}</span>
               <span style={{ fontSize: 10, color: "#9DB1A2" }}>
                 {items.filter(i => excluded.includes(i.id)).length > 0
@@ -361,7 +361,7 @@ export function IngredientiPage({ excluded, onToggle }) {
 
                     {/* Info */}
                     <div style={{ flex: 1, opacity: isExcl ? 0.45 : 1, transition: "opacity 0.2s" }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: isExcl ? "#9DB1A2" : "#13231A", textDecoration: isExcl ? "line-through" : "none", display: "flex", alignItems: "center", gap: 5 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: isExcl ? "#9DB1A2" : "#15251C", textDecoration: isExcl ? "line-through" : "none", display: "flex", alignItems: "center", gap: 5 }}>
                         {ing.nome}
                         {ing.custom && (
                           <span style={{ fontSize: 9, background: "#EEF7F0", color: "#16a34a", border: "1px solid #A9DDB8", borderRadius: 4, padding: "1px 5px", fontWeight: 700 }}>custom</span>
@@ -371,7 +371,7 @@ export function IngredientiPage({ excluded, onToggle }) {
                         <span>{recCount} ricett{recCount === 1 ? "a" : "e"}</span>
                         <span style={{ color: dc, fontWeight: 700 }}>{ing.deperibile >= 365 ? "stabile" : `${ing.deperibile}g`}</span>
                         {ing.nutri?.kcal
-                          ? <span style={{ color: "#18A957", fontWeight: 600 }}>{Math.round(ing.nutri.kcal)} kcal · {Math.round(ing.nutri.p ?? 0)}p/{Math.round(ing.nutri.c ?? 0)}c/{Math.round(ing.nutri.g ?? 0)}g</span>
+                          ? <span style={{ color: "#2F6B3A", fontWeight: 600 }}>{Math.round(ing.nutri.kcal)} kcal · {Math.round(ing.nutri.p ?? 0)}p/{Math.round(ing.nutri.c ?? 0)}c/{Math.round(ing.nutri.g ?? 0)}g</span>
                           : ing.custom
                             ? <span style={{ color: "#f97316", fontWeight: 700 }}>⚠ macro mancanti</span>
                             : null
@@ -415,7 +415,7 @@ export function IngredientiPage({ excluded, onToggle }) {
       {confirmDelete && (
         <div style={{ position: "fixed", inset: 0, background: "#0007", zIndex: 1001, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ background: "#fff", borderRadius: 14, padding: "22px 20px", maxWidth: 320, width: "100%" }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "#13231A", marginBottom: 8 }}>Elimina ingrediente</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#15251C", marginBottom: 8 }}>Elimina ingrediente</div>
             <div style={{ fontSize: 13, color: "#6E8576", marginBottom: 20 }}>
               L'ingrediente verrà rimosso dal database personale{cloudEnabled ? " e dalla famiglia" : ""}. Non è reversibile.
             </div>

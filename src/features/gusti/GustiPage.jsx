@@ -86,7 +86,7 @@ export function GustiPage({ prefs, onToggleLike, onResetPrefs }) {
                 {liked.map((r,i)=>(
                   <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<liked.length-1?"1px solid #F5F8F1":"none"}}>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12.5,fontWeight:600,color:"#13231A",lineHeight:1.3}}>{r.nome}</div>
+                      <div style={{fontSize:12.5,fontWeight:600,color:"#15251C",lineHeight:1.3}}>{r.nome}</div>
                       <div style={{fontSize:10,color:"#9DB1A2",marginTop:1}}>{catLabel[recipeCat[r.id]]||""}</div>
                     </div>
                     <button onClick={()=>onToggleLike(r.id)}
@@ -109,7 +109,7 @@ export function GustiPage({ prefs, onToggleLike, onResetPrefs }) {
                 {disliked.map((r,i)=>(
                   <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<disliked.length-1?"1px solid #F5F8F1":"none"}}>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12.5,fontWeight:600,color:"#13231A",lineHeight:1.3}}>{r.nome}</div>
+                      <div style={{fontSize:12.5,fontWeight:600,color:"#15251C",lineHeight:1.3}}>{r.nome}</div>
                       <div style={{fontSize:10,color:"#9DB1A2",marginTop:1}}>{catLabel[recipeCat[r.id]]||""}</div>
                     </div>
                     <span style={{flexShrink:0,fontSize:10,fontWeight:700,color:"#7c3aed",background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:5,padding:"3px 8px"}}>
@@ -134,7 +134,7 @@ export function GustiPage({ prefs, onToggleLike, onResetPrefs }) {
                 {contextByMeal.map((c,i)=>(
                   <div key={c.mealKey} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<contextByMeal.length-1?"1px solid #F5F8F1":"none"}}>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12.5,fontWeight:600,color:"#13231A",lineHeight:1.3}}>{mealLabel[c.mealKey]||c.mealKey}</div>
+                      <div style={{fontSize:12.5,fontWeight:600,color:"#15251C",lineHeight:1.3}}>{mealLabel[c.mealKey]||c.mealKey}</div>
                       <div style={{fontSize:10,color:"#9DB1A2",marginTop:1}}>
                         ricette scartate: ~{c.avgOutPrep}′ di preparazione in media
                       </div>

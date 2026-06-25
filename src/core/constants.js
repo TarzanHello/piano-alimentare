@@ -21,7 +21,7 @@ export const MEAL_KEYS = ["colazione","spuntino_m","pranzo","spuntino_p","cena"]
 
 export const PERSONAS_KEYS = ["uomo","donna","bimbo"];
 
-export const COLORS = ["#18A957","#db2777","#16a34a","#d97706","#7c3aed","#0891b2","#dc2626"];
+export const COLORS = ["#2F6B3A","#db2777","#16a34a","#d97706","#7c3aed","#0891b2","#dc2626"];
 
 export const STILI = [
   { key:"sedentario",   label:"Sedentario",     mult:1.2   },
@@ -104,7 +104,7 @@ export const MEAL_HOUR = {
 // Usa todayDayIndex() per ancorare la settimana al giorno corrente.
 
 export const TUTTI_FIELDS = [
-  { key:"peso",     label:"Peso",         emoji:"⚖️",  color:"#13231A", unit:"kg" },
+  { key:"peso",     label:"Peso",         emoji:"⚖️",  color:"#15251C", unit:"kg" },
   { key:"collo",    label:"Collo",        emoji:"🔵",  color:"#0ea5e9", unit:"cm" },
   { key:"petto",    label:"Petto / Seno", emoji:"🫁",  color:"#db2777", unit:"cm" },
   { key:"vita",     label:"Vita",         emoji:"⌛",  color:"#d97706", unit:"cm" },
@@ -114,7 +114,7 @@ export const TUTTI_FIELDS = [
 ];
 
 export const DEFAULT_PERSONAS = [
-  { id:"p1", nome:"Uomo",  sesso:"M", eta:38, peso:100, altezza:185, lavoro:"sedentario", allenamenti:3, obiettivo:"perdita",     color:"#18A957" },
+  { id:"p1", nome:"Uomo",  sesso:"M", eta:38, peso:100, altezza:185, lavoro:"sedentario", allenamenti:3, obiettivo:"perdita",     color:"#2F6B3A" },
   { id:"p2", nome:"Donna", sesso:"F", eta:31, peso:65,  altezza:160, lavoro:"sedentario", allenamenti:3, obiettivo:"perdita",     color:"#db2777" },
   { id:"p3", nome:"Bimbo", sesso:"M", eta:2,  peso:13,  altezza:87,  lavoro:"sedentario", allenamenti:2, obiettivo:"mantenimento",color:"#16a34a" },
 ];
