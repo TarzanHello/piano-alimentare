@@ -590,6 +590,7 @@ export function App() {
   const oggiSlot     = oggiPersona ? slotForPersona(oggiPersona) : "uomo";
   const oggiTarget   = oggiPersona ? calcTargetAdattivo(oggiPersona, misureApp[oggiPersona?.id]) : null;
   const oggiReadOnly = !personaEditabile(oggiPersona);
+  const headerSaluto = (()=>{ const h=new Date().getHours(); return h<12?"Buongiorno":h<18?"Buon pomeriggio":"Buonasera"; })();
 
   // Navigazione: 3 voci principali nella bottom-nav (Piano · Spesa · Menu).
   // "Menu" apre un bottom-sheet con le 4 voci secondarie:
@@ -679,20 +680,16 @@ export function App() {
       {/* HEADER */}
       <div style={{background:"linear-gradient(120deg,#15251C 0%,#1D3A28 100%)",padding:"13px 18px",paddingTop:"calc(13px + env(safe-area-inset-top,0px))"}}>
         <div style={{maxWidth:680,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
-          <div style={{display:"flex",alignItems:"center",gap:11}}>
+          <div style={{display:"flex",alignItems:"center",gap:11,flexShrink:0}}>
             <div style={{width:40,height:40,borderRadius:12,background:"#0f1d15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}>
               <svg width="24" height="24" viewBox="0 0 24 24" style={{transform:"rotate(-90deg)",display:"block"}}><circle cx="12" cy="12" r="9" fill="none" stroke="#28412f" strokeWidth="3.4"/><circle cx="12" cy="12" r="9" fill="none" stroke="#C7F23E" strokeWidth="3.4" strokeLinecap="round" strokeDasharray="56.5" strokeDashoffset="16"/></svg>
               <div style={{position:"absolute",left:"50%",top:4,transform:"translateX(-50%)",width:3.4,height:3.4,borderRadius:"50%",background:"#C7F23E"}}/>
             </div>
-            <div style={{fontSize:30,fontWeight:800,color:"#F5F8F1",fontFamily:"'Outfit',sans-serif",lineHeight:1,letterSpacing:-1}}>f<span style={{color:"#C7F23E"}}>i</span>tsy</div>
+            <div style={{fontSize:40,fontWeight:800,color:"#F5F8F1",fontFamily:"'Outfit',sans-serif",lineHeight:1,letterSpacing:-1.6}}>f<span style={{color:"#C7F23E"}}>i</span>tsy</div>
           </div>
-          <div style={{display:"flex",gap:9,alignItems:"center"}}>
-            {regenNeeded&&<span style={{fontSize:11,color:"#fbbf24",fontWeight:800,background:"#78350f55",borderRadius:6,padding:"5px 7px"}}>⚠</span>}
-            <div style={{fontSize:12,color:"#9DB1A2",fontWeight:600,textTransform:"capitalize",textAlign:"right",lineHeight:1.2,maxWidth:96}}>{new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}</div>
-            <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#A8C96E":"#C7F23E",color:"#15251C",border:"none",borderRadius:11,padding:"9px 14px",fontWeight:700,fontSize:12,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 6px 16px -5px rgba(199,242,62,0.7)",transition:"all 0.2s",whiteSpace:"nowrap"}}>
-              {spinning&&<span style={{display:"inline-block",animation:"spin 0.7s linear infinite",fontSize:13}}>🔄</span>}
-              {spinning?"...":"Nuovo piano"}
-            </button>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",lineHeight:1.15,minWidth:0}}>
+            <div style={{fontFamily:"'Outfit',sans-serif",fontWeight:800,fontSize:16,letterSpacing:-0.3,color:"#F4F7EF",whiteSpace:"nowrap"}}>{headerSaluto}, {oggiPersona?.nome}</div>
+            <div style={{fontSize:12,color:"#9DB1A2",fontWeight:600,textTransform:"capitalize",marginTop:3,whiteSpace:"nowrap"}}>{new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}</div>
           </div>
         </div>
         {page==="piano"&&!showHistory&&(
@@ -778,8 +775,12 @@ export function App() {
                 </button>
               );})}
             </div>
+            <button onClick={regenerate} disabled={spinning} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:regenNeeded?"#C7F23E":"#fff",color:"#15251C",border:regenNeeded?"none":"1.5px solid #CBE0B4",borderRadius:12,padding:"12px",fontWeight:700,fontSize:13,cursor:spinning?"not-allowed":"pointer",marginBottom:12,boxShadow:regenNeeded?"0 8px 18px -8px rgba(199,242,62,0.85)":"none",transition:"all 0.2s"}}>
+              <span style={{display:"inline-block",animation:spinning?"spin 0.7s linear infinite":"none",fontSize:15}}>🔄</span>
+              {spinning?"Generando...":regenNeeded?"Aggiorna il piano":"Genera nuovo piano"}
+            </button>
             <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"7px 11px",marginBottom:12,fontSize:11,color:"#92400e"}}>
-              💡 Tocca ogni pasto per le porzioni · <strong>Nuovo piano</strong> per variare
+              💡 Tocca ogni pasto per vederne le porzioni e personalizzarle
             </div>
             {spinning ? <div style={{textAlign:"center",padding:"40px 0",color:"#6E8576"}}>🔄 Generando...</div> : (
               <>

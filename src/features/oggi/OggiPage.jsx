@@ -87,10 +87,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
 
   return (
     <div>
-      {/* Saluto */}
-      <div style={{marginBottom:14}}>
-        <div style={{fontSize:24,fontWeight:800,color:"#15251C",fontFamily:"'Outfit',sans-serif"}}>{saluto} {persona?.nome}</div>
-      </div>
+      {/* Saluto: ora vive nell'header globale */}
 
       {/* Anello kcal + macro */}
       <div style={{background:"#fff",border:"1.5px solid #E7EDE2",borderRadius:16,padding:"16px",marginBottom:12,display:"flex",alignItems:"center",gap:18,boxShadow:"0 2px 12px #00000008"}}>
