@@ -47,10 +47,10 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
 
   return (
     <div>
+      <div style={{fontFamily:"'Outfit',sans-serif",fontWeight:800,fontSize:22,letterSpacing:"-0.02em",color:"#15251C",marginBottom:14}}>Profilo utente</div>
       {/* ── Scheda utente ── */}
       {myPersona && (
         <div style={S.card}>
-          <div style={S.h}>{emojiBySesso(myPersona)} La tua scheda</div>
           {editing ? (
             <PersonaForm persona={myPersona} isNew={false}
               onSave={(p)=>{ onUpdatePersona(p); setEditing(false); }}
@@ -112,6 +112,7 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
                 <div style={{fontSize:14,fontWeight:800,color:"#15251C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{session.user.user_metadata?.name || "Connesso"}</div>
                 <div style={{fontSize:11,color:"#9DB1A2",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{session.user.email}</div>
               </div>
+              <div style={{display:"flex",alignItems:"center",gap:5,background:"#EDF7EF",border:"1px solid #B7E0C4",borderRadius:999,padding:"4px 10px",flexShrink:0}}><span style={{width:7,height:7,borderRadius:"50%",background:"#16a34a"}}/><span style={{fontSize:10,fontWeight:800,color:"#2F6B3A"}}>Connesso</span></div>
             </div>
             <button disabled={busy} onClick={()=>{ if(window.confirm("Disconnettersi? I dati restano sul dispositivo e nel cloud; al prossimo accesso ritroverai tutto.")) azione(signOut); }}
               style={{border:"1.5px solid #E7EDE2",background:"#fff",color:"#6E8576",borderRadius:10,padding:"9px 16px",fontWeight:800,fontSize:12,cursor:"pointer"}}>
@@ -128,13 +129,6 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
           <div style={S.h}>☁️ Sincronizzazione</div>
           <div style={S.riga}>{dot(!!session)} Account {session ? "connesso" : "non connesso"}</div>
           <div style={S.riga}>{dot(!!famiglia)} {famiglia ? <>Famiglia: <strong>{famiglia.nome}</strong></> : "Nessuna famiglia"}</div>
-          <div style={{fontSize:11,color:"#9DB1A2",lineHeight:1.5,marginTop:8}}>
-            {session && famiglia
-              ? "Profili, misure, piano, gusti e lista della spesa si aggiornano in tempo reale su tutti i dispositivi della famiglia."
-              : session
-                ? "Per condividere piano e spesa, crea una famiglia o entra con un codice nella pagina Famiglia."
-                : "Accedi per attivare la sincronizzazione."}
-          </div>
           {session && !famiglia && (
             <button onClick={onGoFamiglia} style={{...S.btn("#2F6B3A"),marginTop:12,fontSize:12,padding:"9px 16px"}}>👨‍👩‍👧 Vai alla pagina Famiglia</button>
           )}
