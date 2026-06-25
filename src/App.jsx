@@ -692,26 +692,6 @@ export function App() {
             <div style={{fontSize:12,color:"#9DB1A2",fontWeight:600,textTransform:"capitalize",marginTop:3,whiteSpace:"nowrap"}}>{new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}</div>
           </div>
         </div>
-        {page==="piano"&&!showHistory&&(
-          <div style={{maxWidth:680,margin:"11px auto 0",display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}}>
-            {(()=>{
-              const m = meseCorrente();
-              const nomiMesi = ["","Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
-              const stagEmoji = m>=3&&m<=5?"🌸":m>=6&&m<=8?"☀️":m>=9&&m<=11?"🍂":"❄️";
-              return (<span style={{fontSize:10,background:"rgba(255,255,255,0.12)",borderRadius:6,padding:"4px 9px",color:"#E7EDE2",fontWeight:600}}>{stagEmoji} {nomiMesi[m]} · stagionale</span>);
-            })()}
-            {personas.map(p=>{
-              const t=calcTargetAdattivo(p, misureApp[p.id]);
-              return (
-                <div key={p.id} style={{display:"flex",alignItems:"center",gap:5,background:"#ffffff12",borderRadius:7,padding:"4px 10px",border:`1px solid ${p.color}50`}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:p.color}}/>
-                  <span style={{color:"#E7EDE2",fontSize:11}}>{p.nome}</span>
-                  <span style={{color:p.color,fontSize:11,fontFamily:"monospace",fontWeight:700}}>{t.kcal}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       <div style={{maxWidth:680,margin:"0 auto",padding:"18px 16px 0"}}>

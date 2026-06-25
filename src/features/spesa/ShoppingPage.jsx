@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, buildShoppingForDays, depColor, depLabel, todayDayIndex } from '@/core';
+import { DAYS, buildShoppingForDays, depColor, depLabel, todayDayIndex, dateKeyForDayIdx } from '@/core';
 import { IngredientiPage } from '@/features/ingredienti/IngredientiPage';
 
 export function ShoppingPage({ plan, checks, onToggle, onReset }) {
@@ -22,7 +22,12 @@ export function ShoppingPage({ plan, checks, onToggle, onReset }) {
         <div style={{display:"flex",gap:5}}>
           {DAYS.map((d,i)=>{
             const sel=selDays.includes(i);
-            return <button key={i} onClick={()=>toggleDay(i)} style={{flex:1,padding:"7px 0",borderRadius:8,border:"2px solid",borderColor:sel?"#2F6B3A":"#E7EDE2",background:sel?"#2F6B3A":"#fff",color:sel?"#fff":"#6E8576",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.15s"}}>{d.slice(0,3)}</button>;
+            const dn=(()=>{ try { return new Date(dateKeyForDayIdx(i)).getDate(); } catch { return i+1; } })();
+            return (
+            <button key={i} onClick={()=>toggleDay(i)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"9px 0",borderRadius:14,border:sel?"none":"1.5px solid #E7EDE2",background:sel?"#2F6B3A":"#fff",cursor:"pointer",transition:"all 0.2s",boxShadow:sel?"0 8px 16px -6px #2F6B3A88":"none"}}>
+              <span style={{fontSize:9.5,fontWeight:700,color:sel?"#ffffffcc":"#9DB1A2",textTransform:"uppercase"}}>{d.slice(0,3)}</span>
+              <span style={{fontSize:16,fontWeight:800,color:sel?"#fff":"#4A6152",fontFamily:"'Outfit',sans-serif"}}>{dn}</span>
+            </button>);
           })}
         </div>
       </div>
