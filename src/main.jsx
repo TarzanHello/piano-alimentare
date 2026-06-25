@@ -3,8 +3,22 @@ import { createRoot } from 'react-dom/client';
 import './db/storage.js';   // imposta window.storage PRIMA dell'app
 import './index.css';
 import { App } from '@/App';
+import { IntroSplash } from '@/features/intro/IntroSplash';
 
-createRoot(document.getElementById('root')).render(<App />);
+// Splash introduttivo all'apertura. Per mostrarlo SOLO la primissima volta,
+// sostituisci useState(true) con:
+//   useState(() => { const v = !localStorage.getItem('fitsy-intro-done'); if (v) localStorage.setItem('fitsy-intro-done','1'); return v; })
+function Root() {
+  const [intro, setIntro] = React.useState(true);
+  return (
+    <>
+      <App />
+      {intro && <IntroSplash onDone={() => setIntro(false)} />}
+    </>
+  );
+}
+
+createRoot(document.getElementById('root')).render(<Root />);
 
 if ('serviceWorker' in navigator) {
   if (import.meta.env.PROD) {
