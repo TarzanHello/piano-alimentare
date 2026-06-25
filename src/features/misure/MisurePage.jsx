@@ -226,7 +226,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
             return (
               <div style={{marginTop:14}}>
                 <div style={{display:"flex",justifyContent:"flex-end",marginBottom:6}}>
-                  <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(157,232,55,0.16)",borderRadius:999,padding:"5px 11px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:5,background:"rgba(199,242,62,0.16)",borderRadius:999,padding:"5px 11px"}}>
                     <span style={{fontSize:12,color:"#C7F23E",fontWeight:900}}>{delta<=0?"↓":"↑"}</span>
                     <span style={{fontSize:12,fontWeight:800,color:"#C7F23E"}}>{delta>0?"+":""}{delta.toFixed(1)} kg</span>
                   </div>

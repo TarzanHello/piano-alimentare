@@ -41,7 +41,7 @@ export function ShoppingPage({ plan, checks, onToggle, onReset }) {
               </div>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 {done>0&&<button onClick={onReset} style={{fontSize:10,color:"#9DB1A2",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,padding:"4px 9px",cursor:"pointer"}}>Reset</button>}
-                <div style={{width:46,height:46,borderRadius:"50%",background:"rgba(157,232,55,0.16)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',sans-serif",fontSize:13,fontWeight:800,color:"#C7F23E",flexShrink:0}}>{allIds.length?Math.round(done/allIds.length*100):0}%</div>
+                <div style={{width:46,height:46,borderRadius:"50%",background:"rgba(199,242,62,0.16)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',sans-serif",fontSize:13,fontWeight:800,color:"#C7F23E",flexShrink:0}}>{allIds.length?Math.round(done/allIds.length*100):0}%</div>
               </div>
             </div>
             <div style={{height:9,background:"rgba(255,255,255,0.12)",borderRadius:99,overflow:"hidden"}}>

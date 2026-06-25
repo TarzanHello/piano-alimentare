@@ -125,7 +125,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
         </div>
       ) : prossimo && (
         <div style={{background:"linear-gradient(140deg,#15251C,#1D3A28)",borderRadius:20,padding:"16px 18px",marginBottom:12,position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",right:-30,top:-30,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(157,232,55,0.20),transparent 70%)"}}/>
+          <div style={{position:"absolute",right:-30,top:-30,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(199,242,62,0.20),transparent 70%)"}}/>
           <div style={{fontSize:10,fontWeight:800,color:"#C7F23E",letterSpacing:1.2,textTransform:"uppercase",marginBottom:9}}>Prossimo · ore {String(Math.floor(MEAL_HOUR[prossimo])).padStart(2,"0")}:{MEAL_HOUR[prossimo]%1?"30":"00"}</div>
           <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
             <div style={{flex:1,minWidth:0}}>
@@ -137,7 +137,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
               <span title="Profilo di un altro membro: sola lettura" style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",width:64,height:64,borderRadius:18,background:"rgba(255,255,255,0.12)",color:"#7FA890",fontSize:22}}>🔒</span>
             ) : (
             <button onClick={()=>onToggleMeal(persona.id, dateKey, prossimo, macroFor(prossimo))}
-              style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:64,height:64,borderRadius:18,border:"none",background:"#C7F23E",color:"#15251C",cursor:"pointer",boxShadow:"0 8px 18px -6px rgba(157,232,55,0.6)"}}>
+              style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:64,height:64,borderRadius:18,border:"none",background:"#C7F23E",color:"#15251C",cursor:"pointer",boxShadow:"0 8px 18px -6px rgba(199,242,62,0.6)"}}>
               <span style={{fontSize:20,fontWeight:900,lineHeight:1}}>✓</span>
               <span style={{fontSize:9.5,fontWeight:800}}>Mangia</span>
             </button>
@@ -167,7 +167,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
               ) : (
               <button onClick={()=>onToggleMeal(persona.id, dateKey, mk, m)}
                 title={isCons?"Segna come non consumato":"Segna come mangiato"}
-                style={{flexShrink:0,width:32,height:32,borderRadius:"50%",border:isCons?"none":"2px solid #C2D0C6",background:isCons?"#16a34a":"#fff",color:isCons?"#fff":"#C2D0C6",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",animation:isCons?"pop 0.25s ease-out":"none"}}>
+                style={{flexShrink:0,width:32,height:32,borderRadius:"50%",border:isCons?"none":"2px solid #C2D0C6",background:isCons?"#2F6B3A":"#fff",color:isCons?"#fff":"#C2D0C6",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",animation:isCons?"pop 0.25s ease-out":"none"}}>
                 ✓
               </button>
               )}

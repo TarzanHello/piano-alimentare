@@ -686,7 +686,7 @@ export function App() {
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             {regenNeeded&&<span style={{fontSize:11,color:"#fbbf24",fontWeight:800,background:"#78350f55",borderRadius:6,padding:"5px 7px"}}>⚠</span>}
             {history.length>0&&<button onClick={()=>setShowHistory(h=>!h)} title="Storico piani" style={{flexShrink:0,width:36,height:36,borderRadius:10,border:"none",background:showHistory?"#fff":"rgba(255,255,255,0.12)",color:showHistory?"#15251C":"#E7EDE2",fontWeight:700,fontSize:14,cursor:"pointer"}}>🕐</button>}
-            <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#2F5547":"linear-gradient(135deg,#2F6B3A,#235029)",color:"#fff",border:"none",borderRadius:10,padding:"9px 14px",fontWeight:700,fontSize:12,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 6px 16px -4px #18A95599",transition:"all 0.2s"}}>
+            <button onClick={regenerate} disabled={spinning} style={{display:"flex",alignItems:"center",gap:6,background:spinning?"#A8C96E":"#C7F23E",color:"#15251C",border:"none",borderRadius:10,padding:"9px 14px",fontWeight:700,fontSize:12,cursor:spinning?"not-allowed":"pointer",boxShadow:spinning?"none":"0 6px 16px -5px rgba(199,242,62,0.7)",transition:"all 0.2s"}}>
               <span style={{display:"inline-block",animation:spinning?"spin 0.7s linear infinite":"none",fontSize:13}}>🔄</span>
               {spinning?"...":"Nuovo piano"}
             </button>
