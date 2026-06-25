@@ -1,10 +1,13 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, buildShoppingForDays, depColor, depLabel } from '@/core';
+import { DAYS, buildShoppingForDays, depColor, depLabel, todayDayIndex } from '@/core';
 import { IngredientiPage } from '@/features/ingredienti/IngredientiPage';
 
 export function ShoppingPage({ plan, checks, onToggle, onReset }) {
-  const [selDays, setSelDays] = useState([0,1,2,3,4,5,6]);
+  // Periodo predefinito: 3 giorni a partire da oggi (limitati alla settimana).
+  const todayIdx = todayDayIndex();
+  const next3 = (() => { const d = []; for (let k = 0; k < 3; k++) { const i = todayIdx + k; if (i <= 6) d.push(i); } return d.length ? d : [todayIdx]; })();
+  const [selDays, setSelDays] = useState(next3);
   // Spunte persistenti e condivise con la famiglia (gestite da App)
   const checked = checks || {};
   const toggle = id => onToggle(id);
@@ -16,17 +19,11 @@ export function ShoppingPage({ plan, checks, onToggle, onReset }) {
   return (
     <div>
       <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"12px 14px",marginBottom:12}}>
-        <div style={{fontSize:11,fontWeight:800,color:"#15251C",marginBottom:10}}>📅 Per quali giorni fare la spesa?</div>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+        <div style={{display:"flex",gap:5}}>
           {DAYS.map((d,i)=>{
             const sel=selDays.includes(i);
-            return <button key={i} onClick={()=>toggleDay(i)} style={{padding:"6px 11px",borderRadius:8,border:"2px solid",borderColor:sel?"#2F6B3A":"#E7EDE2",background:sel?"#2F6B3A":"#fff",color:sel?"#fff":"#6E8576",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.15s"}}>{d.slice(0,3)}</button>;
+            return <button key={i} onClick={()=>toggleDay(i)} style={{flex:1,padding:"7px 0",borderRadius:8,border:"2px solid",borderColor:sel?"#2F6B3A":"#E7EDE2",background:sel?"#2F6B3A":"#fff",color:sel?"#fff":"#6E8576",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.15s"}}>{d.slice(0,3)}</button>;
           })}
-        </div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {[{label:"Lun–Mer",days:[0,1,2]},{label:"Gio–Sab",days:[3,4,5]},{label:"Weekend",days:[5,6]},{label:"Tutta la settimana",days:[0,1,2,3,4,5,6]}].map(({label,days})=>(
-            <button key={label} onClick={()=>setQuick(days)} style={{padding:"4px 10px",borderRadius:6,border:"1px solid #E7EDE2",background:"#F5F8F1",color:"#6E8576",fontSize:11,fontWeight:600,cursor:"pointer"}}>{label}</button>
-          ))}
         </div>
       </div>
       {selDays.length===0 ? (
