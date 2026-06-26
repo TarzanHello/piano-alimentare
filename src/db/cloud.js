@@ -206,6 +206,81 @@ export async function deleteAccount() {
   return { error: null };
 }
 
+// ─── Esportazione dati (GDPR art. 20 — portabilità) ──────────
+// Raccoglie tutti i dati dell'utente in un unico oggetto JSON: la parte
+// cloud (profili propri e a carico, misure, profilo_dati, ricette, e i dati
+// della famiglia di cui fa parte) più un dump integrale dello storage locale
+// del dispositivo, così l'esportazione è completa anche per i dati non ancora
+// sincronizzati o puramente locali (idratazione, log pasti, preferenze…).
+export async function exportMyData() {
+  if (!supabase) return { error: 'Cloud non configurato' };
+  const session = await getSession();
+  if (!session) return { error: 'Non autenticato' };
+  const uid = session.user.id;
+  try {
+    // Profili: il mio + quelli a carico
+    const { data: profili } = await supabase.from('profili').select('*')
+      .or(`user_id.eq.${uid},gestito_da.eq.${uid}`);
+    const ids = (profili || []).map(p => p.id);
+
+    let misure = [], profiloDati = [];
+    if (ids.length) {
+      const { data: m }  = await supabase.from('misure').select('*').in('profilo_id', ids);
+      const { data: pd } = await supabase.from('profilo_dati').select('*').in('profilo_id', ids);
+      misure = m || []; profiloDati = pd || [];
+    }
+
+    const { data: ricette } = await supabase.from('ricette_utente').select('*').eq('autore_id', uid);
+
+    // Dati della famiglia (condivisi con gli altri membri)
+    const mio = (profili || []).find(p => p.user_id === uid);
+    let famiglia = null, famigliaDati = [], famigliaSpesa = [];
+    if (mio?.famiglia_id) {
+      const { data: f }  = await supabase.from('famiglie').select('*').eq('id', mio.famiglia_id).maybeSingle();
+      const { data: fd } = await supabase.from('famiglia_dati').select('*').eq('famiglia_id', mio.famiglia_id);
+      const { data: fs } = await supabase.from('famiglia_spesa').select('*').eq('famiglia_id', mio.famiglia_id);
+      famiglia = f || null; famigliaDati = fd || []; famigliaSpesa = fs || [];
+    }
+
+    // Dump integrale dello storage locale
+    const dispositivo = {};
+    try {
+      const { keys } = await window.storage.list("");
+      for (const k of keys) {
+        try {
+          const r = await window.storage.get(k);
+          try { dispositivo[k] = JSON.parse(r.value); } catch { dispositivo[k] = r.value; }
+        } catch {}
+      }
+    } catch {}
+
+    const dump = {
+      _meta: {
+        app: 'Fitsy / piano-alimentare',
+        descrizione: 'Esportazione dati personali (GDPR art. 20)',
+        esportato_il: new Date().toISOString(),
+        utente: { id: uid, email: session.user.email || null },
+        formato: 1,
+      },
+      cloud: {
+        profili: profili || [],
+        misure,
+        profilo_dati: profiloDati,
+        ricette_utente: ricette || [],
+        famiglia,
+        famiglia_dati: famigliaDati,
+        famiglia_spesa: famigliaSpesa,
+      },
+      dispositivo,
+    };
+    logSync("info", "Esportazione dati completata", { profili: ids.length, misure: misure.length });
+    return { data: dump, error: null };
+  } catch (e) {
+    logSync("error", "Esportazione dati fallita", { error: e?.message });
+    return { error: e?.message || 'Errore esportazione' };
+  }
+}
+
 export async function getMyFamily() {
   if (!supabase) return null;
   const session = await getSession();
