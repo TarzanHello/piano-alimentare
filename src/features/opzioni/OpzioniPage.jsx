@@ -4,10 +4,32 @@ import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { DEFAULT_NOTIF, MEAL_KEYS, MEAL_META, scheduleNotifications, todayDayIndex } from '@/core';
 import { GustiPage } from '@/features/gusti/GustiPage';
+import { cloudEnabled, getSession, deleteAccount } from '@/db/cloud';
 
 export function OpzioniPage({ notifSettings, onNotifChange, plan, personas, myPersonaId, currentSeed, overrides, onApplySeed, history, onLoadHistory }) {
   const [permStatus, setPermStatus] = React.useState("Notification" in window ? Notification.permission : "unsupported");
   const [requesting, setRequesting] = React.useState(false);
+
+  // ─── Stato eliminazione account ───────────────────────────────
+  const [hasSession, setHasSession] = React.useState(false);
+  const [delOpen, setDelOpen] = React.useState(false);   // pannello di conferma aperto
+  const [delText, setDelText] = React.useState("");      // testo digitato dall'utente
+  const [delBusy, setDelBusy] = React.useState(false);
+  const [delErr, setDelErr] = React.useState("");
+  React.useEffect(() => {
+    let vivo = true;
+    if (cloudEnabled) getSession().then(s => { if (vivo) setHasSession(!!s); });
+    return () => { vivo = false; };
+  }, []);
+  const delPronto = delText.trim().toUpperCase() === "ELIMINA";
+  const handleDelete = async () => {
+    if (!delPronto || delBusy) return;
+    setDelBusy(true); setDelErr("");
+    const { error } = await deleteAccount();
+    if (error) { setDelErr(error); setDelBusy(false); return; }
+    // Tutto cancellato: ricarico l'app per ripartire da stato pulito.
+    window.location.href = window.location.origin + window.location.pathname;
+  };
   const settings = {
     ...DEFAULT_NOTIF,
     ...(notifSettings || {}),
@@ -53,6 +75,25 @@ export function OpzioniPage({ notifSettings, onNotifChange, plan, personas, myPe
         {MEAL_KEYS.map((mk,i)=>{const cfg=settings.meals[mk]||{active:false,hour:8,minute:0};const meta=MEAL_META[mk];const todayMeal=todayPlan&&todayPlan[mk];return(<div key={mk} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 0",borderBottom:i<MEAL_KEYS.length-1?"1px solid #EFF3EC":"none"}}><div onClick={()=>toggleMeal(mk)} style={{position:"relative",width:36,height:20,borderRadius:10,background:cfg.active?"#2F6B3A":"#E7EDE2",cursor:"pointer",transition:"background 0.2s",flexShrink:0}}><div style={{position:"absolute",top:2,left:cfg.active?17:2,width:16,height:16,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 3px #0003",transition:"left 0.2s"}}/></div><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:700,color:cfg.active?"#15251C":"#9DB1A2"}}>{MICONS[mk]} {meta.label.split(" ").slice(1).join(" ")}</div>{todayMeal&&cfg.active&&<div style={{fontSize:10,color:"#6E8576",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Oggi: {todayMeal.nome}</div>}</div><div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}><input type="number" min="0" max="23" value={cfg.hour} onChange={e=>setMealTime(mk,"hour",e.target.value)} style={{width:38,padding:"5px 4px",border:"1.5px solid #E7EDE2",borderRadius:7,fontSize:14,fontFamily:"monospace",fontWeight:700,textAlign:"center",outline:"none",color:cfg.active?"#15251C":"#9DB1A2"}}/><span style={{fontWeight:800,color:"#9DB1A2"}}>:</span><input type="number" min="0" max="59" value={cfg.minute} onChange={e=>setMealTime(mk,"minute",e.target.value)} style={{width:38,padding:"5px 4px",border:"1.5px solid #E7EDE2",borderRadius:7,fontSize:14,fontFamily:"monospace",fontWeight:700,textAlign:"center",outline:"none",color:cfg.active?"#15251C":"#9DB1A2"}}/></div></div>);})}
       </div>
       {isGranted&&<div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E7EDE2",padding:"16px",marginBottom:14}}><div style={{fontSize:13,fontWeight:800,color:"#15251C",marginBottom:10}}>🧪 Test</div><button onClick={()=>{const m=todayPlan&&todayPlan["pranzo"];new Notification("🥗 Pranzo",{body:m?m.nome:"È ora di pranzo!",icon:"./icon-192.png",tag:"test"});}} style={{width:"100%",padding:"10px",borderRadius:10,border:"1.5px solid #2F6B3A30",background:"#EDF7EF",color:"#2F6B3A",fontWeight:700,fontSize:12,cursor:"pointer"}}>📣 Invia notifica di prova (Pranzo)</button></div>}
+      {cloudEnabled && hasSession && (
+        <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #F3D6D6",padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#b91c1c",marginBottom:4}}>⚠️ Elimina account</div>
+          <div style={{fontSize:11,color:"#6E8576",marginBottom:14,lineHeight:1.6}}>Cancella in modo <b>definitivo e irreversibile</b> il tuo account e tutti i dati associati: profili (tuoi e a carico), misurazioni, ricette e i dati salvati su questo dispositivo. I dati condivisi con la famiglia restano agli altri membri.</div>
+          {!delOpen ? (
+            <button onClick={()=>{setDelOpen(true);setDelText("");setDelErr("");}} style={{width:"100%",padding:"11px",borderRadius:10,border:"1.5px solid #fecaca",background:"#fef2f2",color:"#b91c1c",fontWeight:700,fontSize:13,cursor:"pointer"}}>🗑️ Elimina account e tutti i dati</button>
+          ) : (
+            <div>
+              <div style={{fontSize:11,color:"#15251C",marginBottom:8,lineHeight:1.6}}>Per confermare, scrivi <b>ELIMINA</b> qui sotto.</div>
+              <input value={delText} onChange={e=>setDelText(e.target.value)} placeholder="ELIMINA" autoCapitalize="characters" style={{width:"100%",padding:"10px 12px",border:"1.5px solid #E7EDE2",borderRadius:9,fontSize:14,fontWeight:700,letterSpacing:1,outline:"none",marginBottom:10,boxSizing:"border-box"}}/>
+              {delErr && <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:9,padding:"9px 12px",fontSize:11,color:"#dc2626",fontWeight:600,marginBottom:10}}>{delErr}</div>}
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{setDelOpen(false);setDelText("");setDelErr("");}} disabled={delBusy} style={{flex:1,padding:"11px",borderRadius:10,border:"1.5px solid #E7EDE2",background:"#fff",color:"#4A6152",fontWeight:700,fontSize:13,cursor:delBusy?"default":"pointer"}}>Annulla</button>
+                <button onClick={handleDelete} disabled={!delPronto||delBusy} style={{flex:1,padding:"11px",borderRadius:10,border:"none",background:(delPronto&&!delBusy)?"linear-gradient(135deg,#dc2626,#b91c1c)":"#E7C4C4",color:"#fff",fontWeight:700,fontSize:13,cursor:(delPronto&&!delBusy)?"pointer":"default"}}>{delBusy?"⏳ Elimino…":"Elimina definitivamente"}</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <div style={{fontSize:10,color:"#9DB1A2",textAlign:"center",lineHeight:1.8,padding:"0 10px"}}>Le notifiche vengono schedulate ad ogni apertura dell'app.</div>
     </div>
   );

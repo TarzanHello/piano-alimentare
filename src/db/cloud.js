@@ -172,6 +172,40 @@ export async function leaveFamily() {
   return { error: null };
 }
 
+// ─── Cancellazione account (GDPR art. 17) ────────────────────
+// Cancellazione totale e irreversibile: rimuove sul cloud tutti i dati
+// dell'utente (profili propri + a carico, misure, profilo_dati, ricette,
+// e la famiglia se resta vuota) tramite la RPC delete_account, poi azzera
+// la copia locale sul dispositivo e chiude la sessione. La retention
+// concordata richiede che nessun dato personale sopravviva, nemmeno in locale.
+export async function deleteAccount() {
+  if (!supabase) return { error: 'Cloud non configurato' };
+  logSync("auth", "Cancellazione account richiesta");
+
+  // 1) Cancellazione lato server (transazione unica tutto-o-niente)
+  const { error } = await supabase.rpc('delete_account');
+  if (error) {
+    logSync("error", "Cancellazione account fallita", { error: error.message });
+    return { error: error.message };
+  }
+
+  // 2) Azzeramento della copia locale: elimino tutte le chiavi dello storage
+  try {
+    const { keys } = await window.storage.list("");
+    for (const k of keys) {
+      try { await window.storage.delete(k); } catch {}
+    }
+  } catch (e) {
+    console.warn("Pulizia storage locale:", e?.message);
+  }
+
+  // 3) Chiusura della sessione (l'utente di autenticazione non esiste più)
+  try { await supabase.auth.signOut(); } catch {}
+
+  logSync("auth", "Account e dati cancellati definitivamente");
+  return { error: null };
+}
+
 export async function getMyFamily() {
   if (!supabase) return null;
   const session = await getSession();
@@ -179,8 +213,13 @@ export async function getMyFamily() {
   const { data: mio } = await supabase.from('profili')
     .select('famiglia_id').eq('user_id', session.user.id).maybeSingle();
   if (!mio?.famiglia_id) return null;
-  const { data } = await supabase.from('famiglie')
-    .select('id, nome, invite_code, created_by, capo_id, created_at').eq('id', mio.famiglia_id).limit(1);
+  // NB: la colonna 'capo_id' non esiste sulla tabella famiglie — selezionarla
+  // faceva fallire l'intera query (PostgREST), e siccome qui si leggeva solo
+  // 'data' ignorando 'error', getMyFamily restituiva sempre null in silenzio.
+  // Il capofamiglia si deriva da 'created_by'.
+  const { data, error } = await supabase.from('famiglie')
+    .select('id, nome, invite_code, created_by, created_at').eq('id', mio.famiglia_id).limit(1);
+  if (error) { logSync("error", "Lettura famiglia: errore", { error: error.message }); return null; }
   return (data && data[0]) || null;
 }
 
