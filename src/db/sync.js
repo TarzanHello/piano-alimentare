@@ -14,6 +14,12 @@ const SK_CLOUD_ME = "pf-cloud-me";
 // generati. Serve a riconoscere un cambio di account e azzerare i dati
 // del precedente, così il nuovo utente non vede misure/famiglia altrui.
 const SK_AUTH_UID = "pf-auth-uid";
+// Flag one-shot: segnala che lo stato locale è "fresco" (storage appena
+// azzerato per cambio account, oppure primo accesso) e che quindi il
+// piano del cloud ha la precedenza sul piano locale auto-generato al boot.
+// Senza, il piano fresco (seed = Date.now(), sempre più recente) verrebbe
+// pushato SOPRA il piano della famiglia, cancellandolo.
+const SK_FRESH = "pf-fresh-local";
 
 let started   = false;
 let me        = null;
@@ -575,13 +581,23 @@ export async function startSync() {
       logSync("auth","Cambio account rilevato: azzero i dati locali del precedente",{da:uidLocale,a:uidAttuale});
       await wipeDatiLocali();
       await setLocalQuiet(SK_AUTH_UID, uidAttuale);
+      // Lo storage è ora vuoto: al riavvio l'app genererà un piano nuovo.
+      // Marca lo stato come "fresco" così la reconcile NON lo pusherà sopra
+      // il piano della famiglia, ma scaricherà quello del cloud.
+      await setLocalQuiet(SK_FRESH, "1");
       // Ricarico l'app da zero così lo stato React si re-idrata dallo
       // storage ora pulito (i dati erano già in memoria al boot di App).
       window.location.reload();
       return;
     }
     // Primo accesso o stesso account: registra/aggiorna il proprietario.
-    if (uidLocale !== uidAttuale) await setLocalQuiet(SK_AUTH_UID, uidAttuale);
+    // Al PRIMO accesso (nessun proprietario precedente) lo stato locale è
+    // un default appena generato: marcalo come fresco, così entrando in una
+    // famiglia esistente si adotta il suo piano invece di sovrascriverlo.
+    if (uidLocale !== uidAttuale) {
+      await setLocalQuiet(SK_AUTH_UID, uidAttuale);
+      await setLocalQuiet(SK_FRESH, "1");
+    }
     // ─────────────────────────────────────────────────────────────
     const {data:mio,error}=await supabase.from("profili").select("id,famiglia_id").eq("user_id",uidAttuale).maybeSingle();
     if(error) logSync("error","Boot: errore lettura profilo",{error:error.message});
@@ -656,15 +672,25 @@ async function reconcile() {
     // Senza questo, un piano locale "orfano" più nuovo del cloud non
     // raggiungeva mai gli altri dispositivi.
     const pianoRow=righe.find(r=>r.chiave==="piano");
-    const localSeedNum=Number(await getLocalRaw(SK_SEED,"0"));
-    const cloudSeedNum=Number(pianoRow?.valore?.seed||0);
-    if (Number.isFinite(localSeedNum) && localSeedNum>cloudSeedNum) {
-      logSync("info","Riconciliazione: piano locale più recente del cloud, lo carico",{seedLocale:String(localSeedNum),seedCloud:String(cloudSeedNum)});
-      await pushPianoConLock();
-    } else {
+    const fresco=(await getLocalRaw(SK_FRESH,null))==="1";
+    if (fresco) {
+      // Stato locale appena azzerato/primo accesso: il piano locale è un
+      // default auto-generato e NON deve sovrascrivere quello della famiglia.
+      logSync("info","Riconciliazione: stato locale fresco, prevale il piano del cloud");
       await pullPiano();
+    } else {
+      const localSeedNum=Number(await getLocalRaw(SK_SEED,"0"));
+      const cloudSeedNum=Number(pianoRow?.valore?.seed||0);
+      if (Number.isFinite(localSeedNum) && localSeedNum>cloudSeedNum) {
+        logSync("info","Riconciliazione: piano locale più recente del cloud, lo carico",{seedLocale:String(localSeedNum),seedCloud:String(cloudSeedNum)});
+        await pushPianoConLock();
+      } else {
+        await pullPiano();
+      }
     }
   }
+  // Il flag "fresco" vale solo per questa prima riconciliazione: consumalo.
+  try { await window.storage.delete(SK_FRESH); } catch {}
   if(!chiaviCloud.has("gusti"))      { logSync("info","Riconciliazione: gusti assenti sul cloud, li carico"); await pushFamigliaDato("gusti",await getLocal(SK_PREFS,{})); }
   if(!chiaviCloud.has("esclusioni")) { logSync("info","Riconciliazione: esclusioni assenti sul cloud, le carico"); await pushFamigliaDato("esclusioni",await getLocal(SK_EXCL,[])); }
   await pullAltriDatiFamiglia();
