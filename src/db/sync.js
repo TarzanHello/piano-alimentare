@@ -318,24 +318,51 @@ async function pushPianoConLock() {
   }
 }
 
+// Filtra un payload mantenendo SOLO le chiavi che esistono davvero come
+// colonne sul cloud (ricavate da una riga campione già letta da Supabase).
+// Difesa contro il disallineamento schema: se personaToProfilo() produce un
+// campo privo della colonna corrispondente, l'intero update/insert verrebbe
+// rifiutato da PostgREST (errore "Could not find the '<campo>' column ... in
+// the schema cache"), azzerando la sync di TUTTI i campi del profilo insieme.
+// Con questo filtro il campo orfano viene scartato e segnalato, ma gli altri
+// campi vengono comunque salvati.
+function filtraColonneProfilo(payload, rigaCampione) {
+  if (!rigaCampione) return { pulito: payload, scartate: [] };
+  const colonne = new Set(Object.keys(rigaCampione));
+  const pulito = {}, scartate = [];
+  for (const k of Object.keys(payload)) {
+    if (colonne.has(k)) pulito[k] = payload[k];
+    else scartate.push(k);
+  }
+  return { pulito, scartate };
+}
+
 async function pushPersonas() {
   const personas=await getLocal(SK_PERSONAS,[]);
   const {data:cloud,error}=await supabase.from("profili").select("*").eq("famiglia_id",me.famigliaId);
   if (error||!cloud) { if(error) logSync("error","Push profili: errore lettura cloud",{error:error.message}); return; }
   const cloudById=Object.fromEntries(cloud.map(c=>[c.id,c]));
+  const campione=cloud[0]||null;   // riga campione: ci dice quali colonne esistono davvero
   for (let i=0;i<personas.length;i++) {
     const p=personas[i];const c=cloudById[p.id];
     if (c) {
       if (!editable(profiloToPersona(c))) continue;
-      const upd=personaToProfilo(p);const cambia=Object.keys(upd).some(k=>String(c[k]??"")!==String(upd[k]??""));
+      const {pulito:upd,scartate}=filtraColonneProfilo(personaToProfilo(p),c);
+      if(scartate.length) logSync("warn","Push profilo: campi ignorati (colonna assente sul cloud)",{profilo:p.id,nome:p.nome,campi:scartate});
+      // 'cambia' calcolato sul payload GIÀ filtrato: così un campo scartato
+      // non forza push perpetui (confronto undefined-vs-valore sempre diverso).
+      const cambia=Object.keys(upd).some(k=>String(c[k]??"")!==String(upd[k]??""));
       if(cambia) {
         const {error:upErr}=await supabase.from("profili").update(upd).eq("id",p.id);
-        if(upErr) logSync("error","Push profilo: errore",{profilo:p.id,nome:p.nome,error:upErr.message});
+        if(upErr) logSync("error","Push profilo: errore",{profilo:p.id,nome:p.nome,campi:Object.keys(upd),error:upErr.message});
         else logSync("push","Profilo aggiornato sul cloud",{profilo:p.id,nome:p.nome});
       }
     } else if (!p._uid) {
       const sl=await getLocal("pf-local-only",[]);if(sl.includes(p.id)) continue;
-      const {data:nuovo}=await supabase.from("profili").insert({user_id:null,gestito_da:me.userId,famiglia_id:me.famigliaId,...personaToProfilo(p)}).select().single();
+      const base={user_id:null,gestito_da:me.userId,famiglia_id:me.famigliaId,...personaToProfilo(p)};
+      const {pulito:ins,scartate}=filtraColonneProfilo(base,campione);
+      if(scartate.length) logSync("warn","Nuovo profilo: campi ignorati (colonna assente sul cloud)",{nome:p.nome,campi:scartate});
+      const {data:nuovo}=await supabase.from("profili").insert(ins).select().single();
       if(nuovo){await remapPersonaId(p.id,nuovo.id);personas[i]={...p,id:nuovo.id,_gestito:true};await setLocalQuiet(SK_PERSONAS,JSON.stringify(personas));logSync("push","Nuovo profilo a carico creato sul cloud",{localId:p.id,cloudId:nuovo.id,nome:p.nome});emit("personas");}
     }
   }
@@ -625,7 +652,10 @@ export async function finishMigration(mapping) {
 export async function autoClaimSingle(persona) {
   if(!supabase||!me) throw new Error("cloud non pronto");
   logSync("info","Associazione automatica profilo unico",{persona:persona.id,cloudProfilo:me.profiloId});
-  await supabase.from("profili").update({nome:persona.nome,sesso:persona.sesso==="F"?"F":"M",data_nascita:persona.dataNascita||etaToDataNascita(persona.eta),peso:persona.peso??null,altezza:persona.altezza??null,lavoro:persona.lavoro||"sedentario",allenamenti:persona.allenamenti??3,obiettivo:persona.obiettivo||"mantenimento",color:persona.color||"#2F6B3A"}).eq("id",me.profiloId);
+  // Unica fonte di verità per il mapping persona→profilo: niente lista di
+  // campi duplicata (che in passato era andata fuori sincrono, omettendo
+  // dieta_intensita e peso_target).
+  await supabase.from("profili").update(personaToProfilo(persona)).eq("id",me.profiloId);
   await finishMigration([{localId:persona.id,cloudId:me.profiloId}]);
 }
 
