@@ -10,6 +10,10 @@ import { logSync } from './synclog';
 import { pullCustomIngredients } from './customIngredients';
 
 const SK_CLOUD_ME = "pf-cloud-me";
+// Proprietario dei dati locali: l'id utente Google (auth.uid) che li ha
+// generati. Serve a riconoscere un cambio di account e azzerare i dati
+// del precedente, così il nuovo utente non vede misure/famiglia altrui.
+const SK_AUTH_UID = "pf-auth-uid";
 
 let started   = false;
 let me        = null;
@@ -527,6 +531,26 @@ function subscribeRealtime() {
 
 // === Avvio ===
 
+// Azzera TUTTI i dati applicativi locali (profili, misure, famiglia, log
+// pasti, piano/override, preferenze, esclusioni, ingredienti custom,
+// identità cloud, ecc.). Non tocca i token di sessione Supabase ("sb-…"),
+// quindi NON sloggia l'utente: usato solo al cambio di account.
+async function wipeDatiLocali() {
+  try {
+    const { keys } = await window.storage.list(""); // tutte le chiavi "pa__*"
+    for (const k of keys) { try { await window.storage.delete(k); } catch {} }
+  } catch (e) { logSync("error","Azzeramento dati locali: errore",{error:String(e)}); }
+  // Fallback: chiavi scritte direttamente in localStorage (es. ingredienti custom)
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith("pa__"))
+      .forEach(k => { try { localStorage.removeItem(k); } catch {} });
+  } catch {}
+  // Stato in memoria del motore di sync
+  me = null;
+  try { if (channel) { supabase.removeChannel(channel); channel = null; } } catch {}
+}
+
 export async function startSync() {
   if (started||!supabase){
     if(!supabase){logSync("status","Cloud non configurato: sync non avviata");emitStatus({loggedIn:false,inFamily:false});}
@@ -538,7 +562,28 @@ export async function startSync() {
   const boot=async()=>{
     const session=await getSession();
     if(!session){me=null;logSync("status","Nessuna sessione: utente non collegato");emitStatus({loggedIn:false,inFamily:false});return;}
-    const {data:mio,error}=await supabase.from("profili").select("id,famiglia_id").eq("user_id",session.user.id).maybeSingle();
+    // ── Guardia cambio account ───────────────────────────────────
+    // Se l'utente Google attuale è DIVERSO da quello che ha generato i
+    // dati locali, quei dati appartengono all'account precedente e vanno
+    // azzerati prima di proseguire: altrimenti il nuovo account vede
+    // misure, famiglia e log di chi era loggato prima (i dati restano
+    // solo in locale finché non si entra in una famiglia, quindi nessuna
+    // riconciliazione cloud li sovrascriverebbe da sola).
+    const uidAttuale = session.user.id;
+    const uidLocale  = await getLocalRaw(SK_AUTH_UID, null);
+    if (uidLocale && uidLocale !== uidAttuale) {
+      logSync("auth","Cambio account rilevato: azzero i dati locali del precedente",{da:uidLocale,a:uidAttuale});
+      await wipeDatiLocali();
+      await setLocalQuiet(SK_AUTH_UID, uidAttuale);
+      // Ricarico l'app da zero così lo stato React si re-idrata dallo
+      // storage ora pulito (i dati erano già in memoria al boot di App).
+      window.location.reload();
+      return;
+    }
+    // Primo accesso o stesso account: registra/aggiorna il proprietario.
+    if (uidLocale !== uidAttuale) await setLocalQuiet(SK_AUTH_UID, uidAttuale);
+    // ─────────────────────────────────────────────────────────────
+    const {data:mio,error}=await supabase.from("profili").select("id,famiglia_id").eq("user_id",uidAttuale).maybeSingle();
     if(error) logSync("error","Boot: errore lettura profilo",{error:error.message});
     if(!mio?.famiglia_id){me=null;logSync("status","Collegato, ma non in una famiglia",{userId:session.user.id});emitStatus({loggedIn:true,inFamily:false});return;}
     me={userId:session.user.id,profiloId:mio.id,famigliaId:mio.famiglia_id};
