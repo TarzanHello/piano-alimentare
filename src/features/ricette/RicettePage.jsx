@@ -171,7 +171,7 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
     <div style={{ padding:"8px 16px 100px", maxWidth:600, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
         <button onClick={onAnnulla} style={{ ...btnGhost, padding:"8px 10px" }}>← Indietro</button>
-        <h2 style={{ fontSize:18, fontWeight:800, margin:0, flex:1 }}>
+        <h2 style={{ fontFamily:"'Outfit',sans-serif", fontSize:18, fontWeight:800, letterSpacing:"-0.02em", color:"#15251C", margin:0, flex:1 }}>
           {iniziale?.id ? "Modifica ricetta" : "Nuova ricetta"}
         </h2>
       </div>
@@ -517,8 +517,9 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
   return (
     <div style={{ padding:"16px 16px 100px", maxWidth:600, margin:"0 auto" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-        <h2 style={{ fontSize:20, fontWeight:700, margin:0 }}>📖 Ricette</h2>
-        {collegato && <button onClick={() => { setEditing(null); setVista("editor"); }} style={btnPrimary}>+ Nuova</button>}
+        <h2 style={{ fontFamily:"'Outfit',sans-serif", fontSize:22, fontWeight:800, letterSpacing:"-0.02em", color:"#15251C", margin:0 }}>📖 Ricette</h2>
+        {collegato && <button onClick={() => { setEditing(null); setVista("editor"); }}
+          style={{ padding:"9px 15px", borderRadius:11, border:"none", background:"#2F6B3A", color:"#fff", fontWeight:800, fontSize:13, cursor:"pointer", boxShadow:"0 6px 14px -6px #2F6B3A99" }}>+ Nuova</button>}
       </div>
 
       {/* Tab switcher: solo Ricette + Catalogo */}
