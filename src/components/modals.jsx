@@ -422,7 +422,7 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
           </button>
           <button onClick={handleSave}
             style={{flex:2,padding:"12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#2F6B3A,#235029)",color:"#fff",fontWeight:800,fontSize:13,cursor:"pointer",boxShadow:"0 4px 14px #2F6B3A33"}}>
-            ✓ Salva ricetta personalizzata
+            ✓ Salva
           </button>
         </div>
       </div>
