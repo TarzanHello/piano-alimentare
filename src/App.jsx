@@ -36,7 +36,8 @@ function remapPersonaColors(list) {
 // l'offset in giorni rispetto a oggi (0 = oggi).
 function DayCarousel({ selOffset, onSelect, color }) {
   const ref = useRef(null);
-  const offsets = [-3,-2,-1,0,1,2,3];
+  // Finestra mobile: ±14 giorni = almeno 2 settimane avanti e 2 indietro da oggi.
+  const offsets = Array.from({length:29}, (_,i)=>i-14);
   useEffect(() => {
     const el = ref.current && ref.current.querySelector(`[data-off="${selOffset}"]`);
     if (el && el.scrollIntoView) {

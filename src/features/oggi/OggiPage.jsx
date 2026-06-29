@@ -61,10 +61,14 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
   });
   const { adattato: macroAdattati } = ricalcolaMacroAdattati(MEAL_KEYS, macroBase, dayLog, pesoBase);
   const macroFor = mk => {
-    if (dayLog[mk]?.saltato) return { kcal:0, p:0, c:0, g:0 };       // saltato → non conta
+    if (dayLog[mk]?.saltato) return { kcal:0, p:0, c:0, g:0 };       // saltato → non conta (solo per il display)
     if (dayLog[mk]?.consumed) return { kcal:+dayLog[mk].kcal||0, p:+dayLog[mk].p||0, c:+dayLog[mk].c||0, g:+dayLog[mk].g||0 };
     return macroAdattati[mk];
   };
+  // Macro da REGISTRARE quando si preme "mangiato": sempre il valore del piano
+  // (adattato), mai lo zero del saltato. Senza questo, segnare mangiato un
+  // pasto prima saltato registrerebbe 0 kcal.
+  const macroPerMangiato = mk => macroAdattati[mk] || { kcal:0, p:0, c:0, g:0 };
 
   // ── Totali consumati ──
   const consumed = MEAL_KEYS.reduce((acc, mk) => {
@@ -137,7 +141,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
                 <span style={{fontSize:18,fontWeight:900,lineHeight:1}}>✗</span>
                 <span style={{fontSize:9,fontWeight:800}}>Salta</span>
               </button>
-              <button onClick={()=>onToggleMeal(persona.id, dateKey, prossimo, macroFor(prossimo))}
+              <button onClick={()=>onToggleMeal(persona.id, dateKey, prossimo, macroPerMangiato(prossimo))}
                 style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:64,height:64,borderRadius:18,border:"none",background:"#C7F23E",color:"#15251C",cursor:"pointer",boxShadow:"0 8px 18px -6px rgba(199,242,62,0.6)"}}>
                 <span style={{fontSize:20,fontWeight:900,lineHeight:1}}>✓</span>
                 <span style={{fontSize:9.5,fontWeight:800}}>Mangia</span>
@@ -178,7 +182,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
                   style={{width:32,height:32,borderRadius:"50%",border:isSalt?"none":"2px solid #E7CFCF",background:isSalt?"#dc2626":"#fff",color:isSalt?"#fff":"#D4A0A0",fontWeight:900,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
                   ✗
                 </button>
-                <button onClick={()=>onToggleMeal(persona.id, dateKey, mk, m)}
+                <button onClick={()=>onToggleMeal(persona.id, dateKey, mk, macroPerMangiato(mk))}
                   title={isCons?"Segna come non consumato":"Segna come mangiato"}
                   style={{width:32,height:32,borderRadius:"50%",border:isCons?"none":"2px solid #C2D0C6",background:isCons?"#2F6B3A":"#fff",color:isCons?"#fff":"#C2D0C6",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",animation:isCons?"pop 0.25s ease-out":"none"}}>
                   ✓

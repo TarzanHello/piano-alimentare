@@ -24,6 +24,7 @@ const SK_FRESH = "pf-fresh-local";
 let started   = false;
 let me        = null;
 let channel   = null;
+let rtBackoff = 0;       // ms, attesa prima del retry realtime: cresce sugli errori, azzerata su SUBSCRIBED
 let timers    = {};
 let pianoLock = false;   // true mentre un push piano è in corso
 // Seed dell'ultimo piano che QUESTO dispositivo ha scritto sul cloud.
@@ -497,25 +498,29 @@ function hookStorage() {
 
 // === Realtime ===
 
-function subscribeRealtime() {
+function subscribeRealtime(fromRetry = false) {
   if (!me?.famigliaId) return;
-  // Non ricreare il canale se è già attivo per questa famiglia:
-  // due chiamate ravvicinate (onAuthStateChange + visibilitychange)
-  // non devono spegnersi a vicenda.
-  if (channel && channel.__famId === me.famigliaId && channel.__stato === "SUBSCRIBED") {
-    console.log("[sync] canale già attivo, skip subscribe");
+  // Non ricreare il canale se è già attivo (o in corso di sottoscrizione)
+  // per questa famiglia: due chiamate ravvicinate (onAuthStateChange +
+  // visibilitychange) non devono spegnersi a vicenda.
+  if (channel && channel.__famId === me.famigliaId &&
+      (channel.__stato === "SUBSCRIBED" || channel.__stato === "PENDING")) {
     logSync("realtime","Canale già attivo, sottoscrizione saltata");
     return;
   }
+  // Le chiamate "fresche" (boot, ritorno in primo piano, cambio auth) azzerano
+  // il backoff così la riconnessione è immediata; solo i retry da errore lo fanno crescere.
+  if (!fromRetry) rtBackoff = 0;
   if (channel){try{supabase.removeChannel(channel);}catch{}channel=null;}
   const famFilter=`famiglia_id=eq.${me.famigliaId}`;
   const devId=Math.random().toString(36).slice(2,10);
   const nomeCanale="fam-"+devId;
   logSync("realtime","Sottoscrizione canale realtime",{canale:nomeCanale});
-  channel=supabase.channel(nomeCanale);
-  channel.__famId = me.famigliaId;
-  channel.__stato = "PENDING";
-  channel
+  const myCh=supabase.channel(nomeCanale);   // istanza locale: la callback agisce SOLO su questa
+  myCh.__famId = me.famigliaId;
+  myCh.__stato = "PENDING";
+  channel=myCh;
+  myCh
     .on("postgres_changes",{event:"*",schema:"public",table:"profili"},()=>{logSync("realtime","Evento ricevuto: profili");pullProfili();})
     .on("postgres_changes",{event:"*",schema:"public",table:"misure"},()=>{logSync("realtime","Evento ricevuto: misure");pullMisure();})
     .on("postgres_changes",{event:"*",schema:"public",table:"profilo_dati"},()=>{logSync("realtime","Evento ricevuto: profilo_dati");pullMealsLog();pullTargetGiornaliero();})
@@ -528,13 +533,31 @@ function subscribeRealtime() {
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_spesa",filter:famFilter},()=>{logSync("realtime","Evento ricevuto: spesa");pullSpesa();})
     .subscribe((status)=>{
-      if (channel) channel.__stato = status;
+      // Ignora i callback di un canale ormai superato: un removeChannel emette
+      // CLOSED in modo asincrono, DOPO che è già stato creato il canale nuovo.
+      // Senza questa guardia quella CLOSED corromperebbe lo stato del canale
+      // attuale e innescherebbe un retry → loop infinito ogni ~4s.
+      if (myCh !== channel) return;
+      myCh.__stato = status;
       logSync("realtime",`Stato canale: ${status}`,{canale:nomeCanale});
-      if(status==="SUBSCRIBED"){console.log("[sync] Realtime attivo");emitStatus({loggedIn:true,inFamily:true,me,realtime:"ok"});}
-      else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status)){
-        console.warn("[sync] Realtime",status,"→ retry 3s");
+      if(status==="SUBSCRIBED"){
+        rtBackoff = 0;                       // connessione ok: azzera il backoff
+        console.log("[sync] Realtime attivo");
+        emitStatus({loggedIn:true,inFamily:true,me,realtime:"ok"});
+      } else if(status==="CHANNEL_ERROR" || status==="TIMED_OUT"){
+        // Errore VERO: ritenta con backoff esponenziale (3s→6→12→24→max 30s) + jitter.
         emitStatus({loggedIn:true,inFamily:true,me,realtime:status});
-        clearTimeout(timers.__rt);timers.__rt=setTimeout(()=>{if(me)subscribeRealtime();},3000);
+        rtBackoff = Math.min(rtBackoff ? rtBackoff*2 : 3000, 30000);
+        const wait = rtBackoff + Math.floor(Math.random()*1000);
+        console.warn("[sync] Realtime",status,`→ retry ${Math.round(wait/1000)}s`);
+        clearTimeout(timers.__rt);
+        timers.__rt=setTimeout(()=>{ if(me && myCh===channel) subscribeRealtime(true); }, wait);
+      } else if(status==="CLOSED"){
+        // CLOSED = teardown nostro o socket chiuso dal client. NON ritentare qui:
+        // il client supabase riannoda i canali da solo al ripristino del socket,
+        // e comunque ci si risottoscrive al ritorno in primo piano / cambio auth.
+        // Ritentare su CLOSED è ciò che generava il loop.
+        emitStatus({loggedIn:true,inFamily:true,me,realtime:"closed"});
       }
     });
 }

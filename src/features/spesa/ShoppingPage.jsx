@@ -27,7 +27,7 @@ export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, 
     <div>
       <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"12px 14px",marginBottom:12}}>
         <div style={{display:"flex",gap:8,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
-          {[-3,-2,-1,0,1,2,3].map(off=>{
+          {Array.from({length:29},(_,i)=>i-14).map(off=>{
             const d=dateForOffset(off);
             const sel=selOffsets.includes(off);
             const isToday=off===0;
