@@ -45,7 +45,11 @@ function DayCarousel({ selOffset, onSelect, color }) {
     }
   }, [selOffset]);
   return (
-    <div ref={ref} style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
+    <div ref={ref}
+      onTouchStart={e=>e.stopPropagation()}
+      onTouchMove={e=>e.stopPropagation()}
+      onTouchEnd={e=>e.stopPropagation()}
+      style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
       {offsets.map(off => {
         const d = dateForOffset(off);
         const sel = selOffset === off;
