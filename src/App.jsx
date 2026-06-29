@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO, buildShoppingForDays, applyOverrides, calcTargetAdattivo, classifySwap, computePrefScore, dateKeyForDayIdx, emojiBySesso, generateWeekPlan, getPrefEntry, hoursUntilMeal, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, normalizePrefs, pianoPersonalizzato, restoreCustomING_QTY, ricalcolaMacroAdattati, ricettaUtenteToMealObj, scheduleNotifications, slotForPersona, todayDayIndex } from '@/core';
+import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, MEAL_FASCIA, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO, SK_FROZEN, buildShoppingForDays, buildShoppingForDayObjects, applyOverrides, applyOverridesWeek, autoFlagSaltati, calcTargetAdattivo, classifySwap, computePrefScore, dateForOffset, dateKeyForDayIdx, dateKeyForOffset, emojiBySesso, generateWeekPlan, getPrefEntry, grammiDaQuantita, grammiRicettaCalc, hoursUntilMeal, localDateKey, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, migraOverridesASettimana, normalizePrefs, overrideKey, pianoPersonalizzato, planForWeek, regeneraPlanState, restoreCustomING_QTY, ricalcolaMacroAdattati, ricettaUtenteToMealObj, scheduleNotifications, seedForWeek, slotForPersona, todayDayIndex, weekIndexForDate, weekdayForDate } from '@/core';
 import { SwipeContainer } from '@/components/shared';
 import { FamigliaPage } from '@/features/famiglia/FamigliaPage';
 import { GustiPage } from '@/features/gusti/GustiPage';
@@ -31,13 +31,45 @@ function remapPersonaColors(list) {
   return list.map(p => (p && LEGACY_PERSONA_COLORS[p.color]) ? { ...p, color: LEGACY_PERSONA_COLORS[p.color] } : p);
 }
 
+// Carosello giorni: finestra mobile [oggi−3 … oggi … oggi+3], oggi al centro,
+// scorrevole col dito (scroll-snap), etichette a data reale. `selOffset` è
+// l'offset in giorni rispetto a oggi (0 = oggi).
+function DayCarousel({ selOffset, onSelect, color }) {
+  const ref = useRef(null);
+  const offsets = [-3,-2,-1,0,1,2,3];
+  useEffect(() => {
+    const el = ref.current && ref.current.querySelector(`[data-off="${selOffset}"]`);
+    if (el && el.scrollIntoView) {
+      try { el.scrollIntoView({ inline:"center", block:"nearest", behavior:"smooth" }); } catch { el.scrollIntoView(); }
+    }
+  }, [selOffset]);
+  return (
+    <div ref={ref} style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
+      {offsets.map(off => {
+        const d = dateForOffset(off);
+        const sel = selOffset === off;
+        const isToday = off === 0;
+        const label = isToday ? "OGGI" : DAYS[(d.getDay()+6)%7].slice(0,3).toUpperCase();
+        return (
+          <button key={off} data-off={off} onClick={()=>onSelect(off)}
+            style={{flex:"0 0 auto",minWidth:62,scrollSnapAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"9px 12px",borderRadius:14,border:sel?"none":(isToday?`1.5px solid ${color}`:"1.5px solid #E7EDE2"),background:sel?color:"#fff",cursor:"pointer",transition:"all 0.2s",boxShadow:sel?`0 8px 16px -6px ${color}88`:"none"}}>
+            <span style={{fontSize:9.5,fontWeight:800,color:sel?"#ffffffcc":(isToday?color:"#9DB1A2")}}>{label}</span>
+            <span style={{fontSize:16,fontWeight:800,color:sel?"#fff":"#4A6152",fontFamily:"'Outfit',sans-serif"}}>{d.getDate()}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function App() {
   const [page, setPage]               = useState("oggi");
   const [menuOpen, setMenuOpen]       = useState(false);  // bottom-sheet del menu secondario
-  const [selDay, setSelDay]           = useState(todayDayIndex());
+  const [selOffset, setSelOffset]     = useState(0);   // giorno selezionato relativo a OGGI (−3…+3, 0 = oggi)
   const [selPersonaId, setSelPersonaId] = useState(null);
   const [myPersonaId, setMyPersonaId] = useState(null);
-  const [seed, setSeed]               = useState(null);
+  const [seed, setSeed]               = useState(null);  // = baseSeed della sequenza settimanale
+  const [frozen, setFrozen]           = useState({});    // { [weekIndex]: seed } settimane passate congelate
   const [history, setHistory]         = useState([]);
   const [plan, setPlan]               = useState(null);
   const [excluded, setExcluded]       = useState([]);
@@ -114,8 +146,10 @@ export function App() {
         case "piano":    {
           const seedCloud = parseInt(e.detail.seed, 10), ovrCloud = e.detail.overrides || {};
           if (isNaN(seedCloud) || seedCloud <= 0) break;
-          const np = generateWeekPlan(seedCloud, excludedRef.current || [], undefined, ricetteUtente, ricetteEscluseIds);
-          setSeed(seedCloud); setPlan(np); setOverrides(ovrCloud); setRegenNeeded(false);
+          const frozenCloud = (e.detail.frozen && typeof e.detail.frozen==="object") ? e.detail.frozen : {};
+          const cur = weekIndexForDate(new Date());
+          const np = planForWeek({baseSeed:seedCloud, frozen:frozenCloud}, cur, { excludedIds: excludedRef.current || [], ricetteUtente, ricetteEscluseIds });
+          setSeed(seedCloud); setFrozen(frozenCloud); setPlan(np); setOverrides(migraOverridesASettimana(ovrCloud, cur)); setRegenNeeded(false);
           break;
         }
       }
@@ -196,12 +230,13 @@ export function App() {
     async function load(){
       logSync("info", "Avvio app: caricamento dati locali");
       try {
-        const [sS,hS,eS,pS,mS,miS,ovS,prS,mlS,nfS,spS,cmS] = await Promise.allSettled([
+        const [sS,hS,eS,pS,mS,miS,ovS,prS,mlS,nfS,spS,cmS,frS] = await Promise.allSettled([
           window.storage.get(SK_SEED), window.storage.get(SK_HISTORY), window.storage.get(SK_EXCL),
           window.storage.get(SK_PERSONAS), window.storage.get(SK_MY_PERSONA), window.storage.get(SK_MISURE),
           window.storage.get(SK_OVERRIDES), window.storage.get(SK_PREFS),
           window.storage.get(SK_MEALS_LOG), window.storage.get(SK_NOTIF),
           window.storage.get(SK_SPESA), window.storage.get("pf-cloud-migrated"),
+          window.storage.get(SK_FROZEN),
         ]);
         const parsedSeed = sS.status==="fulfilled"&&sS.value ? parseInt(sS.value.value, 10) : NaN;
         const loadedSeed = (!isNaN(parsedSeed) && parsedSeed > 0) ? parsedSeed : Date.now();
@@ -265,13 +300,28 @@ export function App() {
         setSeed(loadedSeed); setHistory(loadedHist); setExcluded(loadedExcl);
         setPersonas(loadedPers);
         if (loadedPers.length > 0) { setSelPersonaId(loadedPers[0].id); setMyPersonaId(validMyP); }
+        // ── Sequenza settimanale: frozen + migrazione override a chiave per-settimana ──
+        const curWk = weekIndexForDate(new Date());
+        let loadedFrozen = (() => { const v = safeParse(frS, {}); return (v && typeof v==="object" && !Array.isArray(v)) ? v : {}; })();
+        // Migra gli override dal vecchio formato "weekday-mealKey" → "weekIndex:weekday-mealKey"
+        // assegnandoli alla settimana corrente (idempotente sui già migrati).
+        const ovWeek = migraOverridesASettimana(loadedOvrd, curWk);
+        if (JSON.stringify(ovWeek) !== JSON.stringify(loadedOvrd)) {
+          window.storage.set(SK_OVERRIDES, JSON.stringify(ovWeek)).catch(()=>{});
+        }
+        // Primo avvio sul modello a sequenza: congela la settimana CORRENTE col
+        // seed legacy, così "questa settimana" resta identica a prima dell'update.
+        if (Object.keys(loadedFrozen).length === 0) {
+          loadedFrozen = { [curWk]: loadedSeed };
+          window.storage.set(SK_FROZEN, JSON.stringify(loadedFrozen)).catch(()=>{});
+        }
         // Ripristina ING_QTY per ricette custom salvate negli overrides
-        for (const ricetta of Object.values(loadedOvrd || {})) {
+        for (const ricetta of Object.values(ovWeek || {})) {
           restoreCustomING_QTY(ricetta);
         }
-        setMisureApp(loadedMisu); setOverrides(loadedOvrd); setPrefs(loadedPrefs); setMealsLog(loadedMealsLog); setNotifSettings(loadedNotif);
-        setPlan(generateWeekPlan(loadedSeed, loadedExcl, undefined, ricetteUtente, ricetteEscluseIds));
-        logSync("info", "App avviata", { profili: loadedPers.length, seed: String(loadedSeed), overrides: Object.keys(loadedOvrd||{}).length, esclusi: loadedExcl.length });
+        setMisureApp(loadedMisu); setOverrides(ovWeek); setFrozen(loadedFrozen); setPrefs(loadedPrefs); setMealsLog(loadedMealsLog); setNotifSettings(loadedNotif);
+        setPlan(planForWeek({baseSeed:loadedSeed, frozen:loadedFrozen}, curWk, { excludedIds: loadedExcl, ricetteUtente, ricetteEscluseIds }));
+        logSync("info", "App avviata", { profili: loadedPers.length, seed: String(loadedSeed), overrides: Object.keys(ovWeek||{}).length, esclusi: loadedExcl.length });
         setBooted(true);
       } catch (err) {
         logSync("error", "Errore caricamento dati locali", { error: err?.message });
@@ -279,7 +329,7 @@ export function App() {
         let ns = Date.now();
         try { const r = await window.storage.get(SK_SEED); const p = parseInt(r.value,10); if (!isNaN(p)&&p>0) ns = p; } catch {}
         setSeed(ns); setPersonas([]);
-        setPlan(generateWeekPlan(ns,[], undefined, ricetteUtente, ricetteEscluseIds));
+        setPlan(planForWeek({baseSeed:ns, frozen:{}}, weekIndexForDate(new Date()), { excludedIds: [], ricetteUtente, ricetteEscluseIds }));
         setBooted(true);
       }
     }
@@ -368,16 +418,42 @@ export function App() {
   }, []);
   const handleToggleMealLog = useCallback((personaId, dateKey, mealKey, macros) => {
     setMealsLog(prev => {
-      const pLog=prev[personaId]||{},dayLog=pLog[dateKey]||{},cur=dayLog[mealKey];
-      let next;
-      if (cur) {
-        next = {...dayLog, [mealKey]: {...cur, consumed: !cur.consumed}};
-        logSync("pasto-log", `Pasto ${cur.consumed ? "non consumato" : "consumato"}: ${mealKey}`, { personaId: personaId?.slice(0,8), dateKey, mealKey });
+      const pLog=prev[personaId]||{}, dayLog=pLog[dateKey]||{}, cur=dayLog[mealKey];
+      const day={...dayLog};
+      if (cur?.consumed) {
+        delete day[mealKey]; // consumato → torna "in attesa"
+        logSync("pasto-log", `Pasto non consumato: ${mealKey}`, { personaId: personaId?.slice(0,8), dateKey, mealKey });
       } else {
-        next = {...dayLog, [mealKey]: {consumed: true, ...macros}};
+        // preserva eventuali macro reali già registrate, altrimenti usa quelle del piano
+        const reali = (cur && (cur.kcal || cur._ingredienti))
+          ? { kcal:cur.kcal, p:cur.p, c:cur.c, g:cur.g, _ingredienti:cur._ingredienti }
+          : macros;
+        day[mealKey] = { consumed:true, saltato:false, _auto:false, ...reali };
         logSync("pasto-log", `Pasto consumato: ${mealKey}`, { personaId: personaId?.slice(0,8), dateKey, kcal: macros?.kcal });
       }
-      const nextFull={...prev,[personaId]:{...pLog,[dateKey]:next}};
+      // un consumo/annullamento può cambiare gli auto-saltati (regola A): ricalcolo
+      const oggiKey = dateKeyForDayIdx(todayDayIndex());
+      const nowH = new Date().getHours() + new Date().getMinutes()/60;
+      const settled = autoFlagSaltati(MEAL_KEYS, MEAL_FASCIA, day, { isOggi: dateKey===oggiKey, nowH }).dayLog;
+      const nextFull={...prev,[personaId]:{...pLog,[dateKey]:settled}};
+      window.storage.set(SK_MEALS_LOG,JSON.stringify(nextFull)).catch(()=>{}); return nextFull;
+    });
+  }, []);
+
+  // Pulsante ✗ "non mangiato": salta manualmente un pasto (o lo ripristina).
+  // Il flag manuale (_auto:false) vince sempre sull'auto-flag.
+  const handleToggleSaltato = useCallback((personaId, dateKey, mealKey) => {
+    setMealsLog(prev => {
+      const pLog=prev[personaId]||{}, dayLog=pLog[dateKey]||{}, cur=dayLog[mealKey];
+      const day={...dayLog};
+      if (cur?.saltato && !cur._auto) {
+        delete day[mealKey]; // saltato manuale → torna in attesa
+        logSync("pasto-log", `Pasto ripristinato: ${mealKey}`, { personaId: personaId?.slice(0,8), dateKey, mealKey });
+      } else {
+        day[mealKey] = { consumed:false, saltato:true, _auto:false };
+        logSync("pasto-log", `Pasto saltato (manuale): ${mealKey}`, { personaId: personaId?.slice(0,8), dateKey, mealKey });
+      }
+      const nextFull={...prev,[personaId]:{...pLog,[dateKey]:day}};
       window.storage.set(SK_MEALS_LOG,JSON.stringify(nextFull)).catch(()=>{}); return nextFull;
     });
   }, []);
@@ -405,6 +481,34 @@ export function App() {
     const t=setTimeout(()=>{ scheduleNotifications(notifSettings,plan[todayDayIndex()],personas,myPersonaId); },800);
     return ()=>clearTimeout(t);
   },[notifSettings,plan,myPersonaId]);
+
+  // ─── Auto-flag "saltato" per OGGI ─────────────────────────────────
+  // Gira al mount e ogni 60s: marca saltati i pasti la cui fascia oraria
+  // è scaduta (regola B) o che precedono un pasto già consumato (regola A).
+  // Scrive solo quando qualcosa cambia davvero, così non intasa il sync.
+  useEffect(()=>{
+    if (!personas?.length) return;
+    const run = () => {
+      const oggiKey = dateKeyForDayIdx(todayDayIndex());
+      const nowH = new Date().getHours() + new Date().getMinutes()/60;
+      setMealsLog(prev => {
+        let mutated = false;
+        const next = {...prev};
+        for (const p of personas) {
+          const pLog = prev[p.id]; if (!pLog) continue;
+          const dayLog = pLog[oggiKey]; if (!dayLog) continue;
+          const { dayLog: settled, changed } = autoFlagSaltati(MEAL_KEYS, MEAL_FASCIA, dayLog, { isOggi:true, nowH });
+          if (changed) { next[p.id] = {...pLog, [oggiKey]: settled}; mutated = true; }
+        }
+        if (!mutated) return prev;
+        window.storage.set(SK_MEALS_LOG, JSON.stringify(next)).catch(()=>{});
+        return next;
+      });
+    };
+    run();
+    const id = setInterval(run, 60000);
+    return () => clearInterval(id);
+  },[personas]);
   const handleSetMyPersona = useCallback((id)=>{
     logSync("persona", `Profilo selezionato come "mio"`, { id: id?.slice(0,8) });
     setMyPersonaId(id);
@@ -461,14 +565,13 @@ export function App() {
     });
   }, []);
 
-  const handleSwap = useCallback(async(dayIdx, mealKey, oldMeal, newMeal) => {
-    logSync("swap", `Cambio pasto: ${mealKey} (giorno ${dayIdx})`, {
+  const handleSwap = useCallback(async(weekIndex, weekday, mealKey, oldMeal, newMeal) => {
+    logSync("swap", `Cambio pasto: ${mealKey} (sett. ${weekIndex}, giorno ${weekday})`, {
       da: oldMeal?.id, a: newMeal?.id, nomeA: newMeal?.nome?.slice(0,30),
       fonte: newMeal?.fonte || "catalogo",
     });
-    // Se è una ricetta custom, assicura che ING_QTY sia aggiornato prima di salvare
     restoreCustomING_QTY(newMeal);
-    const key = `${dayIdx}-${mealKey}`;
+    const key = overrideKey(weekIndex, weekday, mealKey);
     setOverrides(prev => {
       const next = {...prev, [key]: newMeal};
       window.storage.set(SK_OVERRIDES, JSON.stringify(next)).catch(()=>{});
@@ -477,17 +580,17 @@ export function App() {
     if (!oldMeal || !newMeal || oldMeal.id === newMeal.id) return;
 
     // Classifica lo swap: contesto (fretta) o gusto (valutazione).
-    const tipo = classifySwap(dayIdx, mealKey);
+    const tipo = classifySwap(weekday, mealKey);
     if (tipo === "contesto") {
-      logContextSwap(dayIdx, mealKey, oldMeal, newMeal, hoursUntilMeal(dayIdx, mealKey));
+      logContextSwap(weekday, mealKey, oldMeal, newMeal, hoursUntilMeal(weekday, mealKey));
     } else {
       updatePref(oldMeal.id, e => ({ ...e, swapsOut: (e.swapsOut||0) + 1 }));
       updatePref(newMeal.id, e => ({ ...e, swapsIn:  (e.swapsIn ||0) + 1 }));
     }
   }, [updatePref, logContextSwap]);
 
-  const handleResetSwap = useCallback(async(dayIdx, mealKey) => {
-    const key = `${dayIdx}-${mealKey}`;
+  const handleResetSwap = useCallback(async(weekIndex, weekday, mealKey) => {
+    const key = overrideKey(weekIndex, weekday, mealKey);
     setOverrides(prev => {
       const next = {...prev};
       delete next[key];
@@ -499,42 +602,52 @@ export function App() {
   const handleApplySeed = useCallback(async(newSeed, newOverrides)=>{
     logSync("piano", `Piano applicato da storico`, { seed: String(newSeed) });
     setSpinning(true); await new Promise(r=>setTimeout(r,400));
-    const np=generateWeekPlan(newSeed, excluded, undefined, ricetteUtente, ricetteEscluseIds);
+    const cur = weekIndexForDate(new Date());
+    const np=planForWeek({baseSeed:newSeed,frozen:{}}, cur, {excludedIds:excluded, ricetteUtente, ricetteEscluseIds});
     const nh=[{seed,date:new Date().toLocaleDateString("it-IT"),label:`Piano del ${new Date().toLocaleDateString("it-IT")}`},...history].slice(0,5);
     const resolvedOverrides = newOverrides || {};
-    setSeed(newSeed); setPlan(np); setHistory(nh); setSelDay(0); setRegenNeeded(false); setOverrides(resolvedOverrides);
+    setSeed(newSeed); setFrozen({}); setPlan(np); setHistory(nh); setSelOffset(0); setRegenNeeded(false); setOverrides(resolvedOverrides);
     try {
       await window.storage.set(SK_SEED,String(newSeed));
+      await window.storage.set(SK_FROZEN,"{}");
       await window.storage.set(SK_HISTORY,JSON.stringify(nh));
       await window.storage.set(SK_OVERRIDES,JSON.stringify(resolvedOverrides));
     } catch{}
     setSpinning(false);
-  },[seed,history,excluded,ricetteUtente]);
+  },[seed,history,excluded,ricetteUtente,ricetteEscluseIds]);
 
   const regenerate = useCallback(async()=>{
     logSync("piano", "Piano rigenerato dall'utente", { ricetteUtente: ricetteUtente.length, esclusi: excluded.length });
     setSpinning(true); await new Promise(r=>setTimeout(r,500));
-    const ns=Date.now(), np=generateWeekPlan(ns, excluded, undefined, ricetteUtente, ricetteEscluseIds);
+    const cur = weekIndexForDate(new Date());
+    // Congela le settimane passate, rimescola corrente + future con un nuovo baseSeed
+    const newState = regeneraPlanState({baseSeed:seed, frozen}, {});
+    const np=planForWeek(newState, cur, {excludedIds:excluded, ricetteUtente, ricetteEscluseIds});
     const nh=[{seed,date:new Date().toLocaleDateString("it-IT"),label:`Piano del ${new Date().toLocaleDateString("it-IT")}`},...history].slice(0,5);
-    setSeed(ns); setPlan(np); setHistory(nh); setSelDay(0); setRegenNeeded(false); setOverrides({});
+    // Mantieni gli override delle settimane PASSATE, scarta corrente + future
+    const keptOv = Object.fromEntries(Object.entries(overrides).filter(([k])=>{ const wk=parseInt(k,10); return Number.isFinite(wk) && wk < cur; }));
+    setSeed(newState.baseSeed); setFrozen(newState.frozen); setPlan(np); setHistory(nh); setSelOffset(0); setRegenNeeded(false); setOverrides(keptOv);
     try {
-      await window.storage.set(SK_SEED,String(ns));
+      await window.storage.set(SK_SEED,String(newState.baseSeed));
+      await window.storage.set(SK_FROZEN,JSON.stringify(newState.frozen));
       await window.storage.set(SK_HISTORY,JSON.stringify(nh));
-      await window.storage.set(SK_OVERRIDES,"{}");
+      await window.storage.set(SK_OVERRIDES,JSON.stringify(keptOv));
     } catch{}
     setSpinning(false);
-  },[seed,history,excluded,ricetteUtente]);
+  },[seed,frozen,overrides,history,excluded,ricetteUtente,ricetteEscluseIds]);
 
   const loadHistory = useCallback(async(oldSeed)=>{
     setSpinning(true); await new Promise(r=>setTimeout(r,300));
-    setSeed(oldSeed); setPlan(generateWeekPlan(oldSeed, excluded, undefined, ricetteUtente, ricetteEscluseIds)); setSelDay(0); setShowHistory(false);
+    const cur = weekIndexForDate(new Date());
+    setSeed(oldSeed); setFrozen({}); setPlan(planForWeek({baseSeed:oldSeed,frozen:{}}, cur, {excludedIds:excluded, ricetteUtente, ricetteEscluseIds})); setSelOffset(0); setShowHistory(false);
     setOverrides({});
     try {
       await window.storage.set(SK_SEED,String(oldSeed));
+      await window.storage.set(SK_FROZEN,"{}");
       await window.storage.set(SK_OVERRIDES,"{}");
     } catch{}
     setSpinning(false);
-  },[excluded,ricetteUtente]);
+  },[excluded,ricetteUtente,ricetteEscluseIds]);
 
   const toggleExcluded = useCallback(async(id)=>{
     setExcluded(prev=>{
@@ -720,12 +833,13 @@ export function App() {
             persona={oggiPersona}
             personaSlot={oggiSlot}
             target={oggiTarget}
-            effectivePlan={applyOverrides(plan, overrides)}
+            effectivePlan={applyOverridesWeek(plan||[], overrides, weekIndexForDate(new Date()))}
             misure={misureApp[oggiPersona?.id]}
             mealsLog={mealsLog}
             onToggleMeal={handleToggleMealLog}
+            onToggleSaltato={handleToggleSaltato}
             readOnly={oggiReadOnly}
-            onGoPiano={()=>{ setSelDay(todayDayIndex()); setPage("piano"); }}
+            onGoPiano={()=>{ setSelOffset(0); setPage("piano"); }}
             onGoMisure={()=>setPage("misure")}
           />
         )}
@@ -744,17 +858,7 @@ export function App() {
                 );
               })}
             </div>
-            <div style={{display:"flex",gap:6,marginBottom:14}}>
-              {DAYS.map((d,i)=>{
-                const seld = selDay===i;
-                const dn = (()=>{ try { return new Date(dateKeyForDayIdx(i)).getDate(); } catch { return i+1; } })();
-                return (
-                <button key={d} onClick={()=>setSelDay(i)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"9px 0",borderRadius:14,border:seld?"none":"1.5px solid #E7EDE2",background:seld?persona.color:"#fff",cursor:"pointer",transition:"all 0.2s",boxShadow:seld?`0 8px 16px -6px ${persona.color}88`:"none"}}>
-                  <span style={{fontSize:9.5,fontWeight:700,color:seld?"#ffffffcc":"#9DB1A2",textTransform:"uppercase"}}>{d.slice(0,3)}</span>
-                  <span style={{fontSize:16,fontWeight:800,color:seld?"#fff":"#4A6152",fontFamily:"'Outfit',sans-serif"}}>{dn}</span>
-                </button>
-              );})}
-            </div>
+            <DayCarousel selOffset={selOffset} onSelect={setSelOffset} color={persona.color} />
             <button onClick={regenerate} disabled={spinning} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:regenNeeded?"#C7F23E":"#fff",color:"#15251C",border:regenNeeded?"none":"1.5px solid #CBE0B4",borderRadius:12,padding:"12px",fontWeight:700,fontSize:13,cursor:spinning?"not-allowed":"pointer",marginBottom:12,boxShadow:regenNeeded?"0 8px 18px -8px rgba(199,242,62,0.85)":"none",transition:"all 0.2s"}}>
               <span style={{display:"inline-block",animation:spinning?"spin 0.7s linear infinite":"none",fontSize:15}}>🔄</span>
               {spinning?"Generando...":regenNeeded?"Aggiorna il piano":"Genera nuovo piano"}
@@ -765,27 +869,39 @@ export function App() {
             {spinning ? <div style={{textAlign:"center",padding:"40px 0",color:"#6E8576"}}>🔄 Generando...</div> : (
               <>
                 {(()=>{
-                  // Piano effettivo: stessa fonte usata dalla scheda Spesa.
-                  const effectivePlan = applyOverrides(plan, overrides);
-                  // Set di tutti gli id ricette presenti nel piano questa
-                  // settimana (override inclusi): evita di riproporre piatti
-                  // già in calendario tra le alternative.
-                  const weekMealIds = new Set(
-                    effectivePlan.flatMap(d => MEAL_KEYS.map(mk => d[mk]?.id)).filter(Boolean)
+                  // Risoluzione giorno selezionato dalla finestra mobile (offset da oggi)
+                  const planState = { baseSeed: seed, frozen };
+                  const selDate = dateForOffset(selOffset);
+                  const selWeekIndex = weekIndexForDate(selDate);
+                  const selWeekday = weekdayForDate(selDate);
+                  const selDateKey = dateKeyForOffset(selOffset);
+                  // Piano della settimana del giorno scelto (può sforare la settimana corrente),
+                  // con gli override per-settimana applicati.
+                  const selWeek = applyOverridesWeek(
+                    planForWeek(planState, selWeekIndex, { excludedIds: excluded, ricetteUtente, ricetteEscluseIds }),
+                    overrides, selWeekIndex
                   );
-                  const effectiveDay = effectivePlan[selDay];
-                  // Piano personalizzato: se la persona ha misure, le
-                  // porzioni vengono riscalate dal motore sul suo
-                  // fabbisogno (LARN). Senza misure → taglie fisse.
+                  const weekMealIds = new Set(
+                    selWeek.flatMap(d => MEAL_KEYS.map(mk => d[mk]?.id)).filter(Boolean)
+                  );
+                  const effectiveDay = selWeek[selWeekday];
+                  // Piano personalizzato: se la persona ha misure, le porzioni
+                  // vengono riscalate dal motore sul suo fabbisogno (LARN).
                   const pianoPers = pianoPersonalizzato(effectiveDay, persona, misureApp[persona?.id]);
-                  const selDayLog = (mealsLog[persona.id]||{})[dateKeyForDayIdx(selDay)]||{};
+                  const selDayLog = (mealsLog[persona.id]||{})[selDateKey]||{};
                   // macro base per ogni pasto (personalizzati o fissi)
                   const macroBase = {};
+                  // peso REALE (grammi) di ogni pasto, dalla stessa fonte dei macro
+                  const pesoBase = {};
                   MEAL_KEYS.forEach(mk => {
                     macroBase[mk] = (pianoPers.personalizzato ? pianoPers.perPasto[mk] : null) || effectiveDay[mk]?.[personaSlot] || {kcal:0,p:0,c:0,g:0};
+                    const rid = effectiveDay[mk]?.id;
+                    pesoBase[mk] = (pianoPers.personalizzato && rid && pianoPers.quantita?.[rid])
+                      ? grammiDaQuantita(pianoPers.quantita[rid])
+                      : (rid ? grammiRicettaCalc(rid, personaSlot) : 0);
                   });
-                  // ricalcolo proporzionale dei pasti non ancora consumati
-                  const { adattato: macroAdattati, delta: kcalDelta, avviso: avvisoBilancio } = ricalcolaMacroAdattati(MEAL_KEYS, macroBase, selDayLog);
+                  // ricalcolo proporzionale dei pasti non ancora consumati (pesato grammi+kcal)
+                  const { adattato: macroAdattati, delta: kcalDelta, avviso: avvisoBilancio } = ricalcolaMacroAdattati(MEAL_KEYS, macroBase, selDayLog, pesoBase);
                   return (
                     <>
                       {avvisoBilancio && (
@@ -794,17 +910,18 @@ export function App() {
                         </div>
                       )}
                       {MEAL_KEYS.map(mk => {
-                        const key = `${selDay}-${mk}`;
+                        const key = overrideKey(selWeekIndex, selWeekday, mk);
                         const isOverride = !!overrides[key];
                         const isConsumed = !!selDayLog[mk]?.consumed;
-                        // Per i pasti non consumati usa i macro riadattati; per i consumati restano quelli reali del log
-                        const macroEff = !isConsumed ? macroAdattati[mk] : macroBase[mk];
-                        const isAdattato = !isConsumed && macroAdattati[mk]?._adattato;
+                        const isSaltato  = !!selDayLog[mk]?.saltato;
+                        // Per i pasti né consumati né saltati usa i macro riadattati; per i consumati restano quelli reali del log
+                        const macroEff = (!isConsumed && !isSaltato) ? macroAdattati[mk] : macroBase[mk];
+                        const isAdattato = !isConsumed && !isSaltato && macroAdattati[mk]?._adattato;
                         return (
                           <MealCard
                             key={mk}
                             mealKey={mk}
-                            dayIdx={selDay}
+                            dayIdx={selWeekday}
                             readOnly={readOnlyPersona}
                             meal={effectiveDay[mk]}
                             personaKey={personaSlot}
@@ -814,17 +931,20 @@ export function App() {
                             excludedIds={excluded}
                             prefEntry={getPrefEntry(prefs, effectiveDay[mk]?.id)}
                             onToggleLike={() => handleToggleLike(effectiveDay[mk]?.id)}
-                            onSwap={alt => handleSwap(selDay, mk, effectiveDay[mk], alt)}
-                            onReset={() => handleResetSwap(selDay, mk)}
+                            onSwap={alt => handleSwap(selWeekIndex, selWeekday, mk, effectiveDay[mk], alt)}
+                            onReset={() => handleResetSwap(selWeekIndex, selWeekday, mk)}
                             macroOverride={macroEff}
                             isAdattato={isAdattato}
                             quantitaOverride={pianoPers.personalizzato && effectiveDay[mk] && pianoPers.quantita && !isAdattato ? pianoPers.quantita[effectiveDay[mk].id] : null}
                             consumed={isConsumed}
-                            onToggleConsumed={()=>handleToggleMealLog(persona.id,dateKeyForDayIdx(selDay),mk,macroBase[mk])}
-                            onEdit={customRecipe => handleSwap(selDay, mk, effectiveDay[mk], customRecipe)}
+                            saltato={isSaltato}
+                            saltatoAuto={!!selDayLog[mk]?._auto}
+                            onToggleConsumed={()=>handleToggleMealLog(persona.id,selDateKey,mk,macroBase[mk])}
+                            onToggleSaltato={()=>handleToggleSaltato(persona.id,selDateKey,mk)}
+                            onEdit={customRecipe => handleSwap(selWeekIndex, selWeekday, mk, effectiveDay[mk], customRecipe)}
                             loggedMacros={(()=>{const e=selDayLog[mk];return e?.consumed&&(e.kcal||e._ingredienti)?{kcal:e.kcal||0,p:e.p||0,c:e.c||0,g:e.g||0}:null;})()}
                             loggedIngs={selDayLog[mk]?._ingredienti||null}
-                            onEditConsumed={data=>handleEditConsumedMeal(persona.id,dateKeyForDayIdx(selDay),mk,data)}
+                            onEditConsumed={data=>handleEditConsumedMeal(persona.id,selDateKey,mk,data)}
                             cloudStatus={cloudStatus}
                             ricetteUtente={ricetteUtente}
                             onSalvaRicetta={(meal) => {
@@ -854,8 +974,8 @@ export function App() {
                       <TotaleBar dayData={effectiveDay} personaKey={personaSlot} color={persona.color} target={personaTarget} macroPerPasto={macroAdattati} dayLog={selDayLog}/>
                       {/* ── Tracker idratazione ── */}
                       {(()=>{
-                        // dayKey = "seedBase-dayIndex" → univoco per piano+giorno
-                        const dayKey = `${seed}-${selDay}`;
+                        // dayKey = "personaId-dataReale" → idratazione per persona e giorno
+                        const dayKey = `${persona.id}-${selDateKey}`;
                         return <WaterTracker key={dayKey} dayKey={dayKey} personaColor={persona.color}/>;
                       })()}
                     </>
@@ -943,7 +1063,7 @@ export function App() {
           </SwipeContainer>
         )}
 
-        {!showHistory&&page==="spesa"&&<ShoppingPage plan={applyOverrides(plan, overrides)} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa}/>}
+        {!showHistory&&page==="spesa"&&<ShoppingPage planState={{baseSeed:seed, frozen}} overrides={overrides} genArgs={{excludedIds:excluded, ricetteUtente, ricetteEscluseIds}} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa}/>}
         {!showHistory&&page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
         {!showHistory&&page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
         {!showHistory&&page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={handleRicetteChange}/>}
@@ -975,7 +1095,7 @@ export function App() {
           // Badge spesa: articoli della settimana non ancora spuntati
           if (tab.key==="spesa") {
             try {
-              const eff = applyOverrides(plan, overrides);
+              const eff = applyOverridesWeek(plan||[], overrides, weekIndexForDate(new Date()));
               const ids = Object.values(buildShoppingForDays(eff,[0,1,2,3,4,5,6])).flat().map(i=>i.id);
               const wk = spesaChecks[String(seed)]||{};
               badge = ids.filter(id=>!wk[id]).length;

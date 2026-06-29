@@ -1,5 +1,5 @@
 import React from 'react';
-import { MEAL_HOUR, MEAL_KEYS, MEAL_META, dateKeyForDayIdx, emojiBySesso, parseDataIT, pianoPersonalizzato, ricalcolaMacroAdattati, todayDayIndex } from '@/core';
+import { MEAL_HOUR, MEAL_KEYS, MEAL_META, dateKeyForDayIdx, emojiBySesso, grammiDaQuantita, grammiRicettaCalc, parseDataIT, pianoPersonalizzato, ricalcolaMacroAdattati, todayDayIndex } from '@/core';
 import { WaterTracker } from '@/features/piano/MealParts';
 
 // ─── Anello di progresso kcal ───────────────────────────────────────
@@ -42,7 +42,7 @@ function MacroBar({ label, val, max, color }) {
 }
 
 // ─── Pagina Oggi ────────────────────────────────────────────────────
-export function OggiPage({ personas, selPersonaId, onSelPersona, persona, personaSlot, target, effectivePlan, misure, mealsLog, onToggleMeal, onGoPiano, onGoMisure, readOnly }) {
+export function OggiPage({ personas, selPersonaId, onSelPersona, persona, personaSlot, target, effectivePlan, misure, mealsLog, onToggleMeal, onToggleSaltato, onGoPiano, onGoMisure, readOnly }) {
   const dayIdx  = todayDayIndex();
   const dateKey = dateKeyForDayIdx(dayIdx);
   const day     = effectivePlan[dayIdx] || {};
@@ -51,13 +51,20 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
   // ── Macro: stessa pipeline della pagina Piano ──
   const pianoPers = pianoPersonalizzato(day, persona, misure);
   const macroBase = {};
+  const pesoBase  = {};
   MEAL_KEYS.forEach(mk => {
     macroBase[mk] = (pianoPers.personalizzato ? pianoPers.perPasto[mk] : null) || day[mk]?.[personaSlot] || {kcal:0,p:0,c:0,g:0};
+    const rid = day[mk]?.id;
+    pesoBase[mk] = (pianoPers.personalizzato && rid && pianoPers.quantita?.[rid])
+      ? grammiDaQuantita(pianoPers.quantita[rid])
+      : (rid ? grammiRicettaCalc(rid, personaSlot) : 0);
   });
-  const { adattato: macroAdattati } = ricalcolaMacroAdattati(MEAL_KEYS, macroBase, dayLog);
-  const macroFor = mk => dayLog[mk]?.consumed
-    ? { kcal:+dayLog[mk].kcal||0, p:+dayLog[mk].p||0, c:+dayLog[mk].c||0, g:+dayLog[mk].g||0 }
-    : macroAdattati[mk];
+  const { adattato: macroAdattati } = ricalcolaMacroAdattati(MEAL_KEYS, macroBase, dayLog, pesoBase);
+  const macroFor = mk => {
+    if (dayLog[mk]?.saltato) return { kcal:0, p:0, c:0, g:0 };       // saltato → non conta
+    if (dayLog[mk]?.consumed) return { kcal:+dayLog[mk].kcal||0, p:+dayLog[mk].p||0, c:+dayLog[mk].c||0, g:+dayLog[mk].g||0 };
+    return macroAdattati[mk];
+  };
 
   // ── Totali consumati ──
   const consumed = MEAL_KEYS.reduce((acc, mk) => {
@@ -66,13 +73,16 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
     return { kcal:acc.kcal+m.kcal, p:acc.p+m.p, c:acc.c+m.c, g:acc.g+m.g };
   }, {kcal:0,p:0,c:0,g:0});
   const nConsumati = MEAL_KEYS.filter(mk => dayLog[mk]?.consumed).length;
+  const nSaltati   = MEAL_KEYS.filter(mk => dayLog[mk]?.saltato).length;
+  const nPianificati = MEAL_KEYS.filter(mk=>day[mk]).length;
 
-  // ── Prossimo pasto: il primo non consumato la cui ora non è passata
-  //    da più di 2h; fallback = primo non consumato ──
+  // ── Prossimo pasto: primo né consumato né saltato la cui ora non è
+  //    passata da più di 2h; fallback = primo non risolto ──
   const nowH = new Date().getHours() + new Date().getMinutes()/60;
-  const nonConsumati = MEAL_KEYS.filter(mk => !dayLog[mk]?.consumed && day[mk]);
+  const nonConsumati = MEAL_KEYS.filter(mk => !dayLog[mk]?.consumed && !dayLog[mk]?.saltato && day[mk]);
   const prossimo = nonConsumati.find(mk => MEAL_HOUR[mk] >= nowH - 2) || nonConsumati[0] || null;
-  const giornataCompleta = nConsumati === MEAL_KEYS.filter(mk=>day[mk]).length && nConsumati > 0;
+  // Giornata "chiusa" quando ogni pasto è risolto (mangiato o saltato), con almeno un consumato
+  const giornataCompleta = (nConsumati + nSaltati) === nPianificati && nConsumati > 0;
 
   // ── Nudge misure: nessuna misura o ultima > 7 giorni ──
   const lastMisuraGiorni = (() => {
@@ -96,7 +106,7 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
           <MacroBar label="Proteine"    val={consumed.p} max={target?.p||0} color="#0ea5e9"/>
           <MacroBar label="Carboidrati" val={consumed.c} max={target?.c||0} color="#f59e0b"/>
           <MacroBar label="Grassi"      val={consumed.g} max={target?.g||0} color="#8b5cf6"/>
-          <div style={{fontSize:10,color:"#9DB1A2",fontWeight:600,marginTop:4}}>{nConsumati} pasti su {MEAL_KEYS.filter(mk=>day[mk]).length} registrati</div>
+          <div style={{fontSize:10,color:"#9DB1A2",fontWeight:600,marginTop:4}}>{nConsumati} mangiati{nSaltati>0?` · ${nSaltati} saltati`:""} su {nPianificati} pasti</div>
         </div>
       </div>
 
@@ -120,11 +130,19 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
             {readOnly ? (
               <span title="Profilo di un altro membro: sola lettura" style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",width:64,height:64,borderRadius:18,background:"rgba(255,255,255,0.12)",color:"#7FA890",fontSize:22}}>🔒</span>
             ) : (
-            <button onClick={()=>onToggleMeal(persona.id, dateKey, prossimo, macroFor(prossimo))}
-              style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:64,height:64,borderRadius:18,border:"none",background:"#C7F23E",color:"#15251C",cursor:"pointer",boxShadow:"0 8px 18px -6px rgba(199,242,62,0.6)"}}>
-              <span style={{fontSize:20,fontWeight:900,lineHeight:1}}>✓</span>
-              <span style={{fontSize:9.5,fontWeight:800}}>Mangia</span>
-            </button>
+            <div style={{flexShrink:0,display:"flex",alignItems:"center",gap:8}}>
+              <button onClick={()=>onToggleSaltato&&onToggleSaltato(persona.id, dateKey, prossimo)}
+                title="Non l'ho mangiato"
+                style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:54,height:64,borderRadius:18,border:"1.5px solid rgba(255,255,255,0.18)",background:"rgba(255,255,255,0.06)",color:"#C9D6CC",cursor:"pointer"}}>
+                <span style={{fontSize:18,fontWeight:900,lineHeight:1}}>✗</span>
+                <span style={{fontSize:9,fontWeight:800}}>Salta</span>
+              </button>
+              <button onClick={()=>onToggleMeal(persona.id, dateKey, prossimo, macroFor(prossimo))}
+                style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:64,height:64,borderRadius:18,border:"none",background:"#C7F23E",color:"#15251C",cursor:"pointer",boxShadow:"0 8px 18px -6px rgba(199,242,62,0.6)"}}>
+                <span style={{fontSize:20,fontWeight:900,lineHeight:1}}>✓</span>
+                <span style={{fontSize:9.5,fontWeight:800}}>Mangia</span>
+              </button>
+            </div>
             )}
           </div>
         </div>
@@ -138,22 +156,34 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
         </div>
         {MEAL_KEYS.filter(mk=>day[mk]).map((mk,i)=>{
           const isCons = !!dayLog[mk]?.consumed;
+          const isSalt = !!dayLog[mk]?.saltato;
+          const isAuto = !!dayLog[mk]?._auto;
           const m = macroFor(mk);
           return (
-            <div key={mk} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",borderTop:i>0?"1px solid #EFF3EC":"none",opacity:isCons?0.75:1}}>
+            <div key={mk} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 16px",borderTop:i>0?"1px solid #EFF3EC":"none",opacity:(isCons||isSalt)?0.7:1}}>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#9DB1A2"}}>{MEAL_META[mk].label}</div>
-                <div style={{fontSize:13,fontWeight:700,color:"#15251C",textDecoration:isCons?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{day[mk]?.nome}</div>
+                <div style={{fontSize:11,fontWeight:700,color:"#9DB1A2",display:"flex",alignItems:"center",gap:6}}>
+                  {MEAL_META[mk].label}
+                  {isSalt && <span style={{fontSize:8.5,background:"#fee2e2",color:"#b91c1c",borderRadius:5,padding:"1px 5px",fontWeight:800,letterSpacing:0.3}}>{isAuto?"NON MANGIATO · AUTO":"NON MANGIATO"}</span>}
+                </div>
+                <div style={{fontSize:13,fontWeight:700,color:isSalt?"#9DB1A2":"#15251C",textDecoration:(isCons||isSalt)?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{day[mk]?.nome}</div>
               </div>
-              <div style={{fontSize:11,fontWeight:800,color:"#6E8576",flexShrink:0}}>{Math.round(m.kcal)} kcal</div>
+              <div style={{fontSize:11,fontWeight:800,color:isSalt?"#C2D0C6":"#6E8576",flexShrink:0}}>{Math.round(m.kcal)} kcal</div>
               {readOnly ? (
-                <span title="Sola lettura" style={{flexShrink:0,width:32,height:32,borderRadius:"50%",background:"#EFF3EC",color:"#C2D0C6",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>{isCons?"✓":"🔒"}</span>
+                <span title="Sola lettura" style={{flexShrink:0,width:32,height:32,borderRadius:"50%",background:"#EFF3EC",color:"#C2D0C6",fontWeight:900,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>{isCons?"✓":isSalt?"✗":"🔒"}</span>
               ) : (
-              <button onClick={()=>onToggleMeal(persona.id, dateKey, mk, m)}
-                title={isCons?"Segna come non consumato":"Segna come mangiato"}
-                style={{flexShrink:0,width:32,height:32,borderRadius:"50%",border:isCons?"none":"2px solid #C2D0C6",background:isCons?"#2F6B3A":"#fff",color:isCons?"#fff":"#C2D0C6",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",animation:isCons?"pop 0.25s ease-out":"none"}}>
-                ✓
-              </button>
+              <div style={{flexShrink:0,display:"flex",alignItems:"center",gap:6}}>
+                <button onClick={()=>onToggleSaltato&&onToggleSaltato(persona.id, dateKey, mk)}
+                  title={isSalt?"Annulla: non saltato":"Non l'ho mangiato"}
+                  style={{width:32,height:32,borderRadius:"50%",border:isSalt?"none":"2px solid #E7CFCF",background:isSalt?"#dc2626":"#fff",color:isSalt?"#fff":"#D4A0A0",fontWeight:900,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
+                  ✗
+                </button>
+                <button onClick={()=>onToggleMeal(persona.id, dateKey, mk, m)}
+                  title={isCons?"Segna come non consumato":"Segna come mangiato"}
+                  style={{width:32,height:32,borderRadius:"50%",border:isCons?"none":"2px solid #C2D0C6",background:isCons?"#2F6B3A":"#fff",color:isCons?"#fff":"#C2D0C6",fontWeight:900,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",animation:isCons?"pop 0.25s ease-out":"none"}}>
+                  ✓
+                </button>
+              </div>
               )}
             </div>
           );

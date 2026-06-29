@@ -1,44 +1,53 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, buildShoppingForDays, depColor, depLabel, todayDayIndex, dateKeyForDayIdx } from '@/core';
+import { DAYS, applyOverridesWeek, buildShoppingForDayObjects, dateForOffset, depColor, depLabel, planForWeek, weekIndexForDate, weekdayForDate } from '@/core';
 import { IngredientiPage } from '@/features/ingredienti/IngredientiPage';
 
-export function ShoppingPage({ plan, checks, onToggle, onReset }) {
-  // Periodo predefinito: 3 giorni a partire da oggi (limitati alla settimana).
-  const todayIdx = todayDayIndex();
-  const next3 = (() => { const d = []; for (let k = 0; k < 3; k++) { const i = todayIdx + k; if (i <= 6) d.push(i); } return d.length ? d : [todayIdx]; })();
-  const [selDays, setSelDays] = useState(next3);
+export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, onReset }) {
+  // Periodo predefinito: oggi + 2 = 3 giorni pieni, SEMPRE (anche ven/sab/dom),
+  // perché la finestra mobile sfora liberamente nella settimana successiva.
+  const [selOffsets, setSelOffsets] = useState([0,1,2]);
   // Spunte persistenti e condivise con la famiglia (gestite da App)
   const checked = checks || {};
   const toggle = id => onToggle(id);
-  const toggleDay = i => setSelDays(p => p.includes(i) ? p.filter(d=>d!==i) : [...p,i].sort());
-  const setQuick = (days) => { setSelDays(days); };
-  const grouped = buildShoppingForDays(plan, selDays);
+  const toggleDay = off => setSelOffsets(p => p.includes(off) ? p.filter(d=>d!==off) : [...p,off].sort((a,b)=>a-b));
+  // Risolve ogni offset → oggetto-giorno (settimana risolta + override applicati)
+  const grouped = useMemo(() => {
+    const dayObjs = selOffsets.map(off => {
+      const d = dateForOffset(off);
+      const wk = weekIndexForDate(d), wd = weekdayForDate(d);
+      const week = applyOverridesWeek(planForWeek(planState, wk, genArgs || {}), overrides || {}, wk);
+      return week[wd];
+    }).filter(Boolean);
+    return buildShoppingForDayObjects(dayObjs);
+  }, [selOffsets, planState, overrides, genArgs]);
   const allIds = Object.values(grouped).flat().map(i=>i.id);
   const done = allIds.filter(id=>checked[id]).length;
   return (
     <div>
       <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"12px 14px",marginBottom:12}}>
-        <div style={{display:"flex",gap:5}}>
-          {DAYS.map((d,i)=>{
-            const sel=selDays.includes(i);
-            const dn=(()=>{ try { return new Date(dateKeyForDayIdx(i)).getDate(); } catch { return i+1; } })();
+        <div style={{display:"flex",gap:8,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
+          {[-3,-2,-1,0,1,2,3].map(off=>{
+            const d=dateForOffset(off);
+            const sel=selOffsets.includes(off);
+            const isToday=off===0;
+            const lab=isToday?"OGGI":DAYS[(d.getDay()+6)%7].slice(0,3).toUpperCase();
             return (
-            <button key={i} onClick={()=>toggleDay(i)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"9px 0",borderRadius:14,border:sel?"none":"1.5px solid #E7EDE2",background:sel?"#2F6B3A":"#fff",cursor:"pointer",transition:"all 0.2s",boxShadow:sel?"0 8px 16px -6px #2F6B3A88":"none"}}>
-              <span style={{fontSize:9.5,fontWeight:700,color:sel?"#ffffffcc":"#9DB1A2",textTransform:"uppercase"}}>{d.slice(0,3)}</span>
-              <span style={{fontSize:16,fontWeight:800,color:sel?"#fff":"#4A6152",fontFamily:"'Outfit',sans-serif"}}>{dn}</span>
+            <button key={off} onClick={()=>toggleDay(off)} style={{flex:"0 0 auto",minWidth:62,scrollSnapAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"9px 12px",borderRadius:14,border:sel?"none":(isToday?"1.5px solid #2F6B3A":"1.5px solid #E7EDE2"),background:sel?"#2F6B3A":"#fff",cursor:"pointer",transition:"all 0.2s",boxShadow:sel?"0 8px 16px -6px #2F6B3A88":"none"}}>
+              <span style={{fontSize:9.5,fontWeight:800,color:sel?"#ffffffcc":(isToday?"#2F6B3A":"#9DB1A2")}}>{lab}</span>
+              <span style={{fontSize:16,fontWeight:800,color:sel?"#fff":"#4A6152",fontFamily:"'Outfit',sans-serif"}}>{d.getDate()}</span>
             </button>);
           })}
         </div>
       </div>
-      {selDays.length===0 ? (
+      {selOffsets.length===0 ? (
         <div style={{textAlign:"center",padding:"30px 0",color:"#9DB1A2",fontSize:13}}>Seleziona almeno un giorno</div>
       ) : (
         <>
           <div style={{background:"linear-gradient(140deg,#15251C,#1D3A28)",borderRadius:18,padding:"16px 18px",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:12}}>
               <div>
-                <div style={{fontSize:10,fontWeight:700,color:"#7FA890",letterSpacing:0.8,textTransform:"uppercase"}}>Spesa per {selDays.length} giorn{selDays.length===1?"o":"i"}</div>
+                <div style={{fontSize:10,fontWeight:700,color:"#7FA890",letterSpacing:0.8,textTransform:"uppercase"}}>Spesa per {selOffsets.length} giorn{selOffsets.length===1?"o":"i"}</div>
                 <div style={{fontFamily:"'Outfit',sans-serif",fontSize:20,fontWeight:800,color:"#F4F7EF",marginTop:3}}>{done} su {allIds.length} articoli</div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:8}}>

@@ -47,7 +47,7 @@ export const MEAL_META = {
   cena:       { label:"🍽️ Cena",               isSnack:false },
 };
 
-export const SK_SEED="pf-seed", SK_HISTORY="pf-history", SK_EXCL="pf-excluded", SK_PERSONAS="pf-personas", SK_MY_PERSONA="pf-my-persona", SK_MISURE="pf-misure", SK_OVERRIDES="pf-overrides", SK_WATER="pf-water", SK_PREFS="pf-prefs", SK_MEALS_LOG="pf-meals-log", SK_NOTIF="pf-notif", SK_SPESA="pf-spesa-checks", SK_TARGET_GIORNALIERO="pf-target-giornaliero";
+export const SK_SEED="pf-seed", SK_HISTORY="pf-history", SK_EXCL="pf-excluded", SK_PERSONAS="pf-personas", SK_MY_PERSONA="pf-my-persona", SK_MISURE="pf-misure", SK_OVERRIDES="pf-overrides", SK_WATER="pf-water", SK_PREFS="pf-prefs", SK_MEALS_LOG="pf-meals-log", SK_NOTIF="pf-notif", SK_SPESA="pf-spesa-checks", SK_TARGET_GIORNALIERO="pf-target-giornaliero", SK_FROZEN="pf-frozen-weeks";
 
 // ═══════════════════════════════════════════════════════════════════
 // SISTEMA PREFERENZE — accumulo segnali sui gusti
@@ -98,6 +98,22 @@ export const MEAL_HOUR = {
   pranzo: 13,
   spuntino_p: 16.5,
   cena: 20,
+};
+
+// Fasce orarie di ogni pasto (ore decimali, 0-24+).
+//   inizio → da quando ha senso consumarlo (utile per modulare le push)
+//   fine   → scadenza: oltre questa ora, se il pasto è ancora "in attesa"
+//            OGGI, l'auto-flag lo marca come saltato (vedi autoFlagSaltati).
+// Nota: la cena ha fine=26 (= 02:00 del giorno dopo) così non scade mai
+// "intra-giornata"; di fatto resta in attesa fino a fine giornata, dove
+// l'unica regola che può marcarla saltata è "pasto successivo consumato"
+// (e dopo la cena non c'è nulla, quindi non si auto-salta mai da sola).
+export const MEAL_FASCIA = {
+  colazione:  { inizio: 5,    fine: 11 },
+  spuntino_m: { inizio: 9.5,  fine: 13 },   // chiude all'ora di pranzo
+  pranzo:     { inizio: 11.5, fine: 16 },
+  spuntino_p: { inizio: 15,   fine: 19 },   // chiude all'ora di cena
+  cena:       { inizio: 18.5, fine: 26 },
 };
 
 // Quante ore mancano da "adesso" al pasto (dayIdx 0=Lun..6=Dom, mealKey).

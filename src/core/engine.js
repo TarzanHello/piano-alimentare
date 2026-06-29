@@ -373,6 +373,33 @@ export function macroDaQuantita(quantitaMap) {
   return { kcal:Math.round(tot.kcal), p:Math.round(tot.p), c:Math.round(tot.c), g:Math.round(tot.g) };
 }
 
+// Peso REALE di una porzione (somma dei grammi degli ingredienti) a partire
+// da una mappa quantità in formato unificato {ingId:{valore,unit}} — lo stesso
+// che produce pianoPersonalizzato in `quantita`. Serve a pesare i pasti nella
+// ridistribuzione calorica (vedi ricalcolaMacroAdattati).
+export function grammiDaQuantita(quantitaMap) {
+  let tot = 0;
+  for (const [ingId, q] of Object.entries(quantitaMap || {})) {
+    if (ingId === "_scaled") continue;
+    tot += quantitaInGrammi(ingId, q.valore, q.unit);
+  }
+  return Math.round(tot);
+}
+
+// Peso REALE di una ricetta del catalogo per uno slot (uomo|donna|bimbo),
+// letto da ING_QTY (formato {ingId:{uomo,donna,bimbo,unit}}). Usato quando il
+// piano NON è personalizzato e quindi non c'è una mappa quantità scalata.
+export function grammiRicettaCalc(ricettaId, slot) {
+  const qty = ING_QTY[ricettaId];
+  if (!qty) return 0;
+  let tot = 0;
+  for (const [ingId, q] of Object.entries(qty)) {
+    if (ingId === "_scaled") continue;
+    tot += quantitaInGrammi(ingId, q[slot] ?? q.uomo ?? 0, q.unit);
+  }
+  return Math.round(tot);
+}
+
 // Trasforma una mappa di quantità {ingId:{valore,unit}} in testo leggibile,
 // es. "255g yogurt greco · 110g avena · 130g frutti di bosco".
 // Usata per mostrare le porzioni personalizzate nella scheda pasto.
@@ -611,6 +638,118 @@ export function dateKeyForDayIdx(dayIdx) {
   const d = new Date(today);
   d.setDate(today.getDate() + (dayIdx - todayDayIndex()));
   return localDateKey(d);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEQUENZA SETTIMANALE — piano a finestra mobile centrata su oggi
+// ═══════════════════════════════════════════════════════════════════
+// Il piano non è più una settimana fissa Lun→Dom: è una SEQUENZA di
+// settimane (… −1, corrente, +1 …) ciascuna derivata in modo
+// deterministico dal baseSeed condiviso. La finestra mostrata è
+// [oggi−3 … oggi … oggi+3]; ogni giorno risolve da sé la sua settimana.
+//   weekday: 0=Lunedì … 6=Domenica (coerente con DAYS e con l'array piano)
+
+const _MS_DAY = 86400000;
+
+// Indice di settimana ASSOLUTO (numero di lunedì dall'epoca). Due lunedì
+// consecutivi differiscono esattamente di 1. Calcolato in UTC sulla data
+// locale per non sballare con l'ora legale.
+export function weekIndexForDate(d = new Date()) {
+  const dow = (d.getDay() + 6) % 7;                 // 0=Lun … 6=Dom
+  const mon = new Date(d); mon.setHours(0,0,0,0); mon.setDate(d.getDate() - dow);
+  const utcMon = Date.UTC(mon.getFullYear(), mon.getMonth(), mon.getDate());
+  return Math.round(utcMon / (7 * _MS_DAY));
+}
+
+export function weekdayForDate(d = new Date()) { return (d.getDay() + 6) % 7; }
+
+// Data (oggetto Date, mezzanotte locale) a `off` giorni da una base.
+export function dateForOffset(off, base = new Date()) {
+  const d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+  d.setDate(d.getDate() + off);
+  return d;
+}
+export function dateKeyForOffset(off, base = new Date()) { return localDateKey(dateForOffset(off, base)); }
+
+// Combinazione deterministica baseSeed + indice settimana → seed di quella
+// settimana. Mescola i bit così settimane adiacenti producono piani diversi.
+export function combinaSeedSettimana(baseSeed, weekIndex) {
+  let h = ((Number(baseSeed) || 0) ^ Math.imul(weekIndex, 2654435761)) >>> 0;
+  h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 3266489909) >>> 0;
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+// Stato piano sincronizzato: { baseSeed, frozen: { [weekIndex]: seed } }.
+// Le settimane passate "congelate" hanno un seed esplicito che NON cambia
+// quando si rigenera; le altre derivano dal baseSeed corrente.
+export function seedForWeek(planState, weekIndex) {
+  const fr = planState && planState.frozen ? planState.frozen[weekIndex] : undefined;
+  if (fr != null) return Number(fr);
+  return combinaSeedSettimana(planState ? planState.baseSeed : 0, weekIndex);
+}
+
+// Genera il piano (7 giorni Lun→Dom) di una specifica settimana.
+export function planForWeek(planState, weekIndex, genArgs = {}) {
+  const seed = seedForWeek(planState, weekIndex);
+  return generateWeekPlan(seed, genArgs.excludedIds || [], genArgs.mese, genArgs.ricetteUtente || [], genArgs.ricetteEscluseIds);
+}
+
+// Risolve un singolo giorno-data: { weekIndex, weekday, dateKey, week, day }.
+export function planForDate(planState, date, genArgs = {}) {
+  const wk = weekIndexForDate(date);
+  const wd = weekdayForDate(date);
+  const week = planForWeek(planState, wk, genArgs);
+  return { weekIndex: wk, weekday: wd, dateKey: localDateKey(date), week, day: week[wd] };
+}
+
+// "Rigenera": congela le settimane passate (entro la finestra di ritenzione)
+// col loro seed ATTUALE, poi assegna un nuovo baseSeed che rimescola la
+// settimana corrente e quelle future. Le passate restano identiche.
+export function regeneraPlanState(planState, opts = {}) {
+  const today = opts.today || new Date();
+  const cur = weekIndexForDate(today);
+  const retain = opts.retain == null ? 12 : opts.retain;
+  const oldFrozen = (planState && planState.frozen) || {};
+  const frozen = {};
+  // Tieni solo le settimane PASSATE già congelate (le future/corrente si
+  // ri-derivano dal nuovo baseSeed → vengono rimescolate).
+  for (const [wk, s] of Object.entries(oldFrozen)) {
+    if (Number(wk) < cur) frozen[wk] = s;
+  }
+  // Congela le passate non ancora pinnate (entro la finestra di ritenzione)
+  // col loro seed ATTUALE, così restano identiche dopo la rigenerazione.
+  for (let wk = cur - 1; wk >= cur - retain; wk--) {
+    if (frozen[wk] == null) frozen[wk] = seedForWeek(planState, wk);
+  }
+  return { baseSeed: opts.newSeed != null ? opts.newSeed : Date.now(), frozen };
+}
+
+// ── Override per-settimana ─────────────────────────────────────────
+// Nuova chiave: "weekIndex:weekday-mealKey". Migrazione una-tantum dal
+// vecchio formato "weekday-mealKey" (assegnato alla settimana indicata).
+export function overrideKey(weekIndex, weekday, mealKey) { return `${weekIndex}:${weekday}-${mealKey}`; }
+
+export function migraOverridesASettimana(overrides, weekIndex) {
+  const out = {};
+  for (const [k, v] of Object.entries(overrides || {})) {
+    if (/^-?\d+:/.test(k)) { out[k] = v; continue; }   // già nel nuovo formato
+    out[`${weekIndex}:${k}`] = v;                        // "weekday-mealKey" → "wk:weekday-mealKey"
+  }
+  return out;
+}
+
+// Applica gli override (per-settimana) a un piano-settimana di weekIndex dato.
+export function applyOverridesWeek(week, overrides, weekIndex) {
+  if (!overrides || Object.keys(overrides).length === 0) return week;
+  return week.map((day, wd) => {
+    let copy = null;
+    MEAL_KEYS.forEach(mk => {
+      const ov = overrides[`${weekIndex}:${wd}-${mk}`];
+      if (ov) { if (!copy) copy = { ...day }; copy[mk] = ov; }
+    });
+    return copy || day;
+  });
 }
 
 // ─── SVG Line Chart ────────────────────────────────────────────────
@@ -1428,27 +1567,30 @@ export function applyOverrides(plan, overrides) {
 }
 
 export function buildShoppingForDays(plan, selectedDays) {
+  return buildShoppingForDayObjects(selectedDays.map(di => plan[di]).filter(Boolean));
+}
+
+// Versione generalizzata: riceve direttamente gli OGGETTI-GIORNO già
+// risolti (override applicati), così la spesa può coprire una finestra di
+// date che sfora la settimana (es. ven-sab-dom + lun della settimana dopo).
+export function buildShoppingForDayObjects(dayObjs) {
   const acc = {};
   const addQty = (recipeId, ingId) => {
     const qtyMap = ING_QTY[recipeId];
     const q = qtyMap && qtyMap[ingId];
     if (q) {
-      // Quantità nota: somma le porzioni di tutti i profili
       if (!acc[ingId]) acc[ingId] = { total:0, unit:q.unit };
-      // Se in precedenza l'ingrediente era "q.b." (total null) lo promuoviamo
       if (acc[ingId].total === null) acc[ingId].total = 0;
       const sum = PERSONAS_KEYS.reduce((s,pk) => s+(q[pk]||0), 0);
       acc[ingId].total += sum;
       acc[ingId].unit = q.unit;
     } else {
-      // Quantità non specificata (spezie, erbe, ecc.): entra comunque
-      // nella lista come "q.b." così non sparisce dalla spesa.
       if (!acc[ingId]) acc[ingId] = { total:null, unit:"qb" };
     }
   };
-  selectedDays.forEach(di => {
-    const day = plan[di];
-    MEAL_KEYS.forEach(mk => { const meal = day[mk]; meal.ingredients.forEach(ingId => addQty(meal.id, ingId)); });
+  (dayObjs || []).forEach(day => {
+    if (!day) return;
+    MEAL_KEYS.forEach(mk => { const meal = day[mk]; if (meal && meal.ingredients) meal.ingredients.forEach(ingId => addQty(meal.id, ingId)); });
   });
   const grouped = {};
   const catOrder = ["🥩 Proteine","🥛 Latticini","🍎 Frutta","🥦 Verdure","🫘 Legumi","🌾 Cereali","🥜 Frutta secca","🧂 Dispensa","🛒 Altro"];
@@ -1498,13 +1640,28 @@ export function calcMacroEditor(ingredienti) {
   return macroDaQuantita(ingredienti);
 }
 
-export function ricalcolaMacroAdattati(MEAL_KEYS, macroBase, dayLog) {
-  // macroBase[mk] = macro piano (o personalizzato) per ogni pasto
-  // dayLog[mk]    = { consumed, kcal, p, c, g, ... } oppure assente
+export function ricalcolaMacroAdattati(MEAL_KEYS, macroBase, dayLog, pesoBase) {
+  // macroBase[mk] = macro piano (o personalizzato) per ogni pasto {kcal,p,c,g}
+  // dayLog[mk]    = { consumed, saltato, kcal, p, c, g, ... } oppure assente
+  // pesoBase[mk]  = grammi REALI pianificati del pasto (opzionale). Se assente,
+  //                la pesatura ricade sul solo peso calorico (compat. legacy).
+  //
+  // Logica:
+  //  • un pasto CONSUMATO con macro reali genera delta = reale − piano
+  //  • un pasto SALTATO "libera" le sue calorie pianificate: contano come
+  //    delta negativo (= ho mangiato 0 dove ne avevo previste X) e vengono
+  //    spinte sui pasti ancora in attesa (forward, perché i rimanenti sono a
+  //    valle nell'ordine della giornata)
+  //  • i pasti IN ATTESA (né consumati né saltati) sono i destinatari e si
+  //    riscalano per assorbire il delta complessivo.
+  //
+  // Pesatura della ridistribuzione (richiesta prodotto): ogni destinatario
+  // riceve in proporzione alla MEDIA tra la sua incidenza sul peso totale
+  // (grammi) e la sua incidenza sull'apporto calorico totale dei rimanenti:
+  //     w_i = ( grammi_i/Σgrammi + kcal_i/Σkcal ) / 2     con Σ w_i = 1
 
-  // ── Calcola il delta: reale - piano per i pasti consumati con dati reali
   let deltaKcal = 0, deltaP = 0, deltaC = 0, deltaG = 0;
-  const nonConsumati = [];
+  const nonConsumati = []; // destinatari = pasti in attesa
 
   for (const mk of MEAL_KEYS) {
     const log = dayLog[mk];
@@ -1515,10 +1672,17 @@ export function ricalcolaMacroAdattati(MEAL_KEYS, macroBase, dayLog) {
       deltaP    += (log.p||0)    - base.p;
       deltaC    += (log.c||0)    - base.c;
       deltaG    += (log.g||0)    - base.g;
-    } else if (!log || !log.consumed) {
+    } else if (log && log.saltato) {
+      // pasto saltato: libera le calorie pianificate (delta negativo)
+      deltaKcal += 0 - base.kcal;
+      deltaP    += 0 - base.p;
+      deltaC    += 0 - base.c;
+      deltaG    += 0 - base.g;
+      // NON è un destinatario
+    } else if (!log || (!log.consumed && !log.saltato)) {
       nonConsumati.push(mk);
     }
-    // consumed ma senza macro reali → nessun delta, non va in nonConsumati
+    // consumed senza macro reali → nessun delta, non è destinatario
   }
 
   // Nessun delta o nessun pasto da riadattare → restituisci base invariata
@@ -1526,29 +1690,41 @@ export function ricalcolaMacroAdattati(MEAL_KEYS, macroBase, dayLog) {
     return { adattato: macroBase, delta: deltaKcal, avviso: null };
   }
 
-  // Peso calorico totale dei pasti non consumati
-  const totKcalNonCons = nonConsumati.reduce((s, mk) => s + (macroBase[mk]?.kcal||0), 0);
+  // Totali dei destinatari (calorie SEMPRE; grammi se forniti)
+  const kcalTot = nonConsumati.reduce((s, mk) => s + (macroBase[mk]?.kcal||0), 0);
+  const usaPeso = !!pesoBase;
+  const gramTot = usaPeso ? nonConsumati.reduce((s, mk) => s + (pesoBase[mk]||0), 0) : 0;
 
-  let avviso = null;
-
-  // Controlla se il delta è assorbibile (ogni pasto resta in range 50%–200% del piano)
-  if (totKcalNonCons > 0) {
-    const korrFactor = (totKcalNonCons - deltaKcal) / totKcalNonCons;
-    if (korrFactor < 0.5 || korrFactor > 2.0) {
-      const surplus = deltaKcal > 0 ? "eccesso" : "deficit";
-      avviso = `⚠️ ${Math.abs(Math.round(deltaKcal))} kcal di ${surplus} dai pasti consumati: i pasti restanti non bastano ad assorbire la differenza.`;
-    }
-  } else {
-    // Tutti i pasti sono già consumati, nessun aggiustamento possibile
+  if (kcalTot <= 0) {
+    // Destinatari senza calorie pianificate: niente da riscalare
     return { adattato: macroBase, delta: deltaKcal, avviso: null };
   }
 
-  // Distribuzione proporzionale al peso calorico
+  // Avviso di assorbibilità (range 50%–200%): confronto col solo peso calorico
+  let avviso = null;
+  const korrFactor = (kcalTot - deltaKcal) / kcalTot;
+  if (korrFactor < 0.5 || korrFactor > 2.0) {
+    const tipo = deltaKcal > 0 ? "eccesso" : "deficit";
+    avviso = `⚠️ ${Math.abs(Math.round(deltaKcal))} kcal di ${tipo} dai pasti consumati o saltati: i pasti restanti non bastano ad assorbire la differenza.`;
+  }
+
+  // Distribuzione secondo il peso combinato grammi+calorie
   const adattato = { ...macroBase };
+  let sommaW = 0;
+  const pesi = {};
   for (const mk of nonConsumati) {
     const base = macroBase[mk] || {kcal:0,p:0,c:0,g:0};
-    if (totKcalNonCons === 0) continue;
-    const quota = base.kcal / totKcalNonCons; // peso relativo di questo pasto
+    const shareKcal = kcalTot > 0 ? (base.kcal||0) / kcalTot : 0;
+    const shareGram = (usaPeso && gramTot > 0) ? (pesoBase[mk]||0) / gramTot : shareKcal;
+    const w = usaPeso ? (shareKcal + shareGram) / 2 : shareKcal;
+    pesi[mk] = w;
+    sommaW += w;
+  }
+  // Normalizza (per sicurezza: se gramTot=0 su qualche pasto, Σw può ≠ 1)
+  if (sommaW <= 0) sommaW = 1;
+  for (const mk of nonConsumati) {
+    const base = macroBase[mk] || {kcal:0,p:0,c:0,g:0};
+    const quota = pesi[mk] / sommaW; // quota normalizzata del delta
     adattato[mk] = {
       kcal: Math.max(0, Math.round(base.kcal - deltaKcal * quota)),
       p:    Math.max(0, Math.round((base.p    - deltaP    * quota) * 10) / 10),
@@ -1559,6 +1735,93 @@ export function ricalcolaMacroAdattati(MEAL_KEYS, macroBase, dayLog) {
   }
 
   return { adattato, delta: deltaKcal, avviso };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTO-FLAG "SALTATO" — il sistema deduce i pasti non consumati
+// ═══════════════════════════════════════════════════════════════════
+// Oltre al flag manuale (pulsante ✗), un pasto IN ATTESA viene marcato
+// saltato automaticamente quando c'è EVIDENZA che è stato saltato:
+//   regola A · un pasto SUCCESSIVO nella giornata risulta consumato
+//              → quelli prima ancora in attesa sono stati saltati
+//   regola B · è passata la fascia oraria del pasto (solo per OGGI:
+//              now > MEAL_FASCIA[mk].fine)
+// Le voci auto portano _auto:true, per distinguerle dalle scelte manuali:
+// un tap esplicito dell'utente (consumato o saltato) NON viene mai
+// sovrascritto. La funzione è pura e idempotente: se la condizione che
+// aveva generato un auto-saltato non vale più, la voce auto viene rimossa
+// (ritorno in attesa), così il sistema si auto-corregge.
+//
+// Ritorna { dayLog, changed }. Non muta l'input.
+export function autoFlagSaltati(MEAL_KEYS, MEAL_FASCIA, dayLog, { isOggi = false, nowH = 0 } = {}) {
+  const out = { ...(dayLog || {}) };
+  let changed = false;
+
+  // Indice dell'ultimo pasto consumato (per la regola A)
+  let lastConsumedIdx = -1;
+  MEAL_KEYS.forEach((mk, i) => { if (out[mk]?.consumed) lastConsumedIdx = i; });
+
+  MEAL_KEYS.forEach((mk, i) => {
+    const cur = out[mk];
+    // Non toccare le scelte manuali (consumato, o saltato non-auto)
+    if (cur?.consumed) return;
+    if (cur?.saltato && !cur._auto) return;
+
+    const isAuto = !!(cur?.saltato && cur._auto);
+    const isPending = !cur || (!cur.consumed && !cur.saltato);
+    if (!isAuto && !isPending) return;
+
+    // Deve essere saltato?
+    const regolaA = i < lastConsumedIdx;                       // c'è un consumato dopo
+    const fine = MEAL_FASCIA[mk]?.fine ?? Infinity;
+    const regolaB = isOggi && nowH > fine;                     // fascia oraria scaduta oggi
+    const deveSaltare = regolaA || regolaB;
+
+    if (deveSaltare && !isAuto) {
+      out[mk] = { ...(cur || {}), consumed: false, saltato: true, _auto: true };
+      changed = true;
+    } else if (!deveSaltare && isAuto) {
+      // condizione non più valida → torna in attesa
+      delete out[mk];
+      changed = true;
+    }
+  });
+
+  return { dayLog: changed ? out : dayLog, changed };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STATISTICHE DI COMPORTAMENTO — lettura, non stato separato
+// ═══════════════════════════════════════════════════════════════════
+// Il registro pasti (mealsLog) È già la traccia di come si comporta
+// l'utente. Questa funzione lo scorre e restituisce, per ogni pasto,
+// quante volte è stato consumato / saltato (a mano o auto) negli ultimi
+// `giorni` giorni di log presenti per quel profilo. È il bacino che la
+// logica notifiche userà in futuro (es. spuntino saltato sistematicamente
+// → smorza o sposta quella push).
+//   personaLog = mealsLog[personaId] = { "dd/mm/yyyy": { mealKey:{...} } }
+export function statsComportamento(MEAL_KEYS, personaLog, giorni = 14) {
+  const stats = {};
+  for (const mk of MEAL_KEYS) stats[mk] = { consumati: 0, saltatiManuali: 0, saltatiAuto: 0, totale: 0 };
+  const date = Object.keys(personaLog || {}).sort().slice(-giorni);
+  for (const d of date) {
+    const day = personaLog[d] || {};
+    for (const mk of MEAL_KEYS) {
+      const e = day[mk];
+      if (!e) continue;
+      if (e.consumed) { stats[mk].consumati++; stats[mk].totale++; }
+      else if (e.saltato) {
+        if (e._auto) stats[mk].saltatiAuto++; else stats[mk].saltatiManuali++;
+        stats[mk].totale++;
+      }
+    }
+  }
+  // tasso di salto (0..1) su quante volte il pasto ha avuto un esito
+  for (const mk of MEAL_KEYS) {
+    const s = stats[mk];
+    s.tassoSalto = s.totale > 0 ? (s.saltatiManuali + s.saltatiAuto) / s.totale : 0;
+  }
+  return stats;
 }
 
 export function encodeSeed(seed, overrides) {

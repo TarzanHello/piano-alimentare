@@ -91,7 +91,7 @@ export function WaterTracker({ dayKey, personaColor, personaId, readOnly }) {
 
 // Soglie tempo per i pulsanti del selettore
 
-export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, onToggleConsumed, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly }) {
+export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, saltato, saltatoAuto, onToggleConsumed, onToggleSaltato, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly }) {
   const [open, setOpen]               = useState(false);
   const [swapOpen, setSwapOpen]       = useState(false);
   const [editOpen, setEditOpen]       = useState(false);
@@ -121,23 +121,24 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
 
       {/* ── Header pasto ── */}
       <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}
-        style={{background:consumed?"#f0fdf4":"#fff",borderBottom:(open||swapOpen)?`1px solid #F1F5EE`:"none",padding:"12px 14px",display:"flex",alignItems:"center",gap:11,cursor:"pointer",userSelect:"none"}}>
-        <div style={{width:32,height:32,borderRadius:10,background:iconBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{mealEmoji}</div>
+        style={{background:saltato?"#fbf3f3":consumed?"#f0fdf4":"#fff",borderBottom:(open||swapOpen)?`1px solid #F1F5EE`:"none",padding:"12px 14px",display:"flex",alignItems:"center",gap:11,cursor:"pointer",userSelect:"none",opacity:saltato?0.85:1}}>
+        <div style={{width:32,height:32,borderRadius:10,background:iconBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,filter:saltato?"grayscale(0.6)":"none"}}>{mealEmoji}</div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-            <span style={{fontWeight:800,fontSize:isSnack?12:13.5,color:"#15251C"}}>{label}</span>
+            <span style={{fontWeight:800,fontSize:isSnack?12:13.5,color:saltato?"#9DB1A2":"#15251C",textDecoration:saltato?"line-through":"none"}}>{label}</span>
             {isOverride && <span style={{fontSize:9,background:"#7c3aed",color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:800}}>MOD</span>}
             {consumed && loggedMacros && <span style={{fontSize:9,background:"#16a34a",color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:800}}>✓ reale</span>}
+            {saltato && <span style={{fontSize:9,background:"#dc2626",color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:800}}>{saltatoAuto?"✗ non mangiato · auto":"✗ non mangiato"}</span>}
             {isAdattato && <span style={{fontSize:9,background:"#0891b2",color:"#fff",borderRadius:5,padding:"1px 5px",fontWeight:800}}>⚖ riadattato</span>}
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-          {prepLabel && (
+          {prepLabel && !saltato && (
             <span style={{fontSize:10.5,fontWeight:700,color:"#2F6B3A",background:"#EAF7EE",borderRadius:7,padding:"3px 8px"}}>
               {prepLabel}
             </span>
           )}
-          <span style={{fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:800,color:consumed&&loggedMacros?"#16a34a":"#15251C"}}>{m.kcal}</span>
+          <span style={{fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:800,color:consumed&&loggedMacros?"#16a34a":"#15251C",textDecoration:saltato?"line-through":"none",opacity:saltato?0.6:1}}>{m.kcal}</span>
           <span style={{color:"#C2D0C6",fontSize:10}}>{open?"▲":"▼"}</span>
         </div>
       </div>
@@ -165,6 +166,13 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
               <span style={{filter:consumed?"none":"grayscale(1) opacity(0.4)"}}>{consumed?"✅":"☑️"}</span>
             </button>
             )}
+            {/* Bottone "non mangiato" (✗) — nascosto se già consumato */}
+            {!readOnly && !consumed && (
+            <button onClick={e=>{ e.stopPropagation(); logSync("pasto-log", `${saltato?"Annulla saltato":"Segna non mangiato"}: ${mealKey}`, {dayIdx, mealKey, pasto:meal?.nome?.slice(0,25)}); onToggleSaltato&&onToggleSaltato(); }} title={saltato?"Annulla: non saltato":"Non l'ho mangiato"}
+              style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${saltato?"#dc2626":"#E7EDE2"}`,background:saltato?"#fef2f2":"#F5F8F1",color:saltato?"#dc2626":"#B9C6BD",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:900,padding:0}}>
+              ✗
+            </button>
+            )}
             {/* Bottone modifica calorie consumate — visibile solo se consumato */}
             {!readOnly && consumed && (
               <button
@@ -174,8 +182,8 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
                 ✏️ <span style={{fontSize:10}}>mangiato</span>
               </button>
             )}
-            {/* Bottone modifica ricetta (solo se NON consumato) */}
-            {!readOnly && !consumed && (
+            {/* Bottone modifica ricetta (solo se NON consumato e NON saltato) */}
+            {!readOnly && !consumed && !saltato && (
               <button
                 onClick={e=>{ e.stopPropagation(); setEditOpen(true); setOpen(false); setSwapOpen(false); }}
                 title="Modifica ingredienti e quantità"
@@ -183,8 +191,8 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
                 ✏️
               </button>
             )}
-            {/* Bottone swap (solo se NON consumato) */}
-            {!readOnly && !consumed && (
+            {/* Bottone swap (solo se NON consumato e NON saltato) */}
+            {!readOnly && !consumed && !saltato && (
               <button
                 onClick={e=>{ e.stopPropagation(); setSwapOpen(s=>!s); setOpen(false); if(!swapOpen) setMaxPrep(null); }}
                 style={{flexShrink:0,padding:"5px 10px",borderRadius:7,border:`1.5px solid ${swapOpen?"#7c3aed":"#E7EDE2"}`,background:swapOpen?"#7c3aed":"#F5F8F1",color:swapOpen?"#fff":"#6E8576",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
@@ -383,6 +391,8 @@ export function TotaleBar({ dayData, personaKey, color, target, macroPerPasto, d
   //         se un pasto è consumed, si usano i macro reali dal log.
   const tot = MEAL_KEYS.reduce((a,mk)=>{
     const logEntry = dayLog && dayLog[mk];
+    // Pasto saltato → non contribuisce al totale
+    if (logEntry && logEntry.saltato) return a;
     // Se il pasto è stato consumato e ha macro nel log, usa quelli (valori reali)
     const m = (logEntry && logEntry.consumed && (logEntry.kcal || logEntry._ingredienti))
       ? {kcal: logEntry.kcal||0, p: logEntry.p||0, c: logEntry.c||0, g: logEntry.g||0}

@@ -3,7 +3,7 @@
 // Regola unica: chi ha scritto per ultimo sul cloud ha ragione.
 
 import { SK_EXCL, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_OVERRIDES,
-         SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO } from '@/core/constants';
+         SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO, SK_FROZEN } from '@/core/constants';
 import { calcTargetAdattivo } from '@/core/engine';
 import { dataNascitaToEta, etaToDataNascita, getSession, supabase } from './cloud';
 import { logSync } from './synclog';
@@ -211,7 +211,7 @@ async function pullPiano() {
     .eq("famiglia_id",me.famigliaId).eq("chiave","piano").maybeSingle();
   if (error) { logSync("error","Pull piano: errore",{error:error.message}); return; }
   if (!data?.valore) return;
-  const {seed,overrides}=data.valore;
+  const {seed,overrides,frozen}=data.valore;
   if (!seed) return;
   const curSeed=await getLocalRaw(SK_SEED,null);
   const curOvr=await getLocalRaw(SK_OVERRIDES,"{}");
@@ -244,8 +244,9 @@ async function pullPiano() {
   }
   await setLocalQuiet(SK_SEED,String(seed));
   await setLocalQuiet(SK_OVERRIDES,newOvr);
+  await setLocalQuiet(SK_FROZEN, JSON.stringify(frozen||{}));
   logSync("pull","Piano aggiornato dal cloud",{seed:String(seed),seedPrecedente:curSeed});
-  emit("piano",{seed:String(seed),overrides:overrides||{}});
+  emit("piano",{seed:String(seed),overrides:overrides||{},frozen:frozen||{}});
 }
 
 async function pullAltriDatiFamiglia() {
@@ -267,7 +268,9 @@ async function recomputePianoLocale() {
   if(!seed) return;
   let overrides={};
   try { overrides=JSON.parse(await getLocalRaw(SK_OVERRIDES,"{}"))||{}; } catch {}
-  emit("piano",{seed:String(seed),overrides});
+  let frozen={};
+  try { frozen=JSON.parse(await getLocalRaw(SK_FROZEN,"{}"))||{}; } catch {}
+  emit("piano",{seed:String(seed),overrides,frozen});
 }
 
 function pullSpesa() {
@@ -305,6 +308,7 @@ async function pushPianoConLock() {
   const seed=await getLocalRaw(SK_SEED,null);
   if (!seed) return;
   const overrides=await getLocal(SK_OVERRIDES,{});
+  const frozen=await getLocal(SK_FROZEN,{});
   // Registra subito il seed come "il più recente che conosco": anche se
   // un eco realtime arriva mentre l'upsert è ancora in volo, pullPiano lo
   // confronterà con questo valore e scarterà gli stati più vecchi.
@@ -313,7 +317,7 @@ async function pushPianoConLock() {
   pianoLock=true;
   clearTimeout(timers.__pianoLockRelease);
   try {
-    const {error}=await supabase.from("famiglia_dati").upsert({famiglia_id:me.famigliaId,chiave:"piano",valore:{seed:String(seed),overrides}},{onConflict:"famiglia_id,chiave"});
+    const {error}=await supabase.from("famiglia_dati").upsert({famiglia_id:me.famigliaId,chiave:"piano",valore:{seed:String(seed),overrides,frozen}},{onConflict:"famiglia_id,chiave"});
     if (error) logSync("error","Push piano: errore",{error:error.message});
     else { console.log("[sync] piano pushato:",seed); logSync("push","Piano caricato sul cloud",{seed:String(seed)}); }
   }
