@@ -18,10 +18,28 @@ export function WaterTracker({ dayKey, personaColor, personaId, readOnly }) {
   const storageKey = personaId ? `${SK_WATER}:${personaId}:${dayKey}` : `${SK_WATER}:${dayKey}`;
 
   useEffect(() => {
-    window.storage.get(storageKey)
-      .then(r => setGlasses(Math.min(WATER_MAX, parseInt(r.value) || 0)))
-      .catch(() => setGlasses(0))
-      .finally(() => setLoaded(true));
+    let vivo = true;
+    (async () => {
+      // Valore nel formato corrente `SK_WATER:{pid}:{giorno}`
+      let n = 0;
+      try { const r = await window.storage.get(storageKey); n = parseInt(r.value) || 0; } catch {}
+      // MIGRAZIONE: la pagina Piano usava la chiave `SK_WATER:{pid}-{giorno}`
+      // (personaId incorporato nel dayKey). Leggo anche quella e tengo il
+      // valore più alto, ri-persistendo sulla chiave corrente: così i dati
+      // registrati da Oggi e da Piano tornano a coincidere.
+      if (personaId) {
+        try {
+          const leg = await window.storage.get(`${SK_WATER}:${personaId}-${dayKey}`);
+          const nLeg = parseInt(leg.value) || 0;
+          if (nLeg > n) {
+            n = nLeg;
+            window.storage.set(storageKey, String(n)).catch(() => {});
+          }
+        } catch {}
+      }
+      if (vivo) { setGlasses(Math.min(WATER_MAX, n)); setLoaded(true); }
+    })();
+    return () => { vivo = false; };
   }, [storageKey]);
 
   const setAndSave = async (n) => {
@@ -214,7 +232,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
             {/* Bottone swap (solo se NON consumato e NON saltato) */}
             {!readOnly && !consumed && !saltato && (
               <button
-                onClick={e=>{ e.stopPropagation(); setSwapOpen(s=>!s); setOpen(false); if(!swapOpen) setMaxPrep(null); }}
+                onClick={e=>{ e.stopPropagation(); setSwapOpen(s=>!s); setOpen(false); if(!swapOpen) setPrepSlot(null); }}
                 style={{flexShrink:0,padding:"5px 10px",borderRadius:7,border:`1.5px solid ${swapOpen?"#7c3aed":"#E7EDE2"}`,background:swapOpen?"#7c3aed":"#F5F8F1",color:swapOpen?"#fff":"#6E8576",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
                 {swapOpen?"✕":"⇄ Cambia"}
               </button>
@@ -377,7 +395,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
                 const kcalDiff = altM?.kcal - m.kcal;
                 const diffColor = Math.abs(kcalDiff)<=50?"#16a34a":Math.abs(kcalDiff)<=100?"#d97706":"#9DB1A2";
                 return (
-                  <div key={alt.id} onClick={()=>{ onSwap(alt); setSwapOpen(false); setMaxPrep(null); }}
+                  <div key={alt.id} onClick={()=>{ onSwap(alt); setSwapOpen(false); setPrepSlot(null); }}
                     style={{background:"#fff",borderRadius:10,border:"1.5px solid #E7EDE2",padding:"10px 12px",marginBottom:7,cursor:"pointer",transition:"border-color 0.15s",display:"flex",alignItems:"center",gap:10}}
                     onMouseEnter={e=>e.currentTarget.style.borderColor="#7c3aed80"}
                     onMouseLeave={e=>e.currentTarget.style.borderColor="#E7EDE2"}>

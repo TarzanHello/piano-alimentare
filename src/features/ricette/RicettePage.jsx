@@ -428,10 +428,13 @@ function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
 }
 
 // ── Pagina principale ────────────────────────────────────────────────────
-export function RicettePage({ cloudStatus, onRicetteChange }) {
+export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
   const [vista, setVista]     = useState("lista");
   const [tab, setTab]         = useState("ricette");
   const [catAperte, setCatAperte] = useState({});
+  // true se l'editor è stato aperto dal Piano ("Salva come ricetta"):
+  // al salvataggio o all'annullamento si torna al Piano, non alla lista.
+  const [tornaAlPiano, setTornaAlPiano] = useState(false);
   // escluse catalogo: Set di id (memorizzato in localStorage in futuro, per ora in stato)
   const [escluseCatalogo, setEscluseCatalogo] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem("cat-escluse")||"[]")); } catch { return new Set(); }
@@ -457,11 +460,20 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
   // apri direttamente l'editor con la ricetta pre-compilata.
   useEffect(() => {
     if (window.__ricetteDaAprire) {
-      setEditing(window.__ricetteDaAprire);
+      const { _tornaAlPiano, ...ricetta } = window.__ricetteDaAprire;
+      setTornaAlPiano(!!_tornaAlPiano);
+      setEditing(ricetta);
       setVista("editor");
       delete window.__ricetteDaAprire;
     }
   }, []);
+
+  // Chiusura editor: se si era arrivati dal Piano, torna al Piano;
+  // altrimenti torna alla lista ricette.
+  const chiudiEditor = () => {
+    setVista("lista"); setEditing(null);
+    if (tornaAlPiano) { setTornaAlPiano(false); onTorna?.(); }
+  };
 
   // Tutte le ricette sono di famiglia: mostro tutte insieme nella sezione "Ricette".
   const tutteRicette = ricette;
@@ -482,8 +494,8 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
     try {
       if (dati.id) await aggiornaRicetta(dati.id, dati);
       else await creaRicetta(dati);
-      setVista("lista"); setEditing(null);
       await ricarica(); onRicetteChange?.();
+      chiudiEditor();
     } catch (e) { setErrore(e.message || "Errore nel salvataggio."); }
   };
 
@@ -511,7 +523,7 @@ export function RicettePage({ cloudStatus, onRicetteChange }) {
 
   if (vista === "editor") {
     return <EditorRicetta iniziale={editing} onSalva={salva}
-             onAnnulla={() => { setVista("lista"); setEditing(null); }}/>;
+             onAnnulla={chiudiEditor}/>;
   }
 
   return (

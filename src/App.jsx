@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, MEAL_FASCIA, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO, SK_FROZEN, buildShoppingForDays, buildShoppingForDayObjects, applyOverrides, applyOverridesWeek, autoFlagSaltati, calcTargetAdattivo, classifySwap, computePrefScore, dateForOffset, dateKeyForDayIdx, dateKeyForOffset, emojiBySesso, generateWeekPlan, getPrefEntry, grammiDaQuantita, grammiRicettaCalc, hoursUntilMeal, localDateKey, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, migraOverridesASettimana, normalizePrefs, overrideKey, pianoPersonalizzato, planForWeek, regeneraPlanState, restoreCustomING_QTY, ricalcolaMacroAdattati, ricettaUtenteToMealObj, scheduleNotifications, seedForWeek, slotForPersona, todayDayIndex, weekIndexForDate, weekdayForDate } from '@/core';
+import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, MEAL_FASCIA, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO, SK_FROZEN, buildShoppingForDayObjects, applyOverrides, applyOverridesWeek, autoFlagSaltati, calcTargetAdattivo, classifySwap, computePrefScore, dateForOffset, dateKeyForDayIdx, dateKeyForOffset, emojiBySesso, generateWeekPlan, getPrefEntry, grammiDaQuantita, grammiRicettaCalc, hoursUntilMeal, localDateKey, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, migraOverridesASettimana, normalizePrefs, overrideKey, pianoPersonalizzato, planForWeek, regeneraPlanState, restoreCustomING_QTY, ricalcolaMacroAdattati, ricettaUtenteToMealObj, scheduleNotifications, seedForWeek, slotForPersona, todayDayIndex, weekIndexForDate, weekdayForDate } from '@/core';
 import { SwipeContainer } from '@/components/shared';
 import { FamigliaPage } from '@/features/famiglia/FamigliaPage';
 import { GustiPage } from '@/features/gusti/GustiPage';
@@ -70,7 +70,7 @@ function DayCarousel({ selOffset, onSelect, color }) {
 export function App() {
   const [page, setPage]               = useState("oggi");
   const [menuOpen, setMenuOpen]       = useState(false);  // bottom-sheet del menu secondario
-  const [selOffset, setSelOffset]     = useState(0);   // giorno selezionato relativo a OGGI (−3…+3, 0 = oggi)
+  const [selOffset, setSelOffset]     = useState(0);   // giorno selezionato relativo a OGGI (−14…+14, 0 = oggi)
   const [selPersonaId, setSelPersonaId] = useState(null);
   const [myPersonaId, setMyPersonaId] = useState(null);
   const [seed, setSeed]               = useState(null);  // = baseSeed della sequenza settimanale
@@ -81,7 +81,6 @@ export function App() {
   const [personas, setPersonas]       = useState([]);
   const [booted, setBooted]           = useState(false);
   const [spinning, setSpinning]       = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [regenNeeded, setRegenNeeded] = useState(false);
   const [spesaChecks, setSpesaChecks] = useState({});   // { [seed]: { [itemId]: true } }
   const [cloudStatus, setCloudStatus] = useState({ loggedIn:false, inFamily:false });
@@ -663,7 +662,7 @@ export function App() {
   const loadHistory = useCallback(async(oldSeed)=>{
     setSpinning(true); await new Promise(r=>setTimeout(r,300));
     const cur = weekIndexForDate(new Date());
-    setSeed(oldSeed); setFrozen({}); setPlan(planForWeek({baseSeed:oldSeed,frozen:{}}, cur, {excludedIds:excluded, ricetteUtente, ricetteEscluseIds})); setSelOffset(0); setShowHistory(false);
+    setSeed(oldSeed); setFrozen({}); setPlan(planForWeek({baseSeed:oldSeed,frozen:{}}, cur, {excludedIds:excluded, ricetteUtente, ricetteEscluseIds})); setSelOffset(0);
     setOverrides({});
     try {
       await window.storage.set(SK_SEED,String(oldSeed));
@@ -832,26 +831,14 @@ export function App() {
       </div>
 
       <div style={{maxWidth:680,margin:"0 auto",padding:"18px 16px 0"}}>
-       <ErrorBoundary onReset={()=>{ setShowHistory(false); setPage("oggi"); }}>
-       <div key={showHistory?"history":page} style={{animation:"pageIn 0.22s ease-out"}}>
-        {/* STORICO */}
-        {showHistory&&(
-          <div>
-            <div style={{fontWeight:800,fontSize:14,color:"#15251C",marginBottom:12}}>🕐 Piani precedenti</div>
-            {history.map((h,i)=>(
-              <div key={i} onClick={()=>loadHistory(h.seed)} style={{background:"#fff",borderRadius:10,border:"1.5px solid #E7EDE2",padding:"12px 16px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div><div style={{fontWeight:700,fontSize:13,color:"#15251C"}}>{h.label}</div><div style={{fontSize:10,color:"#9DB1A2",fontFamily:"monospace"}}>seed: {h.seed}</div></div>
-                <span style={{fontSize:12,color:"#2F6B3A",fontWeight:700}}>Ricarica →</span>
-              </div>
-            ))}
-          </div>
-        )}
+       <ErrorBoundary onReset={()=>setPage("oggi")}>
+       <div key={page} style={{animation:"pageIn 0.22s ease-out"}}>
 
         {/* PIANO */}
         {cloudStatus.inFamily && !cloudMigrated && personas.length>1 && (
           <MigrationWizard personas={personas} onDone={()=>setCloudMigrated(true)}/>
         )}
-        {!showHistory&&page==="oggi"&&(
+        {page==="oggi"&&(
           <OggiPage
             personas={personas}
             persona={oggiPersona}
@@ -867,7 +854,7 @@ export function App() {
             onGoMisure={()=>setPage("misure")}
           />
         )}
-        {!showHistory&&page==="piano"&&(
+        {page==="piano"&&(
           <SwipeContainer onSwipeLeft={swipeAvanti} onSwipeRight={swipeIndietro} style={{touchAction:"pan-y"}}>
             <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
               {personas.map(p=>{
@@ -991,6 +978,10 @@ export function App() {
                                 scope: "famiglia",
                                 quantita,
                                 ingredienti: Object.entries(quantita).map(([ing,v])=>({ing,g:v.g,unit:v.unit})),
+                                // FIX navigazione: arrivando dal Piano, dopo il
+                                // salvataggio (o l'annullamento) si torna al Piano
+                                // sul giorno selezionato, non alla lista Ricette.
+                                _tornaAlPiano: true,
                               };
                               navigaA("ricette");
                             }}
@@ -1000,9 +991,10 @@ export function App() {
                       <TotaleBar dayData={effectiveDay} personaKey={personaSlot} color={persona.color} target={personaTarget} macroPerPasto={macroAdattati} dayLog={selDayLog}/>
                       {/* ── Tracker idratazione ── */}
                       {(()=>{
-                        // dayKey = "personaId-dataReale" → idratazione per persona e giorno
-                        const dayKey = `${persona.id}-${selDateKey}`;
-                        return <WaterTracker key={dayKey} dayKey={dayKey} personaColor={persona.color}/>;
+                        // Stessa chiave della pagina Oggi (`SK_WATER:{pid}:{data}`):
+                        // personaId passato come prop separata, non incorporato nel dayKey.
+                        // readOnly: in famiglia l'idratazione degli altri membri è sola lettura.
+                        return <WaterTracker key={`${persona.id}-${selDateKey}`} dayKey={selDateKey} personaId={persona.id} personaColor={persona.color} readOnly={readOnlyPersona}/>;
                       })()}
                     </>
                   );
@@ -1089,18 +1081,18 @@ export function App() {
           </SwipeContainer>
         )}
 
-        {!showHistory&&page==="spesa"&&<ShoppingPage planState={{baseSeed:seed, frozen}} overrides={overrides} genArgs={{excludedIds:excluded, ricetteUtente, ricetteEscluseIds}} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa}/>}
-        {!showHistory&&page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
-        {!showHistory&&page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
-        {!showHistory&&page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={handleRicetteChange}/>}
-        {!showHistory&&page==="test-sync"&&<SyncTestPage/>}
-        {!showHistory&&page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}
-        {!showHistory&&page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} history={history} onLoadHistory={(s)=>{ loadHistory(s); setPage("piano"); }}/>}
-        {!showHistory&&page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={handleMisureChange} mealsLog={mealsLog} inFamily={cloudStatus.inFamily} myUid={myUid}/>}
-        {!showHistory&&page==="utente"&&(
+        {page==="spesa"&&<ShoppingPage planState={{baseSeed:seed, frozen}} overrides={overrides} genArgs={{excludedIds:excluded, ricetteUtente, ricetteEscluseIds}} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa}/>}
+        {page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
+        {page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
+        {page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={handleRicetteChange} onTorna={()=>navigaA("piano")}/>}
+        {page==="test-sync"&&<SyncTestPage/>}
+        {page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}
+        {page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} history={history} onLoadHistory={(s)=>{ loadHistory(s); setPage("piano"); }}/>}
+        {page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={handleMisureChange} mealsLog={mealsLog} inFamily={cloudStatus.inFamily} myUid={myUid}/>}
+        {page==="utente"&&(
           <UtentePage personas={personas} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} onGoFamiglia={()=>setPage("famiglia")} onUpdatePersona={handleUpdatePersona} misureApp={misureApp} cloudStatus={cloudStatus}/>
         )}
-        {!showHistory&&page==="famiglia"&&(
+        {page==="famiglia"&&(
           <FamigliaPage onGoUtente={()=>setPage("utente")} personas={personas} onUpdate={handleUpdatePersona} onAdd={handleAddPersona} onDelete={handleDeletePersona}
             currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} misureApp={misureApp}/>
         )}
@@ -1114,15 +1106,26 @@ export function App() {
           // "menu" è attivo se siamo in una delle 4 pagine secondarie
           const isSubPage = SUBMENU.some(s=>s.key===page);
           const active = tab.key==="menu"
-            ? (isSubPage || menuOpen) && !showHistory
-            : page===tab.key && !showHistory;
+            ? (isSubPage || menuOpen)
+            : page===tab.key;
           // Badge "ingredienti esclusi" mostrato sulla voce Menu
           let badge = tab.key==="menu" && excluded.length>0 ? excluded.length : 0;
-          // Badge spesa: articoli della settimana non ancora spuntati
+          // Badge spesa: articoli non spuntati della STESSA finestra predefinita
+          // della pagina Spesa (oggi + 2 giorni, finestra mobile). Prima contava
+          // l'intera settimana di calendario e il numero non coincideva mai con
+          // quello mostrato dentro la pagina.
           if (tab.key==="spesa") {
             try {
-              const eff = applyOverridesWeek(plan||[], overrides, weekIndexForDate(new Date()));
-              const ids = Object.values(buildShoppingForDays(eff,[0,1,2,3,4,5,6])).flat().map(i=>i.id);
+              const dayObjs = [0,1,2].map(off=>{
+                const d = dateForOffset(off);
+                const wk = weekIndexForDate(d), wd = weekdayForDate(d);
+                const week = applyOverridesWeek(
+                  planForWeek({baseSeed:seed, frozen}, wk, { excludedIds: excluded, ricetteUtente, ricetteEscluseIds }),
+                  overrides, wk
+                );
+                return week[wd];
+              }).filter(Boolean);
+              const ids = Object.values(buildShoppingForDayObjects(dayObjs)).flat().map(i=>i.id);
               const wk = spesaChecks[String(seed)]||{};
               badge = ids.filter(id=>!wk[id]).length;
             } catch { badge = 0; }
@@ -1138,7 +1141,7 @@ export function App() {
             <button key={tab.key}
               onClick={()=>{
                 if (tab.key==="menu") { setMenuOpen(true); return; }
-                navigaA(tab.key); setShowHistory(false); setMenuOpen(false);
+                navigaA(tab.key); setMenuOpen(false);
               }}
               style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 2px 8px",border:"none",background:"transparent",color:active?"#2F6B3A":"#9DB1A2",cursor:"pointer",position:"relative",transition:"color 0.15s",gap:3,minWidth:0}}>
               {active && <div style={{position:"absolute",top:0,left:"30%",right:"30%",height:2,background:"#2F6B3A",borderRadius:"0 0 3px 3px"}}/>}
@@ -1168,11 +1171,11 @@ export function App() {
             <div style={{padding:"4px 20px 16px",fontSize:11,fontWeight:700,color:"#9DB1A2",letterSpacing:1,textTransform:"uppercase"}}>Menu</div>
             <div style={{display:"flex",flexDirection:"column"}}>
               {SUBMENU.map(item=>{
-                const isActive = page===item.key && !showHistory;
+                const isActive = page===item.key;
                 const itemBadge = item.key==="ingredienti" && excluded.length>0 ? excluded.length : 0;
                 return (
                   <button key={item.key}
-                    onClick={()=>{ navigaA(item.key); setShowHistory(false); setMenuOpen(false); }}
+                    onClick={()=>{ navigaA(item.key); setMenuOpen(false); }}
                     style={{display:"flex",alignItems:"center",gap:14,padding:"14px 20px",border:"none",background:isActive?"#EDF7EF":"transparent",cursor:"pointer",textAlign:"left",borderLeft:isActive?"3px solid #2F6B3A":"3px solid transparent",transition:"background 0.12s"}}>
                     <div style={{fontSize:24,width:36,textAlign:"center"}}>{item.icon}</div>
                     <div style={{flex:1,minWidth:0}}>
