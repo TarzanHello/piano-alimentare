@@ -116,6 +116,34 @@ export const MEAL_FASCIA = {
   cena:       { inizio: 18.5, fine: 26 },
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// KILL-SWITCH RICALCOLI AUTOMATICI  (blocco temporaneo — 07/2026)
+// ═══════════════════════════════════════════════════════════════════
+// Interruttore unico per congelare OGNI ricalcolo automatico di piano,
+// quantità e calorie. Con i flag a `false` l'app mostra e registra
+// SEMPRE i valori PIANIFICATI/deterministici, senza adattamenti runtime.
+// Le azioni MANUALI restano attive (✓ mangiato, ✗ saltato, campo grammi
+// consumati, bottone "Genera piano"): il blocco riguarda solo l'automatismo.
+//
+//   • calorie : ridistribuzione delle calorie dei pasti saltati/consumati
+//               sui pasti in attesa  →  ricalcolaMacroAdattati().
+//               false ⇒ ogni pasto in attesa mostra il macro del piano;
+//               segnare "mangiato" registra il macro del piano (non gonfiato).
+//   • saltati : auto-marcatura "saltato" (regola A: pasto successivo
+//               consumato · regola B: fascia oraria scaduta) → autoFlagSaltati().
+//               false ⇒ un pasto diventa saltato SOLO col tap manuale ✗.
+//   • piano   : riscalatura automatica delle porzioni per persona sul
+//               fabbisogno LARN/TDEE  →  pianoPersonalizzato()/scalaPastiGiorno().
+//               false ⇒ porzioni e macro = taglia fissa della ricetta
+//               (uomo/donna/bimbo), deterministiche e verificabili a mano.
+//
+// Per riattivare: rimettere il singolo flag (o tutti) a `true`.
+export const RICALCOLO_AUTO = {
+  calorie: false,
+  saltati: false,
+  piano:   false,
+};
+
 // Quante ore mancano da "adesso" al pasto (dayIdx 0=Lun..6=Dom, mealKey).
 // Usa todayDayIndex() per ancorare la settimana al giorno corrente.
 

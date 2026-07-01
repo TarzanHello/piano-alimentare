@@ -1,6 +1,12 @@
-// Test mirato: stato "saltato", auto-flag e ridistribuzione pesata grammi+kcal.
+// Test: kill-switch ricalcoli + (a flag riattivati) stato "saltato",
+// auto-flag e ridistribuzione pesata grammi+kcal.
+//
+// Con RICALCOLO_AUTO a false (default 07/2026) l'automatismo è congelato:
+//  • ricalcolaMacroAdattati → ritorna il piano invariato (nessun _adattato)
+//  • autoFlagSaltati        → no-op (changed:false)
+// Riattivando i flag il motore deve tornare a fare ridistribuzione e auto-flag.
 import {
-  MEAL_KEYS, MEAL_FASCIA,
+  MEAL_KEYS, MEAL_FASCIA, RICALCOLO_AUTO,
   ricalcolaMacroAdattati, autoFlagSaltati, statsComportamento,
   grammiDaQuantita, grammiRicettaCalc,
 } from '@/core';
@@ -21,7 +27,37 @@ const macroBase = {
 // peso reale (grammi) — volutamente NON proporzionale alle kcal
 const pesoBase = { colazione: 350, spuntino_m: 200, pranzo: 500, spuntino_p: 120, cena: 450 };
 
-console.log("▸ Ridistribuzione: salto lo spuntino_m, le sue kcal vanno avanti");
+// ═══════════════════════════════════════════════════════════════════
+// PARTE 1 · KILL-SWITCH CONGELATO (default)
+// ═══════════════════════════════════════════════════════════════════
+console.log("▸ [OFF] Ridistribuzione disattivata: piano invariato");
+{
+  RICALCOLO_AUTO.calorie = false;
+  const dayLog = { spuntino_m: { saltato: true }, pranzo: { consumed: true, kcal: 900, p: 45, c: 100, g: 30 } };
+  const { adattato, delta, avviso } = ricalcolaMacroAdattati(MK, macroBase, dayLog, pesoBase);
+  ok(adattato === macroBase, "ritorna esattamente il macroBase (nessun ricalcolo)");
+  ok(delta === 0 && avviso === null, "delta=0 e nessun avviso");
+  ok(MK.every(mk => !adattato[mk]._adattato), "nessun pasto marcato _adattato");
+}
+
+console.log("▸ [OFF] Auto-flag disattivato: nessuna marcatura automatica");
+{
+  RICALCOLO_AUTO.saltati = false;
+  // scenario che ON avrebbe auto-saltato colazione+spuntino_m
+  const dayLog = { pranzo: { consumed: true, kcal: 700 } };
+  const { dayLog: out, changed } = autoFlagSaltati(MK, MEAL_FASCIA, dayLog, { isOggi: true, nowH: 23 });
+  ok(changed === false, "changed=false (no-op)");
+  ok(out === dayLog, "log restituito invariato per riferimento");
+  ok(!out.colazione && !out.spuntino_m, "nessun auto-saltato inserito");
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PARTE 2 · MOTORE RIATTIVATO (flag a true) — comportamento storico
+// ═══════════════════════════════════════════════════════════════════
+RICALCOLO_AUTO.calorie = true;
+RICALCOLO_AUTO.saltati = true;
+
+console.log("▸ [ON] Ridistribuzione: salto lo spuntino_m, le sue kcal vanno avanti");
 {
   const dayLog = { spuntino_m: { saltato: true } };
   const { adattato } = ricalcolaMacroAdattati(MK, macroBase, dayLog, pesoBase);
@@ -33,31 +69,30 @@ console.log("▸ Ridistribuzione: salto lo spuntino_m, le sue kcal vanno avanti"
   ok(destinatari.every(mk => adattato[mk].kcal >= macroBase[mk].kcal), "ogni destinatario cresce o resta uguale");
 }
 
-console.log("▸ Pesatura grammi+kcal: il pasto con più grammi prende di più a parità di kcal");
+console.log("▸ [ON] Pesatura grammi+kcal: il pasto con più grammi prende di più a parità di kcal");
 {
-  // due destinatari con STESSE kcal ma grammi diversi
   const base2 = { a:{kcal:300,p:10,c:40,g:8}, b:{kcal:300,p:10,c:40,g:8}, c:{kcal:200,p:5,c:30,g:5} };
   const peso2 = { a: 600, b: 200, c: 100 };
   const MK2 = ["a","b","c"];
-  const dayLog2 = { c: { saltato: true } }; // libera 200 kcal verso a,b
+  const dayLog2 = { c: { saltato: true } };
   const { adattato } = ricalcolaMacroAdattati(MK2, base2, dayLog2, peso2);
   const incA = adattato.a.kcal - base2.a.kcal;
   const incB = adattato.b.kcal - base2.b.kcal;
   ok(incA > incB, `a (600g) riceve più di b (200g): +${incA} vs +${incB}`);
 }
 
-console.log("▸ Compat. legacy: senza pesoBase ricade sul solo peso calorico");
+console.log("▸ [ON] Compat. legacy: senza pesoBase ricade sul solo peso calorico");
 {
-  const dayLog = { pranzo: { consumed: true, kcal: 900, p: 45, c: 100, g: 30 } }; // +200 vs piano
-  const r1 = ricalcolaMacroAdattati(MK, macroBase, dayLog);          // niente peso
-  const r2 = ricalcolaMacroAdattati(MK, macroBase, dayLog, null);    // null peso
+  const dayLog = { pranzo: { consumed: true, kcal: 900, p: 45, c: 100, g: 30 } };
+  const r1 = ricalcolaMacroAdattati(MK, macroBase, dayLog);
+  const r2 = ricalcolaMacroAdattati(MK, macroBase, dayLog, null);
   ok(r1.adattato.cena.kcal < macroBase.cena.kcal, "surplus reale → i restanti calano");
   ok(r1.adattato.cena.kcal === r2.adattato.cena.kcal, "comportamento identico con/ senza pesoBase nullo");
 }
 
-console.log("▸ Auto-flag regola A: pasto successivo consumato");
+console.log("▸ [ON] Auto-flag regola A: pasto successivo consumato");
 {
-  const dayLog = { pranzo: { consumed: true, kcal: 700 } }; // colazione+spuntino_m prima, in attesa
+  const dayLog = { pranzo: { consumed: true, kcal: 700 } };
   const { dayLog: out, changed } = autoFlagSaltati(MK, MEAL_FASCIA, dayLog, { isOggi: false, nowH: 9 });
   ok(changed, "ha modificato il log");
   ok(out.colazione?.saltato && out.colazione._auto, "colazione → saltato auto");
@@ -65,34 +100,32 @@ console.log("▸ Auto-flag regola A: pasto successivo consumato");
   ok(!out.spuntino_p && !out.cena, "i pasti DOPO il pranzo restano in attesa");
 }
 
-console.log("▸ Auto-flag regola B: fascia oraria scaduta (oggi)");
+console.log("▸ [ON] Auto-flag regola B: fascia oraria scaduta (oggi)");
 {
-  // sono le 14: colazione (fine 11) e spuntino_m (fine 13) scaduti; pranzo (fine 16) no
   const { dayLog: out } = autoFlagSaltati(MK, MEAL_FASCIA, {}, { isOggi: true, nowH: 14 });
   ok(out.colazione?.saltato && out.colazione._auto, "colazione scaduta → saltato auto");
   ok(out.spuntino_m?.saltato && out.spuntino_m._auto, "spuntino_m scaduto → saltato auto");
   ok(!out.pranzo, "pranzo non ancora scaduto → in attesa");
 }
 
-console.log("▸ Auto-flag NON tocca le scelte manuali");
+console.log("▸ [ON] Auto-flag NON tocca le scelte manuali");
 {
-  const dayLog = { colazione: { saltato: true }, pranzo: { consumed: true } }; // colazione saltata a MANO
+  const dayLog = { colazione: { saltato: true }, pranzo: { consumed: true } };
   const { dayLog: out } = autoFlagSaltati(MK, MEAL_FASCIA, dayLog, { isOggi: true, nowH: 23 });
   ok(out.colazione.saltato && !out.colazione._auto, "saltato manuale resta manuale");
 }
 
-console.log("▸ Auto-flag idempotente / auto-correzione");
+console.log("▸ [ON] Auto-flag idempotente / auto-correzione");
 {
-  // prima salta per regola A, poi rimuovo il consumato → l'auto deve sparire
   let dayLog = { pranzo: { consumed: true } };
   ({ dayLog } = autoFlagSaltati(MK, MEAL_FASCIA, dayLog, { isOggi: false, nowH: 9 }));
   ok(dayLog.colazione?._auto, "prima: colazione auto-saltata");
-  delete dayLog.pranzo; // non più consumato
+  delete dayLog.pranzo;
   ({ dayLog } = autoFlagSaltati(MK, MEAL_FASCIA, dayLog, { isOggi: false, nowH: 9 }));
   ok(!dayLog.colazione, "dopo: l'auto-saltato è rientrato in attesa");
 }
 
-console.log("▸ statsComportamento legge il registro");
+console.log("▸ statsComportamento legge il registro (indipendente dai flag)");
 {
   const personaLog = {
     "01/01/2026": { colazione:{consumed:true}, spuntino_m:{saltato:true,_auto:true}, pranzo:{consumed:true} },
@@ -103,6 +136,10 @@ console.log("▸ statsComportamento legge il registro");
   ok(approx(s.spuntino_m.tassoSalto, 1, 0.001), "tasso di salto spuntino_m = 1");
   ok(approx(s.colazione.tassoSalto, 0, 0.001), "tasso di salto colazione = 0");
 }
+
+// ripristina lo stato congelato (default di deploy)
+RICALCOLO_AUTO.calorie = false;
+RICALCOLO_AUTO.saltati = false;
 
 console.log("");
 console.log(fail === 0 ? "✅ TEST SALTATI: TUTTO VERDE" : `❌ TEST SALTATI: ${fail} fallimenti`);

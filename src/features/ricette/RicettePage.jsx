@@ -309,7 +309,7 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
 
       {espanso && r.quantita && (
         <div style={{ marginTop:8, paddingTop:8, borderTop:"1px solid #EFF3EC" }}>
-          {Object.entries(r.quantita).map(([id, v]) => {
+          {Object.entries(r.quantita).filter(([id]) => id !== '_scaled').map(([id, v]) => {
             const ing = ING_MAP[id];
             const qty = v.g ?? v.uomo ?? 0;
             const unit = v.unit || "g";

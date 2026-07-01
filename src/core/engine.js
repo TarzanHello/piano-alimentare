@@ -1,6 +1,6 @@
 // ── Motore: calcolo macro, scaling, piano, lista spesa ────────────
 import { DB, INGREDIENTS, ING_MAP, ING_QTY, PESO_PEZZO } from '@/data';
-import { CONFIDENZA, DAYS, LAF_TAB_LARN, LAVORI, LIMITI_SCALING, MB_COEFF_LARN, MEAL_HOUR, MEAL_KEYS, MEAL_META, PERSONAS_KEYS, PREF_WEIGHTS, STILE_LEGACY_ADULTI, STILE_LEGACY_BAMBINI, SWAP_CONTEXT_HOURS } from './constants';
+import { CONFIDENZA, DAYS, LAF_TAB_LARN, LAVORI, LIMITI_SCALING, MB_COEFF_LARN, MEAL_HOUR, MEAL_KEYS, MEAL_META, PERSONAS_KEYS, PREF_WEIGHTS, RICALCOLO_AUTO, STILE_LEGACY_ADULTI, STILE_LEGACY_BAMBINI, SWAP_CONTEXT_HOURS } from './constants';
 import { logCalc } from '@/db/synclog';
 
 // ── Ricerca ingredienti per tag/sottostringa ──────────────────────
@@ -1456,8 +1456,11 @@ export function pianoPersonalizzato(giornoPiano, persona, misurePersona) {
     && Number(persona.eta)     > 0
     && (persona.sesso === "M" || persona.sesso === "F");
 
-  // Senza dati validi: fallback alle taglie fisse.
-  if (!datiValidi) {
+  // ── BLOCCO RISCALATURA AUTOMATICA PIANO ──────────────────────────
+  // Con RICALCOLO_AUTO.piano=false le porzioni NON vengono riscalate sul
+  // fabbisogno: si usano le taglie fisse della ricetta (deterministiche).
+  // Stesso ramo del "dati non validi" → personalizzato:false.
+  if (!datiValidi || !RICALCOLO_AUTO.piano) {
     const perPasto = {};
     for (const mk of mealKeys) {
       const meal = giornoPiano && giornoPiano[mk];
@@ -1642,6 +1645,12 @@ export function calcMacroEditor(ingredienti) {
 }
 
 export function ricalcolaMacroAdattati(MEAL_KEYS, macroBase, dayLog, pesoBase) {
+  // ── BLOCCO RICALCOLO AUTOMATICO CALORIE ──────────────────────────
+  // Con RICALCOLO_AUTO.calorie=false la ridistribuzione è disattivata:
+  // ogni pasto in attesa resta sul suo macro pianificato, nessun _adattato.
+  if (!RICALCOLO_AUTO.calorie) {
+    return { adattato: macroBase, delta: 0, avviso: null };
+  }
   // macroBase[mk] = macro piano (o personalizzato) per ogni pasto {kcal,p,c,g}
   // dayLog[mk]    = { consumed, saltato, kcal, p, c, g, ... } oppure assente
   // pesoBase[mk]  = grammi REALI pianificati del pasto (opzionale). Se assente,
@@ -1755,6 +1764,12 @@ export function ricalcolaMacroAdattati(MEAL_KEYS, macroBase, dayLog, pesoBase) {
 //
 // Ritorna { dayLog, changed }. Non muta l'input.
 export function autoFlagSaltati(MEAL_KEYS, MEAL_FASCIA, dayLog, { isOggi = false, nowH = 0 } = {}) {
+  // ── BLOCCO AUTO-FLAG SALTATI ─────────────────────────────────────
+  // Con RICALCOLO_AUTO.saltati=false nessun pasto viene marcato saltato
+  // automaticamente: conta solo il tap manuale ✗ (gestito altrove).
+  if (!RICALCOLO_AUTO.saltati) {
+    return { dayLog, changed: false };
+  }
   const out = { ...(dayLog || {}) };
   let changed = false;
 

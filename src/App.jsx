@@ -624,22 +624,41 @@ export function App() {
   const regenerate = useCallback(async()=>{
     logSync("piano", "Piano rigenerato dall'utente", { ricetteUtente: ricetteUtente.length, esclusi: excluded.length });
     setSpinning(true); await new Promise(r=>setTimeout(r,500));
-    const cur = weekIndexForDate(new Date());
-    // Congela le settimane passate, rimescola corrente + future con un nuovo baseSeed
-    const newState = regeneraPlanState({baseSeed:seed, frozen}, {});
-    const np=planForWeek(newState, cur, {excludedIds:excluded, ricetteUtente, ricetteEscluseIds});
+    const today = new Date();
+    const cur = weekIndexForDate(today);
+    const twd = weekdayForDate(today);           // 0..6, giorno di oggi nella settimana
+    const todayKey = localDateKey(today);
+    const oldState = { baseSeed: seed, frozen };
+    // Ciò che l'utente vede ORA per la settimana corrente (base + override applicati)
+    const oldWeek = applyOverridesWeek(plan || [], overrides, cur);
+    // Consumato oggi a livello FAMIGLIA: se un qualsiasi membro ha consumato il pasto
+    // lo preserviamo (il log consumato non memorizza la ricetta → non va orfanato).
+    const consumatoOggi = (mk) => Object.values(mealsLog||{}).some(pl => !!((pl?.[todayKey]||{})[mk]?.consumed));
+    // Nuovo stato: passate congelate col seed attuale, corrente + future riseminate.
+    const newState = regeneraPlanState(oldState, {});
+    const np = planForWeek(newState, cur, {excludedIds:excluded, ricetteUtente, ricetteEscluseIds});
+    // Override: mantieni quelli delle settimane PASSATE...
+    const nextOv = Object.fromEntries(Object.entries(overrides).filter(([k])=>{ const wk=parseInt(k,10); return Number.isFinite(wk) && wk < cur; }));
+    // ...e RIPRISTINA la regione da preservare della settimana corrente:
+    //    giorni < oggi (interi) + pasti di oggi già consumati.
+    for (let wd=0; wd<=twd; wd++) {
+      for (const mk of MEAL_KEYS) {
+        const preserva = wd < twd || (wd === twd && consumatoOggi(mk));
+        if (!preserva) continue;
+        const meal = oldWeek[wd] && oldWeek[wd][mk];
+        if (meal) nextOv[overrideKey(cur, wd, mk)] = meal;
+      }
+    }
     const nh=[{seed,date:new Date().toLocaleDateString("it-IT"),label:`Piano del ${new Date().toLocaleDateString("it-IT")}`},...history].slice(0,5);
-    // Mantieni gli override delle settimane PASSATE, scarta corrente + future
-    const keptOv = Object.fromEntries(Object.entries(overrides).filter(([k])=>{ const wk=parseInt(k,10); return Number.isFinite(wk) && wk < cur; }));
-    setSeed(newState.baseSeed); setFrozen(newState.frozen); setPlan(np); setHistory(nh); setSelOffset(0); setRegenNeeded(false); setOverrides(keptOv);
+    setSeed(newState.baseSeed); setFrozen(newState.frozen); setPlan(np); setHistory(nh); setSelOffset(0); setRegenNeeded(false); setOverrides(nextOv);
     try {
       await window.storage.set(SK_SEED,String(newState.baseSeed));
       await window.storage.set(SK_FROZEN,JSON.stringify(newState.frozen));
       await window.storage.set(SK_HISTORY,JSON.stringify(nh));
-      await window.storage.set(SK_OVERRIDES,JSON.stringify(keptOv));
+      await window.storage.set(SK_OVERRIDES,JSON.stringify(nextOv));
     } catch{}
     setSpinning(false);
-  },[seed,frozen,overrides,history,excluded,ricetteUtente,ricetteEscluseIds]);
+  },[seed,frozen,overrides,history,excluded,ricetteUtente,ricetteEscluseIds,mealsLog,plan]);
 
   const loadHistory = useCallback(async(oldSeed)=>{
     setSpinning(true); await new Promise(r=>setTimeout(r,300));
