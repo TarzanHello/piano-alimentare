@@ -7,6 +7,15 @@ export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, 
   // Periodo predefinito: oggi + 2 = 3 giorni pieni, SEMPRE (anche ven/sab/dom),
   // perché la finestra mobile sfora liberamente nella settimana successiva.
   const [selOffsets, setSelOffsets] = useState([0,1,2]);
+  // Centra "oggi" nel carosello all'apertura (come nel Piano): senza questo
+  // la lista dei giorni resta scrollata all'inizio (≈2 settimane fa).
+  const scRef = useRef(null);
+  useEffect(() => {
+    const el = scRef.current && scRef.current.querySelector('[data-off="0"]');
+    if (el && el.scrollIntoView) {
+      try { el.scrollIntoView({ inline:"center", block:"nearest" }); } catch { el.scrollIntoView(); }
+    }
+  }, []);
   // Spunte persistenti e condivise con la famiglia (gestite da App)
   const checked = checks || {};
   const toggle = id => onToggle(id);
@@ -26,14 +35,14 @@ export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, 
   return (
     <div>
       <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"12px 14px",marginBottom:12}}>
-        <div style={{display:"flex",gap:8,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
+        <div ref={scRef} style={{display:"flex",gap:8,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
           {Array.from({length:29},(_,i)=>i-14).map(off=>{
             const d=dateForOffset(off);
             const sel=selOffsets.includes(off);
             const isToday=off===0;
             const lab=isToday?"OGGI":DAYS[(d.getDay()+6)%7].slice(0,3).toUpperCase();
             return (
-            <button key={off} onClick={()=>toggleDay(off)} style={{flex:"0 0 auto",minWidth:62,scrollSnapAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"9px 12px",borderRadius:14,border:sel?"none":(isToday?"1.5px solid #2F6B3A":"1.5px solid #E7EDE2"),background:sel?"#2F6B3A":"#fff",cursor:"pointer",transition:"all 0.2s",boxShadow:sel?"0 8px 16px -6px #2F6B3A88":"none"}}>
+            <button key={off} data-off={off} onClick={()=>toggleDay(off)} style={{flex:"0 0 auto",minWidth:62,scrollSnapAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"9px 12px",borderRadius:14,border:sel?"none":(isToday?"1.5px solid #2F6B3A":"1.5px solid #E7EDE2"),background:sel?"#2F6B3A":"#fff",cursor:"pointer",transition:"all 0.2s",boxShadow:sel?"0 8px 16px -6px #2F6B3A88":"none"}}>
               <span style={{fontSize:9.5,fontWeight:800,color:sel?"#ffffffcc":(isToday?"#2F6B3A":"#9DB1A2")}}>{lab}</span>
               <span style={{fontSize:16,fontWeight:800,color:sel?"#fff":"#4A6152",fontFamily:"'Outfit',sans-serif"}}>{d.getDate()}</span>
             </button>);
