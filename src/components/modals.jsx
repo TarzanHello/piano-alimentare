@@ -11,8 +11,9 @@ export function RecipeEditorModal({ meal, mealKey, personaKey, onSave, onClose, 
   const baseIngQty = React.useMemo(() => {
     if (quantitaScalate && Object.keys(quantitaScalate).length > 0) {
       // Le quantitaScalate di res.perRicetta sono { ingId: { valore, unit } }
-      // già nel formato dell'editor — usiamole direttamente.
-      return { ...quantitaScalate };
+      // già nel formato dell'editor — usiamole direttamente (senza il flag _scaled).
+      const { _scaled, ...q } = quantitaScalate;
+      return { ...q };
     }
     return ingQtyToEditor(meal.id, personaKey);
   }, [meal.id, personaKey, quantitaScalate]);

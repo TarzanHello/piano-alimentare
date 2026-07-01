@@ -91,7 +91,7 @@ export function WaterTracker({ dayKey, personaColor, personaId, readOnly }) {
 
 // Soglie tempo per i pulsanti del selettore
 
-export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, saltato, saltatoAuto, onToggleConsumed, onToggleSaltato, onEdit, loggedMacros, loggedIngs, onEditConsumed, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly }) {
+export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, saltato, saltatoAuto, onToggleConsumed, onToggleSaltato, onEdit, loggedMacros, loggedIngs, onEditConsumed, gPiano, gConsumati, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly }) {
   const [open, setOpen]               = useState(false);
   const [swapOpen, setSwapOpen]       = useState(false);
   const [editOpen, setEditOpen]       = useState(false);
@@ -115,6 +115,26 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
   const alternatives = prepSlot !== null
     ? findAlternatives(mealKey, meal, prepSlot.min, prepSlot.max, excludedIds || [], weekMealIds || new Set(), personaKey, ricetteUtente || [])
     : [];
+
+  // ── Quantità consumata (grammi) ──────────────────────────────────────
+  // Base per lo scaling = macro PIANIFICATO del pasto (macroOverride), peso = gPiano.
+  // Vuoto ⇒ ricetta intera. Scala kcal/p/c/g in proporzione ai grammi mangiati.
+  const scalabile = consumed && !readOnly && gPiano > 0;
+  const [gStr, setGStr] = useState(gConsumati != null ? String(gConsumati) : "");
+  useEffect(() => { setGStr(gConsumati != null ? String(gConsumati) : ""); }, [gConsumati]);
+  const commitGrammi = () => {
+    if (!scalabile || !onEditConsumed) return;
+    const base = macroOverride || meal[personaKey] || { kcal:0, p:0, c:0, g:0 };
+    const raw = gStr.trim().replace(",", ".");
+    if (raw === "") {   // vuoto ⇒ intero
+      onEditConsumed({ kcal:Math.round(base.kcal), p:Math.round(base.p), c:Math.round(base.c), g:Math.round(base.g), gPiano, gConsumati:null, _ingredienti:null });
+      return;
+    }
+    const g = parseFloat(raw);
+    if (!isFinite(g) || g < 0) { setGStr(gConsumati != null ? String(gConsumati) : ""); return; }
+    const factor = Math.min(Math.max(g / gPiano, 0.05), 10);   // clamp 5%–1000%
+    onEditConsumed({ kcal:Math.round(base.kcal*factor), p:Math.round(base.p*factor), c:Math.round(base.c*factor), g:Math.round(base.g*factor), gPiano, gConsumati:g, _ingredienti:null });
+  };
 
   return (
     <div style={{background:"#fff",borderRadius:18,border:`1.5px solid ${isOverride?"#DCEBCF":"#fff"}`,marginBottom:11,overflow:"hidden",boxShadow:"0 12px 30px -18px rgba(15,58,41,0.28)"}}>
@@ -210,6 +230,27 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
           <MacroBadge label="C" value={m.c} color="#F2A93B"/>
           <MacroBadge label="G" value={m.g} color="#8E7BE8"/>
         </div>
+
+        {/* Quantità consumata: appare sul pasto mangiato; vuoto ⇒ ricetta intera */}
+        {scalabile && (
+          <div onClick={e=>e.stopPropagation()} style={{marginTop:10,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"8px 11px"}}>
+            <span style={{fontSize:10,fontWeight:800,color:"#16a34a",textTransform:"uppercase",letterSpacing:0.6}}>Quantità consumata</span>
+            <div style={{display:"flex",alignItems:"center",gap:5}}>
+              <input
+                type="number" inputMode="decimal" min="0"
+                value={gStr}
+                placeholder={String(Math.round(gPiano))}
+                onClick={e=>e.stopPropagation()}
+                onChange={e=>setGStr(e.target.value)}
+                onBlur={commitGrammi}
+                onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); e.currentTarget.blur(); } }}
+                style={{width:74,padding:"6px 8px",borderRadius:7,border:"1.5px solid #86efac",background:"#fff",fontSize:13,fontWeight:700,color:"#15251C",fontFamily:"'Outfit',sans-serif",textAlign:"right"}}
+              />
+              <span style={{fontSize:12,fontWeight:700,color:"#166534"}}>g</span>
+            </div>
+            <span style={{fontSize:10.5,color:"#6E8576"}}>su {Math.round(gPiano)}g pianificati{gConsumati==null?" · intero":""}</span>
+          </div>
+        )}
 
         {/* Porzione reale (se consumato con ingredienti personalizzati) */}
         {consumed && loggedIngs && open && (

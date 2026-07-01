@@ -949,6 +949,8 @@ export function App() {
                             onEdit={customRecipe => handleSwap(selWeekIndex, selWeekday, mk, effectiveDay[mk], customRecipe)}
                             loggedMacros={(()=>{const e=selDayLog[mk];return e?.consumed&&(e.kcal||e._ingredienti)?{kcal:e.kcal||0,p:e.p||0,c:e.c||0,g:e.g||0}:null;})()}
                             loggedIngs={selDayLog[mk]?._ingredienti||null}
+                            gPiano={pesoBase[mk]}
+                            gConsumati={selDayLog[mk]?.gConsumati ?? null}
                             onEditConsumed={data=>handleEditConsumedMeal(persona.id,selDateKey,mk,data)}
                             cloudStatus={cloudStatus}
                             ricetteUtente={ricetteUtente}

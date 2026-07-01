@@ -407,6 +407,7 @@ export function grammiRicettaCalc(ricettaId, slot) {
 export function formattaPorzione(quantitaMap) {
   const pezzi = [];
   for (const [ingId, q] of Object.entries(quantitaMap || {})) {
+    if (ingId === "_scaled") continue;   // flag interno: mai mostrarlo all'utente
     const ing = ING_MAP[ingId];
     // Fallback: se l'id non è risolvibile in ING_MAP (es. ingrediente custom
     // non ancora sincronizzato) NON mostrare l'id grezzo all'utente.
