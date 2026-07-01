@@ -23,6 +23,12 @@ echo "▸ TEST 2 — Logica di sincronizzazione (race, anti-eco, merge)"
 node test/test_sync_logic.mjs || FAIL=1
 
 echo ""
+echo "▸ TEST 2b — Spesa consumo-aware per persona"
+"$EB" test/test_spesa_consumo.mjs --bundle --format=esm --outfile=./.tsp.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
+node ./.tsp.mjs || FAIL=1
+rm -f ./.tsp.mjs
+
+echo ""
 echo "▸ TEST 3 — Due device + cloud (accoppiamento, propagazione, uscita)"
 "$EB" test/test_two_devices.mjs --bundle --format=esm --outfile=./.t3.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
 node ./.t3.mjs || FAIL=1

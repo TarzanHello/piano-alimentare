@@ -1,10 +1,11 @@
 import React from 'react';
-const { useState, useEffect, useMemo, useCallback } = React;
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
 import { DB, ING_QTY, INGREDIENTS, ING_MAP, cercaIngredienti, quantitaInGrammi, nutriPerGrammi } from '@/core';
 import { EmptyState } from '@/components/shared';
 import { caricaRicette, creaRicetta, aggiornaRicetta, eliminaRicetta,
          toggleEsclusaRicetta } from '@/db/ricetteCloud';
 import { logSync } from '@/db/synclog';
+import { toast } from '@/components/toast';
 
 const CAT = [
   { key: "colazione", label: "Colazione", icon: "🌅" },
@@ -272,6 +273,22 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
 
 // ── Card ricetta utente ───────────────────────────────────────────────────
 function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) {
+  // Eliminazione a doppio tap: il primo tocco chiede conferma inline
+  // (coerente con lo stile dell'app, niente confirm() nativo), il secondo
+  // entro 3,5s elimina davvero.
+  const [confermaDel, setConfermaDel] = useState(false);
+  const delTimer = useRef(null);
+  useEffect(()=>()=>{ if (delTimer.current) clearTimeout(delTimer.current); },[]);
+  const handleDeleteClick = () => {
+    if (confermaDel) {
+      if (delTimer.current) { clearTimeout(delTimer.current); delTimer.current = null; }
+      setConfermaDel(false);
+      onDelete();
+    } else {
+      setConfermaDel(true);
+      delTimer.current = setTimeout(()=>setConfermaDel(false), 3500);
+    }
+  };
   const [espanso, setEspanso] = useState(false);
   const macro = calcolaMacro(r.quantita || normalizzaQuantita({}));
   const prep = r.prep;
@@ -335,9 +352,13 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
           {r.esclusa ? "✅ Nel piano" : "🚫 Escludi piano"}
         </button>
         {mine && (
-          <button onClick={onDelete}
-            style={{ ...btnGhost, color:"#ef4444", borderColor:"#fecaca", marginLeft:"auto" }}>
-            🗑️
+          <button onClick={handleDeleteClick}
+            style={{ ...btnGhost,
+                     color:       confermaDel ? "#fff"    : "#ef4444",
+                     background:  confermaDel ? "#dc2626" : "#fff",
+                     borderColor: confermaDel ? "#dc2626" : "#fecaca",
+                     marginLeft:"auto", transition:"all 0.15s" }}>
+            {confermaDel ? "Confermi? 🗑️" : "🗑️"}
           </button>
         )}
       </div>
@@ -435,6 +456,18 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
   // true se l'editor è stato aperto dal Piano ("Salva come ricetta"):
   // al salvataggio o all'annullamento si torna al Piano, non alla lista.
   const [tornaAlPiano, setTornaAlPiano] = useState(false);
+  // Ricerca per nome o ingrediente, condivisa tra le tab Ricette e Catalogo
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const norm = s => (s || "").toLowerCase();
+  // ricette utente: titolo o nomi degli ingredienti (chiavi di quantita)
+  const matchUtente = r => !q
+    || norm(r.titolo).includes(q)
+    || Object.keys(r.quantita || {}).some(id => id !== "_scaled" && norm(ING_MAP[id]?.nome).includes(q));
+  // ricette catalogo: nome o ingredienti (array ingredients)
+  const matchCatalogo = r => !q
+    || norm(r.nome).includes(q)
+    || (r.ingredients || []).some(id => norm(ING_MAP[id]?.nome).includes(q));
   // escluse catalogo: Set di id (memorizzato in localStorage in futuro, per ora in stato)
   const [escluseCatalogo, setEscluseCatalogo] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem("cat-escluse")||"[]")); } catch { return new Set(); }
@@ -476,7 +509,7 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
   };
 
   // Tutte le ricette sono di famiglia: mostro tutte insieme nella sezione "Ricette".
-  const tutteRicette = ricette;
+  const tutteRicette = ricette.filter(matchUtente);
 
   const toggleEsclusaCatalogo = (id) => {
     setEscluseCatalogo(prev => {
@@ -494,9 +527,10 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
     try {
       if (dati.id) await aggiornaRicetta(dati.id, dati);
       else await creaRicetta(dati);
+      toast(dati.id ? "✓ Ricetta aggiornata" : "✓ Ricetta salvata");
       await ricarica(); onRicetteChange?.();
       chiudiEditor();
-    } catch (e) { setErrore(e.message || "Errore nel salvataggio."); }
+    } catch (e) { setErrore(e.message || "Errore nel salvataggio."); toast("Errore nel salvataggio", "err"); }
   };
 
   const duplica = async (r, catKey, quantitaCatalogo) => {
@@ -534,6 +568,21 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
           style={{ padding:"9px 15px", borderRadius:11, border:"none", background:"#2F6B3A", color:"#fff", fontWeight:800, fontSize:13, cursor:"pointer", boxShadow:"0 6px 14px -6px #2F6B3A99" }}>+ Nuova</button>}
       </div>
 
+      {/* Ricerca per nome o ingrediente */}
+      <div style={{ position:"relative", marginBottom:10 }}>
+        <input value={query} onChange={e=>setQuery(e.target.value)}
+          placeholder="🔍 Cerca per nome o ingrediente…"
+          style={{ width:"100%", boxSizing:"border-box", padding:"11px 36px 11px 14px",
+                   borderRadius:12, border:"1.5px solid #E7EDE2", background:"#fff",
+                   fontSize:14, color:"#15251C", outline:"none" }}/>
+        {q && (
+          <button onClick={()=>setQuery("")} title="Cancella ricerca"
+            style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)",
+                     width:24, height:24, borderRadius:"50%", border:"none", background:"#EFF3EC",
+                     color:"#6E8576", fontWeight:900, fontSize:12, cursor:"pointer", lineHeight:1 }}>✕</button>
+        )}
+      </div>
+
       {/* Tab switcher: solo Ricette + Catalogo */}
       <div style={{ display:"flex", gap:6, marginBottom:14 }}>
         {[["ricette","🍴 Ricette"],["catalogo","📚 Catalogo"]].map(([key,label]) => (
@@ -562,13 +611,20 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
                   con i membri della famiglia ed entra nel piano con priorità.
                 </div>
                 {tutteRicette.length === 0
-                  ? <EmptyState emoji="🍴" title="Nessuna ricetta"
-                      text="Tocca + Nuova per creare la prima ricetta di famiglia, oppure duplica una ricetta dal Catalogo per personalizzarla."/>
+                  ? (q
+                      ? <EmptyState emoji="🔍" title="Nessun risultato"
+                          text={`Nessuna ricetta di famiglia corrisponde a “${query.trim()}”. Prova con la tab Catalogo.`}/>
+                      : <EmptyState emoji="🍴" title="Nessuna ricetta"
+                          text="Tocca + Nuova per creare la prima ricetta di famiglia, oppure duplica una ricetta dal Catalogo per personalizzarla."/>)
                   : tutteRicette.map(r => (
                       <CardRicetta key={r.id} r={r} mine={r.isMine}
                         onEdit={() => { setEditing(r); setVista("editor"); }}
                         onDelete={async () => {
-                          if (confirm(`Eliminare "${r.titolo}"?`)) { await eliminaRicetta(r.id); ricarica(); onRicetteChange?.(); }
+                          try {
+                            await eliminaRicetta(r.id);
+                            toast("Ricetta eliminata");
+                            ricarica(); onRicetteChange?.();
+                          } catch (e) { toast(e?.message || "Errore nell'eliminazione", "err"); }
                         }}
                         onDuplica={() => duplica(r)}
                         onToggleEsclusa={() => toggleEsclusa(r)}/>
@@ -585,8 +641,9 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
             Duplica una ricetta per personalizzarla e aggiungerla alle ricette di famiglia.
           </div>
           {CAT.map(c => {
-            const rs = DB[c.key] || [];
-            const aperta = catAperte[c.key] ?? false;
+            const rs = (DB[c.key] || []).filter(matchCatalogo);
+            if (q && rs.length === 0) return null;   // categoria senza risultati
+            const aperta = q ? true : (catAperte[c.key] ?? false);
             return (
               <div key={c.key} style={{ marginBottom:10 }}>
                 <button onClick={() => setCatAperte(p => ({ ...p, [c.key]: !aperta }))}

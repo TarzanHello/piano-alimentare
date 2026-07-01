@@ -1577,24 +1577,58 @@ export function buildShoppingForDays(plan, selectedDays) {
 // Versione generalizzata: riceve direttamente gli OGGETTI-GIORNO già
 // risolti (override applicati), così la spesa può coprire una finestra di
 // date che sfora la settimana (es. ven-sab-dom + lun della settimana dopo).
-export function buildShoppingForDayObjects(dayObjs) {
+//
+// SPESA CONSUMO-AWARE (per persona) — `consumo` opzionale:
+//   { personas, mealsLog, dateKeys }
+//   dateKeys[i] = chiave data locale (localDateKey) del giorno dayObjs[i].
+// Quando attiva, le quantità sono calcolate sui MEMBRI REALI della famiglia:
+// ogni persona ancora "in attesa" contribuisce con la porzione del suo slot
+// (uomo/donna/bimbo via slotForPersona); chi ha già consumato o saltato il
+// pasto in quella data non genera più spesa. Se TUTTI i membri hanno risolto
+// il pasto, l'intero pasto esce dalla lista (inclusi gli ingredienti q.b.).
+// Senza `consumo` il comportamento resta quello storico: somma dei tre slot
+// fissi del batch (uomo+donna+bimbo), indipendente dalla composizione reale.
+export function buildShoppingForDayObjects(dayObjs, consumo) {
   const acc = {};
-  const addQty = (recipeId, ingId) => {
+  const aware = !!(consumo && Array.isArray(consumo.personas) && consumo.personas.length
+                   && Array.isArray(consumo.dateKeys) && consumo.mealsLog);
+  const risolto = (p, dateKey, mk) => {
+    const e = consumo.mealsLog?.[p.id]?.[dateKey]?.[mk];
+    return !!(e && (e.consumed || e.saltato));
+  };
+  const addQty = (recipeId, ingId, fattoreSlots) => {
     const qtyMap = ING_QTY[recipeId];
     const q = qtyMap && qtyMap[ingId];
     if (q) {
       if (!acc[ingId]) acc[ingId] = { total:0, unit:q.unit };
       if (acc[ingId].total === null) acc[ingId].total = 0;
-      const sum = PERSONAS_KEYS.reduce((s,pk) => s+(q[pk]||0), 0);
+      const sum = fattoreSlots
+        ? PERSONAS_KEYS.reduce((s,pk) => s+(q[pk]||0)*(fattoreSlots[pk]||0), 0)
+        : PERSONAS_KEYS.reduce((s,pk) => s+(q[pk]||0), 0);
       acc[ingId].total += sum;
       acc[ingId].unit = q.unit;
     } else {
       if (!acc[ingId]) acc[ingId] = { total:null, unit:"qb" };
     }
   };
-  (dayObjs || []).forEach(day => {
+  (dayObjs || []).forEach((day, di) => {
     if (!day) return;
-    MEAL_KEYS.forEach(mk => { const meal = day[mk]; if (meal && meal.ingredients) meal.ingredients.forEach(ingId => addQty(meal.id, ingId)); });
+    const dateKey = aware ? consumo.dateKeys[di] : null;
+    MEAL_KEYS.forEach(mk => {
+      const meal = day[mk];
+      if (!meal || !meal.ingredients) return;
+      let fattoreSlots = null;
+      if (aware && dateKey) {
+        // Moltiplicatore per slot = n. persone reali di quello slot in attesa
+        fattoreSlots = { uomo:0, donna:0, bimbo:0 };
+        let inAttesa = 0;
+        consumo.personas.forEach(p => {
+          if (!risolto(p, dateKey, mk)) { fattoreSlots[slotForPersona(p)] += 1; inAttesa += 1; }
+        });
+        if (inAttesa === 0) return; // pasto risolto da tutta la famiglia
+      }
+      meal.ingredients.forEach(ingId => addQty(meal.id, ingId, fattoreSlots));
+    });
   });
   const grouped = {};
   const catOrder = ["🥩 Proteine","🥛 Latticini","🍎 Frutta","🥦 Verdure","🫘 Legumi","🌾 Cereali","🥜 Frutta secca","🧂 Dispensa","🛒 Altro"];

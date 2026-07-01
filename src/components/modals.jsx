@@ -654,6 +654,16 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
   const [diFamiglia, setDiFamiglia] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errore, setErrore] = useState("");
+  // Ricerca per nome o ingrediente dentro il ricettario
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const norm = t => (t || "").toLowerCase();
+  const matchCloud = r => !q
+    || norm(r.titolo).includes(q)
+    || Object.keys(r.quantita || {}).some(id => id !== "_scaled" && norm(ING_MAP[id]?.nome).includes(q));
+  const matchCatalogo = r => !q
+    || norm(r.nome).includes(q)
+    || (r.ingredients || []).some(id => norm(ING_MAP[id]?.nome).includes(q));
 
   useEffect(() => {
     let attivo = true;
@@ -674,9 +684,10 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
   const catalogo = useMemo(() => {
     return (DB[cat] || [])
       .filter(r => r.id !== currentMeal?.id)
+      .filter(matchCatalogo)
       .slice()
       .sort((a,b) => (a.prep||0) - (b.prep||0));
-  }, [cat, currentMeal?.id]);
+  }, [cat, currentMeal?.id, q]);
 
   const handlePick = (r, isMineOrFamily) => {
     const meal = isMineOrFamily ? cloudRecipeToMeal(r, currentMeal?.id) : r;
@@ -704,6 +715,16 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
 
         {/* ── Corpo scorrevole ── */}
         <div style={{flex:1,overflowY:"auto",padding:"12px 18px 20px"}}>
+          {/* Ricerca per nome o ingrediente */}
+          <div style={{position:"relative",marginBottom:10}}>
+            <input value={query} onChange={e=>setQuery(e.target.value)}
+              placeholder="🔍 Cerca per nome o ingrediente…"
+              style={{width:"100%",boxSizing:"border-box",padding:"10px 34px 10px 13px",borderRadius:11,border:"1.5px solid #E7EDE2",background:"#F9FBF7",fontSize:13.5,color:"#15251C",outline:"none"}}/>
+            {q && (
+              <button onClick={()=>setQuery("")} title="Cancella ricerca"
+                style={{position:"absolute",right:7,top:"50%",transform:"translateY(-50%)",width:22,height:22,borderRadius:"50%",border:"none",background:"#EFF3EC",color:"#6E8576",fontWeight:900,fontSize:11,cursor:"pointer",lineHeight:1}}>✕</button>
+            )}
+          </div>
           <div style={{fontSize:10,color:"#9DB1A2",marginBottom:8,fontWeight:600}}>
             ⏱ il tempo di preparazione è indicato su ogni ricetta
           </div>
@@ -723,11 +744,11 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
               </div>
               {loading ? (
                 <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>Caricamento…</div>
-              ) : mie.length === 0 ? (
-                <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>Nessuna ricetta tua in questa categoria.</div>
+              ) : mie.filter(matchCloud).length === 0 ? (
+                <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>{q ? "Nessuna tua ricetta corrisponde alla ricerca." : "Nessuna ricetta tua in questa categoria."}</div>
               ) : (
                 <div style={{marginBottom:14}}>
-                  {mie.map(r => (
+                  {mie.filter(matchCloud).map(r => (
                     <RicettarioCard key={r.id} r={r} personaKey={personaKey} onPick={x=>handlePick(x,true)}
                       badge={<span style={{fontSize:9,background:"#D6EFDD",color:"#235029",borderRadius:4,padding:"1px 5px",fontWeight:700}}>mia</span>}/>
                   ))}
@@ -740,11 +761,11 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
               </div>
               {loading ? (
                 <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>Caricamento…</div>
-              ) : diFamiglia.length === 0 ? (
-                <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>Nessuna ricetta condivisa in questa categoria.</div>
+              ) : diFamiglia.filter(matchCloud).length === 0 ? (
+                <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>{q ? "Nessuna ricetta di famiglia corrisponde alla ricerca." : "Nessuna ricetta condivisa in questa categoria."}</div>
               ) : (
                 <div style={{marginBottom:14}}>
-                  {diFamiglia.map(r => (
+                  {diFamiglia.filter(matchCloud).map(r => (
                     <RicettarioCard key={r.id} r={r} personaKey={personaKey} onPick={x=>handlePick(x,true)}
                       badge={<span style={{fontSize:9,background:"#f5f3ff",color:"#7c3aed",borderRadius:4,padding:"1px 5px",fontWeight:700}}>famiglia</span>}/>
                   ))}
@@ -757,6 +778,9 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
           <div style={{fontSize:10,fontWeight:800,color:"#15251C",marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>
             {meta.icon} Catalogo {meta.label.toLowerCase()} · {catalogo.length} ricette
           </div>
+          {catalogo.length === 0 && q && (
+            <div style={{fontSize:11,color:"#9DB1A2",padding:"6px 0 12px"}}>Nessuna ricetta del catalogo corrisponde alla ricerca.</div>
+          )}
           {catalogo.map(r => (
             <RicettarioCard key={r.id} r={r} personaKey={personaKey} onPick={x=>handlePick(x,false)}/>
           ))}

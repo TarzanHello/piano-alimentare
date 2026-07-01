@@ -4,6 +4,7 @@ import { SK_MISURE, TUTTI_FIELDS, calcTargetAdattivo, dateToLabel, dateToSort, e
 import { CalorieChart } from '@/components/charts';
 import { SwipeContainer } from '@/components/shared';
 import { logSync } from '@/db/synclog';
+import { toast } from '@/components/toast';
 
 export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, inFamily, myUid }) {
   const [misure, setMisure]   = useState({});
@@ -72,6 +73,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
       logSync("misure", `Nuova misurazione inserita: ${formDate}`, { profiloId: selPid?.slice(0,8), peso: entry.peso, nMisure: cur.length });
     }
     await persist({...misure,[selPid]:cur});
+    toast(editRec ? "✓ Misurazione aggiornata" : "✓ Misurazione salvata");
     setView("stats");
   };
 
@@ -79,6 +81,7 @@ export function MisurePage({ personas, myPersonaId, onMisureChange, mealsLog, in
     logSync("misure", `Misurazione eliminata: ${rec.date}`, { profiloId: selPid?.slice(0,8), peso: rec.peso });
     const cur = (misure[selPid]||[]).filter(r=>JSON.stringify(r)!==JSON.stringify(rec));
     await persist({...misure,[selPid]:cur});
+    toast("Misurazione eliminata");
   };
 
   // ── statistiche riassuntive ──

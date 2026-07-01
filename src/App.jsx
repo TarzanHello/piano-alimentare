@@ -21,6 +21,7 @@ import { SyncLogPage } from '@/features/log/SyncLogPage';
 import { cloudEnabled } from '@/db/cloud';
 import { MealCard, TotaleBar, WaterTracker } from '@/features/piano/MealParts';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
+import { ToastHost, toast } from '@/components/toast';
 
 // Rimappa i colori-profilo legacy sul nuovo sistema verde:
 // il vecchio blu brand (#2563eb) diventa il verde brand (#2F6B3A).
@@ -45,11 +46,20 @@ function DayCarousel({ selOffset, onSelect, color }) {
     }
   }, [selOffset]);
   return (
-    <div ref={ref}
+    <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"stretch"}}>
+      {/* Chip "torna a oggi": appare solo quando il giorno selezionato non è oggi */}
+      {selOffset!==0 && (
+        <button onClick={()=>onSelect(0)} title="Torna a oggi"
+          style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,padding:"9px 11px",borderRadius:14,border:"none",background:"#15251C",color:"#C7F23E",cursor:"pointer",boxShadow:"0 8px 16px -6px #15251C88"}}>
+          <span style={{fontSize:13,lineHeight:1}}>⌂</span>
+          <span style={{fontSize:9,fontWeight:800,letterSpacing:0.3}}>OGGI</span>
+        </button>
+      )}
+      <div ref={ref}
       onTouchStart={e=>e.stopPropagation()}
       onTouchMove={e=>e.stopPropagation()}
       onTouchEnd={e=>e.stopPropagation()}
-      style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
+      style={{flex:1,minWidth:0,display:"flex",gap:8,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
       {offsets.map(off => {
         const d = dateForOffset(off);
         const sel = selOffset === off;
@@ -63,6 +73,7 @@ function DayCarousel({ selOffset, onSelect, color }) {
           </button>
         );
       })}
+      </div>
     </div>
   );
 }
@@ -81,6 +92,12 @@ export function App() {
   const [personas, setPersonas]       = useState([]);
   const [booted, setBooted]           = useState(false);
   const [spinning, setSpinning]       = useState(false);
+  const [confermaRegen, setConfermaRegen] = useState(false); // doppio tap su "Genera nuovo piano"
+  const regenTimerRef = useRef(null);
+  // Hint "tocca ogni pasto" in Piano: dismissibile e persistito
+  const [hintPiano, setHintPiano] = useState(()=>{ try { return localStorage.getItem("pa__hint-piano-ok")!=="1"; } catch { return true; } });
+  // Spesa consumo-aware (per persona): default attivo, persistito
+  const [spesaConsumo, setSpesaConsumo] = useState(()=>{ try { return localStorage.getItem("pa__spesa-consumo")!=="0"; } catch { return true; } });
   const [regenNeeded, setRegenNeeded] = useState(false);
   const [spesaChecks, setSpesaChecks] = useState({});   // { [seed]: { [itemId]: true } }
   const [cloudStatus, setCloudStatus] = useState({ loggedIn:false, inFamily:false });
@@ -338,6 +355,19 @@ export function App() {
       }
     }
     load();
+  },[]);
+
+  const dismissHintPiano = useCallback(()=>{
+    setHintPiano(false);
+    try { localStorage.setItem("pa__hint-piano-ok","1"); } catch {}
+  },[]);
+  const toggleSpesaConsumo = useCallback(()=>{
+    setSpesaConsumo(v=>{
+      const n = !v;
+      logSync("spesa", n ? "Spesa: esclusione pasti consumati ATTIVA" : "Spesa: esclusione pasti consumati disattivata");
+      try { localStorage.setItem("pa__spesa-consumo", n?"1":"0"); } catch {}
+      return n;
+    });
   },[]);
 
   const navigaA = useCallback((p) => {
@@ -618,6 +648,7 @@ export function App() {
       await window.storage.set(SK_OVERRIDES,JSON.stringify(resolvedOverrides));
     } catch{}
     setSpinning(false);
+    toast("✓ Piano ripristinato");
   },[seed,history,excluded,ricetteUtente,ricetteEscluseIds]);
 
   const regenerate = useCallback(async()=>{
@@ -657,6 +688,7 @@ export function App() {
       await window.storage.set(SK_OVERRIDES,JSON.stringify(nextOv));
     } catch{}
     setSpinning(false);
+    toast("✓ Nuovo piano generato");
   },[seed,frozen,overrides,history,excluded,ricetteUtente,ricetteEscluseIds,mealsLog,plan]);
 
   const loadHistory = useCallback(async(oldSeed)=>{
@@ -794,6 +826,7 @@ export function App() {
 
   return (
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#ECF1E2 0%,#E2EAD9 100%)",fontFamily:"'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif",paddingBottom:80}}>
+      <ToastHost/>
       {/* AVVISO NUOVA VERSIONE */}
       {swUpdate && (
         <div style={{position:"sticky",top:0,zIndex:50,background:"#235029",color:"#fff",
@@ -870,13 +903,32 @@ export function App() {
               })}
             </div>
             <DayCarousel selOffset={selOffset} onSelect={setSelOffset} color={persona.color} />
-            <button onClick={regenerate} disabled={spinning} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:regenNeeded?"#C7F23E":"#fff",color:"#15251C",border:regenNeeded?"none":"1.5px solid #CBE0B4",borderRadius:12,padding:"12px",fontWeight:700,fontSize:13,cursor:spinning?"not-allowed":"pointer",marginBottom:12,boxShadow:regenNeeded?"0 8px 18px -8px rgba(199,242,62,0.85)":"none",transition:"all 0.2s"}}>
-              <span style={{display:"inline-block",animation:spinning?"spin 0.7s linear infinite":"none",fontSize:15}}>🔄</span>
-              {spinning?"Generando...":regenNeeded?"Aggiorna il piano":"Genera nuovo piano"}
+            <button
+              onClick={()=>{
+                if (spinning) return;
+                // Aggiornamento richiesto (regenNeeded): azione già "invitata" → diretta.
+                // Rigenerazione spontanea: doppio tap di conferma (il piano futuro cambia tutto).
+                if (regenNeeded || confermaRegen) {
+                  if (regenTimerRef.current) { clearTimeout(regenTimerRef.current); regenTimerRef.current = null; }
+                  setConfermaRegen(false);
+                  regenerate();
+                } else {
+                  setConfermaRegen(true);
+                  regenTimerRef.current = setTimeout(()=>setConfermaRegen(false), 4000);
+                }
+              }}
+              disabled={spinning}
+              style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:confermaRegen?"#fef2f2":regenNeeded?"#C7F23E":"#fff",color:confermaRegen?"#b91c1c":"#15251C",border:confermaRegen?"1.5px solid #fca5a5":regenNeeded?"none":"1.5px solid #CBE0B4",borderRadius:12,padding:"12px",fontWeight:700,fontSize:13,cursor:spinning?"not-allowed":"pointer",marginBottom:12,boxShadow:regenNeeded?"0 8px 18px -8px rgba(199,242,62,0.85)":"none",transition:"all 0.2s"}}>
+              <span style={{display:"inline-block",animation:spinning?"spin 0.7s linear infinite":"none",fontSize:15}}>{confermaRegen?"⚠️":"🔄"}</span>
+              {spinning?"Generando...":confermaRegen?"Sicuro? Tocca di nuovo per rigenerare":regenNeeded?"Aggiorna il piano":"Genera nuovo piano"}
             </button>
-            <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"7px 11px",marginBottom:12,fontSize:11,color:"#92400e"}}>
-              💡 Tocca ogni pasto per vederne le porzioni e personalizzarle
-            </div>
+            {hintPiano && (
+              <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"7px 11px",marginBottom:12,fontSize:11,color:"#92400e",display:"flex",alignItems:"center",gap:8}}>
+                <span style={{flex:1}}>💡 Tocca ogni pasto per vederne le porzioni e personalizzarle</span>
+                <button onClick={dismissHintPiano} title="Non mostrare più"
+                  style={{flexShrink:0,border:"none",background:"transparent",color:"#b45309",fontWeight:900,fontSize:14,cursor:"pointer",padding:"0 2px",lineHeight:1}}>✕</button>
+              </div>
+            )}
             {spinning ? <div style={{textAlign:"center",padding:"40px 0",color:"#6E8576"}}>🔄 Generando...</div> : (
               <>
                 {(()=>{
@@ -1081,7 +1133,7 @@ export function App() {
           </SwipeContainer>
         )}
 
-        {page==="spesa"&&<ShoppingPage planState={{baseSeed:seed, frozen}} overrides={overrides} genArgs={{excludedIds:excluded, ricetteUtente, ricetteEscluseIds}} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa}/>}
+        {page==="spesa"&&<ShoppingPage planState={{baseSeed:seed, frozen}} overrides={overrides} genArgs={{excludedIds:excluded, ricetteUtente, ricetteEscluseIds}} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa} personas={personas} mealsLog={mealsLog} consumoAttivo={spesaConsumo} onToggleConsumo={toggleSpesaConsumo}/>}
         {page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
         {page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
         {page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={handleRicetteChange} onTorna={()=>navigaA("piano")}/>}
@@ -1108,24 +1160,28 @@ export function App() {
           const active = tab.key==="menu"
             ? (isSubPage || menuOpen)
             : page===tab.key;
-          // Badge "ingredienti esclusi" mostrato sulla voce Menu
-          let badge = tab.key==="menu" && excluded.length>0 ? excluded.length : 0;
+          // Il conteggio "ingredienti esclusi" NON è più mostrato come badge
+          // rosso sulla voce Menu (semantica d'allarme fuorviante per un dato
+          // di configurazione): resta visibile dentro il bottom-sheet.
+          let badge = 0;
           // Badge spesa: articoli non spuntati della STESSA finestra predefinita
           // della pagina Spesa (oggi + 2 giorni, finestra mobile). Prima contava
           // l'intera settimana di calendario e il numero non coincideva mai con
           // quello mostrato dentro la pagina.
           if (tab.key==="spesa") {
             try {
-              const dayObjs = [0,1,2].map(off=>{
+              const dayObjs = [], dateKeys = [];
+              [0,1,2].forEach(off=>{
                 const d = dateForOffset(off);
                 const wk = weekIndexForDate(d), wd = weekdayForDate(d);
                 const week = applyOverridesWeek(
                   planForWeek({baseSeed:seed, frozen}, wk, { excludedIds: excluded, ricetteUtente, ricetteEscluseIds }),
                   overrides, wk
                 );
-                return week[wd];
-              }).filter(Boolean);
-              const ids = Object.values(buildShoppingForDayObjects(dayObjs)).flat().map(i=>i.id);
+                if (week[wd]) { dayObjs.push(week[wd]); dateKeys.push(dateKeyForOffset(off)); }
+              });
+              const consumo = spesaConsumo ? { personas, mealsLog, dateKeys } : null;
+              const ids = Object.values(buildShoppingForDayObjects(dayObjs, consumo)).flat().map(i=>i.id);
               const wk = spesaChecks[String(seed)]||{};
               badge = ids.filter(id=>!wk[id]).length;
             } catch { badge = 0; }
@@ -1148,7 +1204,7 @@ export function App() {
               <span style={{fontSize:20,lineHeight:1}}>{tab.icon}</span>
               <span style={{fontSize:11,fontWeight:active?800:600,letterSpacing:0.1,whiteSpace:"nowrap"}}>{tab.short}</span>
               {badge>0 && (
-                <div style={{position:"absolute",top:6,right:"calc(50% - 20px)",minWidth:16,height:16,background:"#ef4444",borderRadius:"50%",fontSize:9,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,padding:"0 4px"}}>{badge}</div>
+                <div style={{position:"absolute",top:6,right:"calc(50% - 20px)",minWidth:16,height:16,background:tab.key==="spesa"?"#2F6B3A":"#ef4444",borderRadius:"50%",fontSize:9,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,padding:"0 4px"}}>{badge}</div>
               )}
               {misureStale && (
                 <div title="Misurazione datata" style={{position:"absolute",top:7,right:"calc(50% - 16px)",width:8,height:8,background:"#f59e0b",borderRadius:"50%",border:"1.5px solid #fff"}}/>

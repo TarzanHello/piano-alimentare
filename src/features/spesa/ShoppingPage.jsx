@@ -1,9 +1,9 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, applyOverridesWeek, buildShoppingForDayObjects, dateForOffset, depColor, depLabel, planForWeek, weekIndexForDate, weekdayForDate } from '@/core';
+import { DAYS, applyOverridesWeek, buildShoppingForDayObjects, dateForOffset, dateKeyForOffset, depColor, depLabel, planForWeek, weekIndexForDate, weekdayForDate } from '@/core';
 import { IngredientiPage } from '@/features/ingredienti/IngredientiPage';
 
-export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, onReset }) {
+export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, onReset, personas, mealsLog, consumoAttivo, onToggleConsumo }) {
   // Periodo predefinito: oggi + 2 = 3 giorni pieni, SEMPRE (anche ven/sab/dom),
   // perché la finestra mobile sfora liberamente nella settimana successiva.
   const [selOffsets, setSelOffsets] = useState([0,1,2]);
@@ -20,22 +20,40 @@ export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, 
   const checked = checks || {};
   const toggle = id => onToggle(id);
   const toggleDay = off => setSelOffsets(p => p.includes(off) ? p.filter(d=>d!==off) : [...p,off].sort((a,b)=>a-b));
-  // Risolve ogni offset → oggetto-giorno (settimana risolta + override applicati)
+  // Risolve ogni offset → oggetto-giorno (settimana risolta + override applicati).
+  // Le dateKeys restano ALLINEATE ai dayObjs (indice per indice): servono al
+  // motore per l'esclusione consumo-aware per persona.
   const grouped = useMemo(() => {
-    const dayObjs = selOffsets.map(off => {
+    const dayObjs = [], dateKeys = [];
+    selOffsets.forEach(off => {
       const d = dateForOffset(off);
       const wk = weekIndexForDate(d), wd = weekdayForDate(d);
       const week = applyOverridesWeek(planForWeek(planState, wk, genArgs || {}), overrides || {}, wk);
-      return week[wd];
-    }).filter(Boolean);
-    return buildShoppingForDayObjects(dayObjs);
-  }, [selOffsets, planState, overrides, genArgs]);
+      if (week[wd]) { dayObjs.push(week[wd]); dateKeys.push(dateKeyForOffset(off)); }
+    });
+    const consumo = (consumoAttivo && personas?.length) ? { personas, mealsLog, dateKeys } : null;
+    return buildShoppingForDayObjects(dayObjs, consumo);
+  }, [selOffsets, planState, overrides, genArgs, consumoAttivo, personas, mealsLog]);
   const allIds = Object.values(grouped).flat().map(i=>i.id);
   const done = allIds.filter(id=>checked[id]).length;
   return (
     <div>
       <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"12px 14px",marginBottom:12}}>
-        <div ref={scRef} style={{display:"flex",gap:8,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
+        <div style={{display:"flex",gap:8,alignItems:"stretch"}}>
+        {/* Chip "torna a oggi": seleziona oggi e ricentra il carosello */}
+        {!selOffsets.includes(0) && (
+          <button title="Torna a oggi"
+            onClick={()=>{
+              setSelOffsets(p=>p.includes(0)?p:[0,...p].sort((a,b)=>a-b));
+              const el = scRef.current && scRef.current.querySelector('[data-off="0"]');
+              if (el && el.scrollIntoView) { try { el.scrollIntoView({ inline:"center", block:"nearest", behavior:"smooth" }); } catch {} }
+            }}
+            style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,padding:"9px 11px",borderRadius:14,border:"none",background:"#15251C",color:"#C7F23E",cursor:"pointer",boxShadow:"0 8px 16px -6px #15251C88"}}>
+            <span style={{fontSize:13,lineHeight:1}}>⌂</span>
+            <span style={{fontSize:9,fontWeight:800,letterSpacing:0.3}}>OGGI</span>
+          </button>
+        )}
+        <div ref={scRef} style={{flex:1,minWidth:0,display:"flex",gap:8,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",paddingBottom:4,scrollbarWidth:"none"}}>
           {Array.from({length:29},(_,i)=>i-14).map(off=>{
             const d=dateForOffset(off);
             const sel=selOffsets.includes(off);
@@ -47,6 +65,7 @@ export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, 
               <span style={{fontSize:16,fontWeight:800,color:sel?"#fff":"#4A6152",fontFamily:"'Outfit',sans-serif"}}>{d.getDate()}</span>
             </button>);
           })}
+        </div>
         </div>
       </div>
       {selOffsets.length===0 ? (
@@ -67,6 +86,20 @@ export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, 
             <div style={{height:9,background:"rgba(255,255,255,0.12)",borderRadius:99,overflow:"hidden"}}>
               <div style={{width:`${allIds.length?Math.round(done/allIds.length*100):0}%`,height:"100%",background:"linear-gradient(90deg,#2F6B3A,#C7F23E)",borderRadius:99,transition:"width 0.3s"}}/>
             </div>
+            {/* Spesa consumo-aware (per persona): chi ha già mangiato/saltato
+                un pasto non genera più spesa per quel pasto */}
+            {onToggleConsumo && (
+              <button onClick={onToggleConsumo}
+                style={{marginTop:12,display:"flex",alignItems:"center",gap:8,width:"100%",textAlign:"left",background:consumoAttivo?"rgba(199,242,62,0.14)":"rgba(255,255,255,0.07)",border:`1px solid ${consumoAttivo?"rgba(199,242,62,0.4)":"rgba(255,255,255,0.15)"}`,borderRadius:10,padding:"8px 12px",cursor:"pointer"}}>
+                <span style={{fontSize:14,flexShrink:0}}>{consumoAttivo?"🍽️":"🛒"}</span>
+                <span style={{flex:1,fontSize:11,fontWeight:700,color:consumoAttivo?"#C7F23E":"#9DB1A2",lineHeight:1.4}}>
+                  {consumoAttivo
+                    ? "Pasti già consumati o saltati esclusi (per persona)"
+                    : "Tutti i pasti inclusi — tocca per escludere i consumati"}
+                </span>
+                <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:consumoAttivo?"#C7F23E":"#9DB1A2",background:consumoAttivo?"rgba(199,242,62,0.18)":"rgba(255,255,255,0.1)",borderRadius:6,padding:"3px 8px"}}>{consumoAttivo?"ON":"OFF"}</span>
+              </button>
+            )}
           </div>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
             {[[2,"≤3g","Freschissimo"],[7,"≤7g","Breve conservaz."],[14,"≤14g","Media conservaz."],[365,"Stabile","Lunga conservaz."]].map(([days,lab,desc])=>(
