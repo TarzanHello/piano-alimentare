@@ -42,7 +42,7 @@ function MacroBar({ label, val, max, color }) {
 }
 
 // ─── Pagina Oggi ────────────────────────────────────────────────────
-export function OggiPage({ personas, selPersonaId, onSelPersona, persona, personaSlot, target, effectivePlan, misure, mealsLog, onToggleMeal, onToggleSaltato, onGoPiano, onGoMisure, readOnly }) {
+export function OggiPage({ personas, selPersonaId, onSelPersona, persona, personaSlot, target, effectivePlan, misure, mealsLog, onToggleMeal, onToggleSaltato, onGoPiano, onGoSwap, onGoMisure, readOnly }) {
   const dayIdx  = todayDayIndex();
   const dateKey = dateKeyForDayIdx(dayIdx);
   const day     = effectivePlan[dayIdx] || {};
@@ -135,6 +135,16 @@ export function OggiPage({ personas, selPersonaId, onSelPersona, persona, person
               <span title="Profilo di un altro membro: sola lettura" style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",width:64,height:64,borderRadius:18,background:"rgba(255,255,255,0.12)",color:"#7FA890",fontSize:22}}>🔒</span>
             ) : (
             <div style={{flexShrink:0,display:"flex",alignItems:"center",gap:8}}>
+              {/* Scorciatoia: non voglio questo pasto → Piano con drawer
+                  di sostituzione già aperto (chiude il giro Oggi→Piano→pasto) */}
+              {onGoSwap && (
+                <button onClick={()=>onGoSwap(prossimo)}
+                  title="Cambia questo pasto"
+                  style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:50,height:64,borderRadius:18,border:"1.5px solid rgba(255,255,255,0.18)",background:"rgba(255,255,255,0.06)",color:"#C9D6CC",cursor:"pointer"}}>
+                  <span style={{fontSize:17,fontWeight:900,lineHeight:1}}>⇄</span>
+                  <span style={{fontSize:9,fontWeight:800}}>Cambia</span>
+                </button>
+              )}
               <button onClick={()=>onToggleSaltato&&onToggleSaltato(persona.id, dateKey, prossimo)}
                 title="Non l'ho mangiato"
                 style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,width:54,height:64,borderRadius:18,border:"1.5px solid rgba(255,255,255,0.18)",background:"rgba(255,255,255,0.06)",color:"#C9D6CC",cursor:"pointer"}}>

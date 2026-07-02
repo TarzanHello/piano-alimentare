@@ -98,6 +98,11 @@ export function App() {
   const [hintPiano, setHintPiano] = useState(()=>{ try { return localStorage.getItem("pa__hint-piano-ok")!=="1"; } catch { return true; } });
   // Spesa consumo-aware (per persona): default attivo, persistito
   const [spesaConsumo, setSpesaConsumo] = useState(()=>{ try { return localStorage.getItem("pa__spesa-consumo")!=="0"; } catch { return true; } });
+  // Strumenti di diagnostica (Test Sync / Log Sync) nel menu: nascosti di
+  // default, attivabili con 7 tap sul footer di Opzioni (persistito)
+  const [devMode, setDevMode] = useState(()=>{ try { return localStorage.getItem("pa__dev")==="1"; } catch { return false; } });
+  // Salto "Oggi → Piano" con drawer di sostituzione già aperto sul pasto
+  const [swapDaOggi, setSwapDaOggi] = useState(null); // mealKey | null
   const [regenNeeded, setRegenNeeded] = useState(false);
   const [spesaChecks, setSpesaChecks] = useState({});   // { [seed]: { [itemId]: true } }
   const [cloudStatus, setCloudStatus] = useState({ loggedIn:false, inFamily:false });
@@ -366,6 +371,15 @@ export function App() {
       const n = !v;
       logSync("spesa", n ? "Spesa: esclusione pasti consumati ATTIVA" : "Spesa: esclusione pasti consumati disattivata");
       try { localStorage.setItem("pa__spesa-consumo", n?"1":"0"); } catch {}
+      return n;
+    });
+  },[]);
+
+  const toggleDevMode = useCallback(()=>{
+    setDevMode(v=>{
+      const n = !v;
+      try { localStorage.setItem("pa__dev", n?"1":"0"); } catch {}
+      toast(n ? "🔬 Strumenti di diagnostica attivati" : "Strumenti di diagnostica nascosti");
       return n;
     });
   },[]);
@@ -771,15 +785,21 @@ export function App() {
     {key:"menu",   short:"Menu",   icon:"☰"},
   ];
   const SUBMENU = [
-    {key:"utente",      label:"Utente",      icon:"👤", desc:"Account, accesso e sincronizzazione"},
-    {key:"famiglia",    label:"Famiglia",    icon:"👥", desc:"Crea e gestisci la famiglia, profili"},
+    // "Famiglia" non è più una voce separata: si raggiunge da Account & Famiglia
+    {key:"utente",      label:"Account & Famiglia", icon:"👤", desc:"Account, sincronizzazione, famiglia e profili"},
     {key:"ingredienti", label:"Ingredienti", icon:"🥦", desc:"Cosa escludere dal piano"},
     {key:"gusti",       label:"Gusti",       icon:"❤️", desc:"Preferiti e non amati"},
     {key:"ricette",     label:"Ricette",     icon:"📖", desc:"Le tue ricette e quelle di famiglia"},
-    {key:"opzioni",     label:"Opzioni",     icon:"⚙️", desc:"Notifiche e promemoria pasti"},
-    {key:"test-sync",   label:"Test Sync",   icon:"🔬", desc:"Diagnostica sincronizzazione"},
-    {key:"synclog",     label:"Log Sync",    icon:"📡", desc:"Registro sincronizzazione (copiabile)"},
+    {key:"opzioni",     label:"Opzioni",     icon:"⚙️", desc:"Notifiche, promemoria, dati e privacy"},
+    // Strumenti diagnostici: visibili solo in modalità sviluppatore
+    ...(devMode ? [
+      {key:"test-sync", label:"Test Sync",   icon:"🔬", desc:"Diagnostica sincronizzazione"},
+      {key:"synclog",   label:"Log Sync",    icon:"📡", desc:"Registro sincronizzazione (copiabile)"},
+    ] : []),
   ];
+  // Pagine "secondarie" per lo stato attivo della voce Menu: include anche
+  // quelle raggiungibili senza voce dedicata (famiglia, diagnostica nascosta)
+  const PAGINE_SECONDARIE = new Set([...SUBMENU.map(x=>x.key), "famiglia", "test-sync", "synclog"]);
 
   // ── Primo accesso: nessuna persona → flusso di onboarding ──
   const completaOnboarding = async (p, session) => {
@@ -884,6 +904,15 @@ export function App() {
             onToggleSaltato={handleToggleSaltato}
             readOnly={oggiReadOnly}
             onGoPiano={()=>{ setSelOffset(0); setPage("piano"); }}
+            onGoSwap={(mk)=>{
+              // Salta al Piano di oggi (profilo proprio) con il drawer
+              // di sostituzione già aperto sul pasto indicato
+              logSync("nav", `Oggi → Piano: cambia ${mk}`);
+              setSwapDaOggi(mk);
+              if (myPersonaId) setSelPersonaId(myPersonaId);
+              setSelOffset(0);
+              setPage("piano");
+            }}
             onGoMisure={()=>setPage("misure")}
           />
         )}
@@ -1010,6 +1039,8 @@ export function App() {
                             gPiano={pesoBase[mk]}
                             gConsumati={selDayLog[mk]?.gConsumati ?? null}
                             onEditConsumed={data=>handleEditConsumedMeal(persona.id,selDateKey,mk,data)}
+                            autoApriSwap={swapDaOggi===mk}
+                            onAutoSwapDone={()=>setSwapDaOggi(null)}
                             cloudStatus={cloudStatus}
                             ricetteUtente={ricetteUtente}
                             onSalvaRicetta={(meal) => {
@@ -1133,13 +1164,26 @@ export function App() {
           </SwipeContainer>
         )}
 
+        {/* Banner rigenerazione: dopo modifiche a ricette/esclusioni il piano
+            va aggiornato; senza questo invito inline l'utente lo scopre solo
+            passando dal Piano */}
+        {(page==="ricette"||page==="ingredienti") && regenNeeded && (
+          <div style={{display:"flex",alignItems:"center",gap:10,background:"#15251C",borderRadius:12,padding:"11px 14px",marginBottom:12,boxShadow:"0 10px 24px -12px rgba(21,37,28,0.6)"}}>
+            <span style={{fontSize:16,flexShrink:0}}>📋</span>
+            <span style={{flex:1,fontSize:12,fontWeight:700,color:"#F4F7EF",lineHeight:1.4}}>Il piano non riflette ancora le ultime modifiche.</span>
+            <button onClick={()=>{ navigaA("piano"); regenerate(); }}
+              style={{flexShrink:0,border:"none",background:"#C7F23E",color:"#15251C",borderRadius:9,padding:"8px 13px",fontWeight:800,fontSize:12,cursor:"pointer"}}>
+              Aggiorna ora
+            </button>
+          </div>
+        )}
         {page==="spesa"&&<ShoppingPage planState={{baseSeed:seed, frozen}} overrides={overrides} genArgs={{excludedIds:excluded, ricetteUtente, ricetteEscluseIds}} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa} personas={personas} mealsLog={mealsLog} consumoAttivo={spesaConsumo} onToggleConsumo={toggleSpesaConsumo}/>}
         {page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
         {page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
         {page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={handleRicetteChange} onTorna={()=>navigaA("piano")}/>}
         {page==="test-sync"&&<SyncTestPage/>}
         {page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}
-        {page==="opzioni"&&<OpzioniPage notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} history={history} onLoadHistory={(s)=>{ loadHistory(s); setPage("piano"); }}/>}
+        {page==="opzioni"&&<OpzioniPage devMode={devMode} onToggleDev={toggleDevMode} notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} history={history} onLoadHistory={(s)=>{ loadHistory(s); setPage("piano"); }}/>}
         {page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={handleMisureChange} mealsLog={mealsLog} inFamily={cloudStatus.inFamily} myUid={myUid}/>}
         {page==="utente"&&(
           <UtentePage personas={personas} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} onGoFamiglia={()=>setPage("famiglia")} onUpdatePersona={handleUpdatePersona} misureApp={misureApp} cloudStatus={cloudStatus}/>
@@ -1155,8 +1199,8 @@ export function App() {
       {/* BOTTOM NAV — 3 voci principali */}
       <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:"#fff",borderTop:"1px solid #E7EDE2",display:"flex",alignItems:"stretch",boxShadow:"0 -4px 20px #0000001a",paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
         {TABS_MAIN.map(tab=>{
-          // "menu" è attivo se siamo in una delle 4 pagine secondarie
-          const isSubPage = SUBMENU.some(s=>s.key===page);
+          // "menu" è attivo se siamo in una delle pagine secondarie
+          const isSubPage = PAGINE_SECONDARIE.has(page);
           const active = tab.key==="menu"
             ? (isSubPage || menuOpen)
             : page===tab.key;

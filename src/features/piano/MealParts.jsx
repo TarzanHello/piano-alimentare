@@ -109,13 +109,28 @@ export function WaterTracker({ dayKey, personaColor, personaId, readOnly }) {
 
 // Soglie tempo per i pulsanti del selettore
 
-export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, saltato, saltatoAuto, onToggleConsumed, onToggleSaltato, onEdit, loggedMacros, loggedIngs, onEditConsumed, gPiano, gConsumati, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly }) {
+export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, saltato, saltatoAuto, onToggleConsumed, onToggleSaltato, onEdit, loggedMacros, loggedIngs, onEditConsumed, gPiano, gConsumati, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly, autoApriSwap, onAutoSwapDone }) {
   const [open, setOpen]               = useState(false);
   const [swapOpen, setSwapOpen]       = useState(false);
   const [editOpen, setEditOpen]       = useState(false);
   const [consumedEditOpen, setConsumedEditOpen] = useState(false);
   const [ricettarioOpen, setRicettarioOpen] = useState(false);
   const [prepSlot, setPrepSlot]       = useState(null); // fascia di tempo selezionata (oggetto di PREP_SLOTS)
+  const rootRef = useRef(null);
+
+  // Salto da "Oggi": apre il drawer di sostituzione già al montaggio e
+  // porta la card al centro dello schermo. One-shot: consumato il segnale,
+  // avvisa il padre così non si ripete alla prossima visita del Piano.
+  useEffect(() => {
+    if (!autoApriSwap || readOnly) { if (autoApriSwap) onAutoSwapDone && onAutoSwapDone(); return; }
+    setSwapOpen(true);
+    const t = setTimeout(() => {
+      try { rootRef.current?.scrollIntoView({ behavior:"smooth", block:"center" }); } catch {}
+    }, 80);
+    onAutoSwapDone && onAutoSwapDone();
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Se consumato e abbiamo macro reali dal log, mostriamo quelle; altrimenti le macro del piano
   const m = (consumed && loggedMacros) ? loggedMacros : (macroOverride || meal[personaKey]);
@@ -155,7 +170,7 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
   };
 
   return (
-    <div style={{background:"#fff",borderRadius:18,border:`1.5px solid ${isOverride?"#DCEBCF":"#fff"}`,marginBottom:11,overflow:"hidden",boxShadow:"0 12px 30px -18px rgba(15,58,41,0.28)"}}>
+    <div ref={rootRef} style={{background:"#fff",borderRadius:18,border:`1.5px solid ${isOverride?"#DCEBCF":"#fff"}`,marginBottom:11,overflow:"hidden",boxShadow:"0 12px 30px -18px rgba(15,58,41,0.28)"}}>
 
       {/* ── Header pasto ── */}
       <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}

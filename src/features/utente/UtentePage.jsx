@@ -86,6 +86,18 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
         </div>
       )}
 
+      {/* ── Famiglia e profili ──
+          Da quando la voce di menu "Famiglia" è stata accorpata qui,
+          questo è l'ingresso principale alla gestione di famiglia e profili
+          (vale anche in modalità locale, dove si aggiungono le persone). */}
+      <div style={S.card}>
+        <div style={S.h}>👨‍👩‍👧 Famiglia e profili</div>
+        <div style={{fontSize:12,color:"#6E8576",lineHeight:1.6,marginBottom:12}}>
+          Aggiungi o modifica i profili del nucleo{cloudEnabled ? ", crea la famiglia condivisa e invita gli altri membri" : ""}.
+        </div>
+        <button onClick={onGoFamiglia} style={S.btn("#2F6B3A")}>👥 Apri Famiglia e profili</button>
+      </div>
+
       {/* ── Account ── */}
       <div style={S.card}>
         <div style={S.h}>👤 Account</div>

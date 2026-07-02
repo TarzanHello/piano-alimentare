@@ -6,7 +6,17 @@ import { DEFAULT_NOTIF, MEAL_KEYS, MEAL_META, scheduleNotifications, todayDayInd
 import { GustiPage } from '@/features/gusti/GustiPage';
 import { cloudEnabled, getSession, deleteAccount, exportMyData } from '@/db/cloud';
 
-export function OpzioniPage({ notifSettings, onNotifChange, plan, personas, myPersonaId, currentSeed, overrides, onApplySeed, history, onLoadHistory }) {
+export function OpzioniPage({ devMode, onToggleDev, notifSettings, onNotifChange, plan, personas, myPersonaId, currentSeed, overrides, onApplySeed, history, onLoadHistory }) {
+  // Gesto nascosto: 7 tap ravvicinati sul footer attivano/disattivano gli
+  // strumenti di diagnostica (Test Sync / Log Sync) nel menu.
+  const devTaps = useRef(0);
+  const devTapTimer = useRef(null);
+  const handleDevTap = () => {
+    devTaps.current += 1;
+    if (devTapTimer.current) clearTimeout(devTapTimer.current);
+    devTapTimer.current = setTimeout(() => { devTaps.current = 0; }, 1200);
+    if (devTaps.current >= 7) { devTaps.current = 0; onToggleDev && onToggleDev(); }
+  };
   const [permStatus, setPermStatus] = React.useState("Notification" in window ? Notification.permission : "unsupported");
   const [requesting, setRequesting] = React.useState(false);
 
@@ -126,7 +136,12 @@ export function OpzioniPage({ notifSettings, onNotifChange, plan, personas, myPe
           )}
         </div>
       )}
-      <div style={{fontSize:10,color:"#9DB1A2",textAlign:"center",lineHeight:1.8,padding:"0 10px"}}>Le notifiche vengono schedulate ad ogni apertura dell'app.</div>
+      <div style={{fontSize:10,color:"#9DB1A2",textAlign:"center",lineHeight:1.8,padding:"0 10px"}}>
+        Le notifiche vengono schedulate ad ogni apertura dell'app.
+        <div onClick={handleDevTap} style={{marginTop:6,userSelect:"none",WebkitUserSelect:"none",cursor:"default"}}>
+          Fitsy{devMode ? " · 🔬 diagnostica attiva" : ""}
+        </div>
+      </div>
     </div>
   );
 }
