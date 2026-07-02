@@ -109,7 +109,7 @@ export function WaterTracker({ dayKey, personaColor, personaId, readOnly }) {
 
 // Soglie tempo per i pulsanti del selettore
 
-export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, macroOverride, quantitaOverride, consumed, saltato, saltatoAuto, onToggleConsumed, onToggleSaltato, onEdit, loggedMacros, loggedIngs, onEditConsumed, gPiano, gConsumati, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly, autoApriSwap, onAutoSwapDone }) {
+export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, onToggleDislike, macroOverride, quantitaOverride, consumed, saltato, saltatoAuto, onToggleConsumed, onToggleSaltato, onEdit, loggedMacros, loggedIngs, onEditConsumed, gPiano, gConsumati, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly, autoApriSwap, onAutoSwapDone }) {
   const [open, setOpen]               = useState(false);
   const [swapOpen, setSwapOpen]       = useState(false);
   const [editOpen, setEditOpen]       = useState(false);
@@ -212,6 +212,17 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
               style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${prefEntry?.liked?"#ef4444":"#E7EDE2"}`,background:prefEntry?.liked?"#fef2f2":"#F5F8F1",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
               <span style={{filter:prefEntry?.liked?"none":"grayscale(1) opacity(0.55)"}}>{prefEntry?.liked?"❤️":"🤍"}</span>
             </button>
+            {/* Bottone dislike esplicito: "non proporla più" senza dover
+                aspettare che si accumulino gli swap */}
+            {onToggleDislike && (
+              <button
+                onClick={e=>{ e.stopPropagation(); logSync("gusti", `${prefEntry?.disliked?"Rimosso dislike":"Dislike"}: ${meal.nome?.slice(0,30)}`, {id:meal.id}); onToggleDislike(); }}
+                aria-label={prefEntry?.disliked ? "Rimuovi non gradita" : "Segna come non gradita"}
+                title={prefEntry?.disliked ? "Tolta dalle non gradite" : "Non mi piace: proponila il meno possibile"}
+                style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${prefEntry?.disliked?"#7c3aed":"#E7EDE2"}`,background:prefEntry?.disliked?"#f5f3ff":"#F5F8F1",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
+                <span style={{filter:prefEntry?.disliked?"none":"grayscale(1) opacity(0.55)"}}>👎</span>
+              </button>
+            )}
             {/* Bottone consumato */}
             {!readOnly && (
             <button onClick={e=>{ e.stopPropagation(); logSync("pasto-log", `${consumed?"Rimarca non consumato":"Segna consumato"}: ${mealKey}`, {dayIdx, mealKey, pasto:meal?.nome?.slice(0,25)}); onToggleConsumed&&onToggleConsumed(); }} title={consumed?"Segna come non consumato":"Segna come consumato"}

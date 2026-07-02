@@ -510,9 +510,12 @@ export function classifySwap(dayIdx, mealKey) {
 export function computePrefScore(entry) {
   if (!entry) return 0;
   const like = entry.liked ? PREF_WEIGHTS.like : 0;
+  // Dislike esplicito: peso forte e negativo (più della somma di un like),
+  // così una ricetta segnata 👎 finisce sotto qualunque ricetta neutra.
+  const dis  = entry.disliked ? PREF_WEIGHTS.dislike : 0;
   const out  = (entry.swapsOut || 0) * PREF_WEIGHTS.swapOut;
   const sIn  = (entry.swapsIn  || 0) * PREF_WEIGHTS.swapIn;
-  return like + out + sIn;
+  return like + dis + out + sIn;
 }
 
 // Normalizza la struttura prefs completa (mai undefined).
@@ -537,8 +540,8 @@ export function normalizePrefs(raw) {
 export function getPrefEntry(prefs, recipeId) {
   const recipes = (prefs && prefs.recipes) || {};
   const e = recipes[recipeId];
-  return e ? { score:0, liked:false, swapsOut:0, swapsIn:0, ...e }
-           : { score:0, liked:false, swapsOut:0, swapsIn:0 };
+  return e ? { score:0, liked:false, disliked:false, swapsOut:0, swapsIn:0, ...e }
+           : { score:0, liked:false, disliked:false, swapsOut:0, swapsIn:0 };
 }
 
 // ─── Trova alternativa per tempo ────────────────────────────────────

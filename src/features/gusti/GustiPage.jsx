@@ -3,7 +3,7 @@ const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { DB, getPrefEntry } from '@/core';
 import { EmptyState } from '@/components/shared';
 
-export function GustiPage({ prefs, onToggleLike, onResetPrefs }) {
+export function GustiPage({ prefs, onToggleLike, onToggleDislike, onResetPrefs }) {
   // Costruisce l'elenco completo: ogni ricetta del DB + i suoi segnali.
   const allRecipes = Object.values(DB).flat();
   const catLabel = { colazione:"☀️ Colazione", spuntino:"🍎 Spuntino", pranzo:"🥗 Pranzo", cena:"🍽️ Cena" };
@@ -12,13 +12,16 @@ export function GustiPage({ prefs, onToggleLike, onResetPrefs }) {
 
   const rows = allRecipes.map(r => {
     const e = getPrefEntry(prefs, r.id);
-    return { ...r, _pref:e, _hasSignal: e.liked || e.swapsOut>0 || e.swapsIn>0 };
+    return { ...r, _pref:e, _hasSignal: e.liked || e.disliked || e.swapsOut>0 || e.swapsIn>0 };
   });
 
-  const liked     = rows.filter(r => r._pref.liked);
-  const disliked  = rows.filter(r => !r._pref.liked && r._pref.swapsOut > 0)
-                        .sort((a,b) => b._pref.swapsOut - a._pref.swapsOut);
-  const nSignals  = rows.filter(r => r._hasSignal).length;
+  const liked      = rows.filter(r => r._pref.liked);
+  // Dislike esplicito (👎): ricette da proporre il meno possibile
+  const nonGradite = rows.filter(r => r._pref.disliked);
+  // Segnale implicito: ricette sostituite spesso (esclusi like e 👎, già classificati)
+  const cambiate   = rows.filter(r => !r._pref.liked && !r._pref.disliked && r._pref.swapsOut > 0)
+                         .sort((a,b) => b._pref.swapsOut - a._pref.swapsOut);
+  const nSignals   = rows.filter(r => r._hasSignal).length;
 
   // Swap di contesto registrati (fretta / vincoli orari)
   const contextSwaps = (prefs && prefs.contextSwaps) || [];
@@ -57,13 +60,13 @@ export function GustiPage({ prefs, onToggleLike, onResetPrefs }) {
       {/* Statistiche */}
       <div style={{display:"flex",gap:8,marginBottom:16}}>
         <Stat emoji="❤️" n={liked.length}          label="Preferite"  color="#ef4444"/>
-        <Stat emoji="🔄" n={disliked.length}       label="Non gradite" color="#7c3aed"/>
+        <Stat emoji="👎" n={nonGradite.length}     label="Non gradite" color="#7c3aed"/>
         <Stat emoji="⏱" n={contextSwaps.length}    label="Per fretta" color="#d97706"/>
       </div>
 
-      {liked.length===0 && disliked.length===0 && contextSwaps.length===0 && (
+      {liked.length===0 && nonGradite.length===0 && cambiate.length===0 && contextSwaps.length===0 && (
         <EmptyState emoji="🍽️" title="Ancora nessun gusto registrato"
-          text="Metti ❤️ alle ricette che ami nel Piano e sostituisci quelle che non gradisci: l'app imparerà le preferenze della famiglia e ne terrà conto nei prossimi piani."/>
+          text="Metti ❤️ alle ricette che ami e 👎 a quelle che non vuoi più vedere, direttamente dal Piano: l'app imparerà le preferenze della famiglia e ne terrà conto nei prossimi piani."/>
       )}
 
       {!hasAnyData ? (
@@ -99,15 +102,42 @@ export function GustiPage({ prefs, onToggleLike, onResetPrefs }) {
             </div>
           )}
 
-          {/* Non gradite (swap di gusto) */}
-          {disliked.length > 0 && (
+          {/* Non gradite — dislike esplicito */}
+          {nonGradite.length > 0 && (
+            <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",marginBottom:12,overflow:"hidden"}}>
+              <div style={{background:"#f5f3ff",borderBottom:"1px solid #ede9fe",padding:"9px 14px",fontWeight:800,fontSize:12,color:"#7c3aed"}}>
+                👎 Ricette non gradite
+              </div>
+              <div style={{padding:"4px 14px"}}>
+                {nonGradite.map((r,i)=>(
+                  <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<nonGradite.length-1?"1px solid #F5F8F1":"none"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12.5,fontWeight:600,color:"#15251C",lineHeight:1.3}}>{r.nome}</div>
+                      <div style={{fontSize:10,color:"#9DB1A2",marginTop:1}}>{catLabel[recipeCat[r.id]]||""}</div>
+                    </div>
+                    <button onClick={()=>onToggleDislike && onToggleDislike(r.id)}
+                      title="Togli dalle non gradite"
+                      style={{flexShrink:0,width:30,height:28,borderRadius:7,border:"1.5px solid #7c3aed",background:"#f5f3ff",cursor:"pointer",fontSize:13,padding:0}}>
+                      👎
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div style={{padding:"8px 14px",fontSize:10,color:"#9DB1A2",lineHeight:1.5}}>
+                Segnate a mano con 👎: la generazione le propone il meno possibile. Tocca di nuovo 👎 per ripristinarle.
+              </div>
+            </div>
+          )}
+
+          {/* Cambiate spesso (swap di gusto) */}
+          {cambiate.length > 0 && (
             <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",marginBottom:12,overflow:"hidden"}}>
               <div style={{background:"#f5f3ff",borderBottom:"1px solid #ede9fe",padding:"9px 14px",fontWeight:800,fontSize:12,color:"#7c3aed"}}>
                 🔄 Ricette che cambi spesso
               </div>
               <div style={{padding:"4px 14px"}}>
-                {disliked.map((r,i)=>(
-                  <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<disliked.length-1?"1px solid #F5F8F1":"none"}}>
+                {cambiate.map((r,i)=>(
+                  <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<cambiate.length-1?"1px solid #F5F8F1":"none"}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:12.5,fontWeight:600,color:"#15251C",lineHeight:1.3}}>{r.nome}</div>
                       <div style={{fontSize:10,color:"#9DB1A2",marginTop:1}}>{catLabel[recipeCat[r.id]]||""}</div>
@@ -115,6 +145,12 @@ export function GustiPage({ prefs, onToggleLike, onResetPrefs }) {
                     <span style={{flexShrink:0,fontSize:10,fontWeight:700,color:"#7c3aed",background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:5,padding:"3px 8px"}}>
                       cambiata {r._pref.swapsOut}×
                     </span>
+                    {/* Scorciatoia: promuove il segnale implicito a 👎 esplicito */}
+                    <button onClick={()=>onToggleDislike && onToggleDislike(r.id)}
+                      title="Non proporla più"
+                      style={{flexShrink:0,width:30,height:28,borderRadius:7,border:"1.5px solid #E7EDE2",background:"#F5F8F1",cursor:"pointer",fontSize:13,padding:0}}>
+                      <span style={{filter:"grayscale(1) opacity(0.55)"}}>👎</span>
+                    </button>
                   </div>
                 ))}
               </div>

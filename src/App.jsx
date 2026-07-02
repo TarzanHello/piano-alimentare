@@ -92,6 +92,7 @@ export function App() {
   const [personas, setPersonas]       = useState([]);
   const [booted, setBooted]           = useState(false);
   const [spinning, setSpinning]       = useState(false);
+  const [targetOpen, setTargetOpen]   = useState(false); // dettagli card Target (collassati di default)
   const [confermaRegen, setConfermaRegen] = useState(false); // doppio tap su "Genera nuovo piano"
   const regenTimerRef = useRef(null);
   // Hint "tocca ogni pasto" in Piano: dismissibile e persistito
@@ -572,8 +573,8 @@ export function App() {
     setPrefs(prev => {
       const recipes = prev.recipes || {};
       const current = recipes[recipeId]
-        ? { score:0, liked:false, swapsOut:0, swapsIn:0, ...recipes[recipeId] }
-        : { score:0, liked:false, swapsOut:0, swapsIn:0 };
+        ? { score:0, liked:false, disliked:false, swapsOut:0, swapsIn:0, ...recipes[recipeId] }
+        : { score:0, liked:false, disliked:false, swapsOut:0, swapsIn:0 };
       const mutated = mutator(current);
       mutated.score = computePrefScore(mutated);
       mutated.updated = new Date().toLocaleDateString("it-IT");
@@ -584,8 +585,15 @@ export function App() {
   }, []);
 
   // Like esplicito: attiva/disattiva il cuore su una ricetta.
+  // Mettere ❤️ toglie l'eventuale 👎 (segnali mutuamente esclusivi).
   const handleToggleLike = useCallback((recipeId) => {
-    updatePref(recipeId, e => ({ ...e, liked: !e.liked }));
+    updatePref(recipeId, e => ({ ...e, liked: !e.liked, disliked: !e.liked ? false : e.disliked }));
+  }, [updatePref]);
+
+  // Dislike esplicito: "non proporla più / il meno possibile".
+  // Mettere 👎 toglie l'eventuale ❤️.
+  const handleToggleDislike = useCallback((recipeId) => {
+    updatePref(recipeId, e => ({ ...e, disliked: !e.disliked, liked: !e.disliked ? false : e.liked }));
   }, [updatePref]);
 
   // Azzera tutti i dati sui gusti (ricette + registro contesto).
@@ -1023,6 +1031,7 @@ export function App() {
                             excludedIds={excluded}
                             prefEntry={getPrefEntry(prefs, effectiveDay[mk]?.id)}
                             onToggleLike={() => handleToggleLike(effectiveDay[mk]?.id)}
+                            onToggleDislike={() => handleToggleDislike(effectiveDay[mk]?.id)}
                             onSwap={alt => handleSwap(selWeekIndex, selWeekday, mk, effectiveDay[mk], alt)}
                             onReset={() => handleResetSwap(selWeekIndex, selWeekday, mk)}
                             macroOverride={macroEff}
@@ -1084,12 +1093,20 @@ export function App() {
                 })()}
                 <div style={{marginTop:14,background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"12px 16px"}}>
                   {personaTarget && <>
-                  {/* Intestazione con badge confidenza */}
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                  {/* Intestazione compatta: kcal + chevron. I dettagli tecnici
+                      (TDEE, deficit, massa grassa…) sono collassati di default:
+                      utili a chi li conosce, densi per un familiare. */}
+                  <div onClick={()=>setTargetOpen(o=>!o)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",marginBottom:targetOpen?10:0}}>
                     <div style={{fontSize:10,fontWeight:700,color:"#6E8576",letterSpacing:1,textTransform:"uppercase"}}>
                       Target — {emojiBySesso(persona)} {persona.nome}
                     </div>
-                    <div style={{display:"flex",alignItems:"center",gap:5}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontSize:13,fontWeight:900,color:persona.color,fontFamily:"monospace"}}>{personaTarget.kcal} kcal</span>
+                      <span style={{fontSize:10,color:"#9DB1A2",fontWeight:800}}>{targetOpen?"▴ chiudi":"▾ dettagli"}</span>
+                    </div>
+                  </div>
+                  {targetOpen && <>
+                  <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap",marginBottom:10}}>
                       {(()=>{
                         const ob = OBIETTIVI.find(o=>o.key===persona.obiettivo);
                         const obStyle = {
@@ -1108,7 +1125,6 @@ export function App() {
                         <span style={{fontSize:11}}>{personaTarget.confidenza.dot}</span>
                         <span style={{fontSize:10,fontWeight:700,color:personaTarget.confidenza.color}}>{personaTarget.confidenza.label}</span>
                       </div>
-                    </div>
                   </div>
                   {/* Macro grid */}
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
@@ -1154,9 +1170,9 @@ export function App() {
                     )}
                   </div>
                   </>}
+                  </>}
                 </div>
                 <div style={{marginTop:14,fontSize:10,color:"#9DB1A2",textAlign:"center",lineHeight:1.8}}>
-                  DB: {DB.colazione.length} colazioni · {DB.pranzo.length} pranzi · {DB.cena.length} cene · {DB.spuntino.length} spuntini<br/>
                   Valori indicativi. Consulta un nutrizionista per un piano preciso.
                 </div>
               </>
@@ -1179,7 +1195,7 @@ export function App() {
         )}
         {page==="spesa"&&<ShoppingPage planState={{baseSeed:seed, frozen}} overrides={overrides} genArgs={{excludedIds:excluded, ricetteUtente, ricetteEscluseIds}} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa} personas={personas} mealsLog={mealsLog} consumoAttivo={spesaConsumo} onToggleConsumo={toggleSpesaConsumo}/>}
         {page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
-        {page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onResetPrefs={handleResetPrefs}/>}
+        {page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onToggleDislike={handleToggleDislike} onResetPrefs={handleResetPrefs}/>}
         {page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={handleRicetteChange} onTorna={()=>navigaA("piano")}/>}
         {page==="test-sync"&&<SyncTestPage/>}
         {page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}

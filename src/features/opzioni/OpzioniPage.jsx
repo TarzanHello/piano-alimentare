@@ -2,7 +2,7 @@ import { SeedSyncSection } from '@/features/famiglia/FamigliaPage';
 import { RecuperoDati } from './RecuperoDati';
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DEFAULT_NOTIF, MEAL_KEYS, MEAL_META, scheduleNotifications, todayDayIndex } from '@/core';
+import { DB, DEFAULT_NOTIF, MEAL_KEYS, MEAL_META, scheduleNotifications, todayDayIndex } from '@/core';
 import { GustiPage } from '@/features/gusti/GustiPage';
 import { cloudEnabled, getSession, deleteAccount, exportMyData } from '@/db/cloud';
 
@@ -138,6 +138,8 @@ export function OpzioniPage({ devMode, onToggleDev, notifSettings, onNotifChange
       )}
       <div style={{fontSize:10,color:"#9DB1A2",textAlign:"center",lineHeight:1.8,padding:"0 10px"}}>
         Le notifiche vengono schedulate ad ogni apertura dell'app.
+        {/* Info tecnica spostata qui dal Piano (era rumore per l'utente finale) */}
+        <div style={{marginTop:4}}>Ricettario base: {DB.colazione.length} colazioni · {DB.pranzo.length} pranzi · {DB.cena.length} cene · {DB.spuntino.length} spuntini</div>
         <div onClick={handleDevTap} style={{marginTop:6,userSelect:"none",WebkitUserSelect:"none",cursor:"default"}}>
           Fitsy{devMode ? " · 🔬 diagnostica attiva" : ""}
         </div>

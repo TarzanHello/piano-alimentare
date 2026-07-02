@@ -73,7 +73,7 @@ export const SK_SEED="pf-seed", SK_HISTORY="pf-history", SK_EXCL="pf-excluded", 
 //                      outId, outNome, outPrep, inId, inNome, inPrep } ]
 // }
 
-export const PREF_WEIGHTS = { like: 3, swapOut: -1, swapIn: 1 };
+export const PREF_WEIGHTS = { like: 3, swapOut: -1, swapIn: 1, dislike: -4 };
 
 // Soglia in ore: sotto questo valore lo swap è "di contesto".
 

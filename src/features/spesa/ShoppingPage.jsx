@@ -6,7 +6,32 @@ import { IngredientiPage } from '@/features/ingredienti/IngredientiPage';
 export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, onReset, personas, mealsLog, consumoAttivo, onToggleConsumo }) {
   // Periodo predefinito: oggi + 2 = 3 giorni pieni, SEMPRE (anche ven/sab/dom),
   // perché la finestra mobile sfora liberamente nella settimana successiva.
-  const [selOffsets, setSelOffsets] = useState([0,1,2]);
+  // Selezione giorni persistita come FINESTRA RELATIVA a oggi (offset):
+  // se l'utente ragiona su 5 giorni, li ritrova selezionati alla prossima visita.
+  const [selOffsets, setSelOffsets] = useState(()=>{
+    try {
+      const v = JSON.parse(localStorage.getItem("pa__spesa-giorni") || "");
+      if (Array.isArray(v) && v.length && v.every(n => Number.isInteger(n) && n >= -14 && n <= 14)) return v;
+    } catch {}
+    return [0,1,2];
+  });
+  useEffect(()=>{ try { localStorage.setItem("pa__spesa-giorni", JSON.stringify(selOffsets)); } catch {} }, [selOffsets]);
+
+  // ── 20. Articoli extra manuali (fuori dal piano: sale, tovaglioli…) ──
+  // Locali al dispositivo (localStorage), indipendenti dal seed del piano.
+  const [extra, setExtra] = useState(()=>{
+    try { const v = JSON.parse(localStorage.getItem("pa__spesa-extra") || "[]"); return Array.isArray(v) ? v : []; } catch { return []; }
+  });
+  const [extraInput, setExtraInput] = useState("");
+  const saveExtra = (list) => { setExtra(list); try { localStorage.setItem("pa__spesa-extra", JSON.stringify(list)); } catch {} };
+  const addExtra = () => {
+    const nome = extraInput.trim();
+    if (!nome) return;
+    saveExtra([...extra, { id: "xtr_" + Date.now().toString(36), nome, done:false }]);
+    setExtraInput("");
+  };
+  const toggleExtra = (id) => saveExtra(extra.map(x => x.id===id ? { ...x, done: !x.done } : x));
+  const removeExtra = (id) => saveExtra(extra.filter(x => x.id!==id));
   // Centra "oggi" nel carosello all'apertura (come nel Piano): senza questo
   // la lista dei giorni resta scrollata all'inizio (≈2 settimane fa).
   const scRef = useRef(null);
@@ -112,7 +137,9 @@ export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, 
             <div key={cat} style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",marginBottom:10,overflow:"hidden"}}>
               <div style={{background:"#F5F8F1",borderBottom:"1px solid #EFF3EC",padding:"9px 14px",fontWeight:800,fontSize:12,color:"#15251C"}}>{cat}</div>
               <div style={{padding:"4px 14px"}}>
-                {items.map((ing,i)=>{
+                {/* Spuntati in fondo: la parte alta della lista resta
+                    scansionabile al supermercato (sort stabile) */}
+                {[...items].sort((a,b)=>(checked[a.id]?1:0)-(checked[b.id]?1:0)).map((ing,i)=>{
                   const isChk=!!checked[ing.id], dc=depColor(ing.deperibile);
                   return (
                     <div key={ing.id} onClick={()=>toggle(ing.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<items.length-1?"1px solid #F5F8F1":"none",cursor:"pointer",opacity:isChk?0.4:1,transition:"opacity 0.2s"}}>
@@ -132,6 +159,36 @@ export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, 
               </div>
             </div>
           ))}
+
+          {/* ── Articoli extra (fuori dal piano) ── */}
+          <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",marginBottom:10,overflow:"hidden"}}>
+            <div style={{background:"#F5F8F1",borderBottom:"1px solid #EFF3EC",padding:"9px 14px",fontWeight:800,fontSize:12,color:"#15251C"}}>🛒 Articoli extra</div>
+            <div style={{padding:"4px 14px"}}>
+              {extra.length===0 && (
+                <div style={{fontSize:11,color:"#9DB1A2",padding:"8px 0"}}>Aggiungi quello che non fa parte del piano: sale, tovaglioli, un ingrediente per gli ospiti…</div>
+              )}
+              {[...extra].sort((a,b)=>(a.done?1:0)-(b.done?1:0)).map((x,i,arr)=>(
+                <div key={x.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<arr.length-1?"1px solid #F5F8F1":"none",opacity:x.done?0.45:1,transition:"opacity 0.2s"}}>
+                  <div onClick={()=>toggleExtra(x.id)} style={{width:19,height:19,borderRadius:5,flexShrink:0,border:`2px solid ${x.done?"#16a34a":"#C2D0C6"}`,background:x.done?"#16a34a":"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"all 0.2s"}}>
+                    {x.done&&<span style={{color:"#fff",fontSize:11,fontWeight:900}}>✓</span>}
+                  </div>
+                  <div onClick={()=>toggleExtra(x.id)} style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,color:"#15251C",textDecoration:x.done?"line-through":"none",lineHeight:1.3,cursor:"pointer"}}>{x.nome}</div>
+                  <button onClick={()=>removeExtra(x.id)} title="Rimuovi"
+                    style={{flexShrink:0,width:24,height:24,borderRadius:"50%",border:"none",background:"#F5F8F1",color:"#9DB1A2",fontWeight:900,fontSize:11,cursor:"pointer",lineHeight:1}}>✕</button>
+                </div>
+              ))}
+              <div style={{display:"flex",gap:8,padding:"10px 0 12px"}}>
+                <input value={extraInput} onChange={e=>setExtraInput(e.target.value)}
+                  onKeyDown={e=>{ if(e.key==="Enter") addExtra(); }}
+                  placeholder="+ Aggiungi articolo…"
+                  style={{flex:1,minWidth:0,padding:"9px 12px",borderRadius:10,border:"1.5px solid #E7EDE2",background:"#F9FBF7",fontSize:13,color:"#15251C",outline:"none",boxSizing:"border-box"}}/>
+                <button onClick={addExtra} disabled={!extraInput.trim()}
+                  style={{flexShrink:0,padding:"9px 15px",borderRadius:10,border:"none",background:extraInput.trim()?"#15251C":"#E7EDE2",color:extraInput.trim()?"#C7F23E":"#9DB1A2",fontWeight:800,fontSize:13,cursor:extraInput.trim()?"pointer":"default"}}>
+                  Aggiungi
+                </button>
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>
