@@ -40,7 +40,26 @@ function rowToRicetta(r) {
 
 // Carica tutte le ricette visibili: le mie (qualsiasi scope) + quelle di
 // famiglia. Le RLS sul cloud garantiscono che non arrivi altro.
-export async function caricaRicette() {
+// ── Coalescing dei caricamenti ───────────────────────────────────────
+// Al boot le ricette venivano caricate fino a 6 volte nello stesso secondo
+// (riconciliazione + SUBSCRIBED + listener multipli): le chiamate ravvicinate
+// ora condividono la stessa richiesta, con una finestra di riuso di 800ms.
+// Le mutazioni (crea/aggiorna/elimina) invalidano subito la finestra, così
+// il ricaricamento dopo un salvataggio vede sempre i dati freschi.
+let caricaInFlight = null;
+function invalidaCacheRicette() { caricaInFlight = null; }
+
+export function caricaRicette() {
+  if (caricaInFlight) return caricaInFlight;
+  const p = caricaRicetteRaw();
+  caricaInFlight = p;
+  p.catch(() => {}).then(() => {
+    setTimeout(() => { if (caricaInFlight === p) caricaInFlight = null; }, 800);
+  });
+  return p;
+}
+
+async function caricaRicetteRaw() {
   if (!supabase) { logFamily("Ricette: cloud non configurato"); return []; }
   const me = getCloudMe();
   if (!me) { logFamily("Ricette: utente non collegato, nessuna ricetta cloud"); return []; }
@@ -58,6 +77,7 @@ export async function caricaRicette() {
 // Crea una nuova ricetta. `ricetta` = {titolo, descrizione, categoria,
 // ingredienti:[{ing,g}], kcal,p,c,g, scope}. autore e famiglia presi da me.
 export async function creaRicetta(ricetta) {
+  invalidaCacheRicette();
   if (!supabase) throw new Error("Cloud non configurato");
   const me = getCloudMe();
   if (!me) throw new Error("Devi essere collegato per creare ricette");
@@ -87,6 +107,7 @@ export async function creaRicetta(ricetta) {
 
 // Aggiorna una ricetta esistente (solo l'autore, garantito da RLS).
 export async function aggiornaRicetta(id, patch) {
+  invalidaCacheRicette();
   if (!supabase) throw new Error("Cloud non configurato");
   const upd = { ...patch };
   // Tutte le ricette sono di famiglia
@@ -111,6 +132,7 @@ export async function toggleEsclusaRicetta(id, esclusa) {
 
 // Elimina una ricetta (solo l'autore).
 export async function eliminaRicetta(id) {
+  invalidaCacheRicette();
   if (!supabase) throw new Error("Cloud non configurato");
   const { error } = await supabase.from("ricette_utente").delete().eq("id", id);
   if (error) { logFamily("Ricetta: errore eliminazione", { id, error: error.message }); throw new Error(error.message); }

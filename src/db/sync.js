@@ -22,6 +22,28 @@ const SK_AUTH_UID = "pf-auth-uid";
 const SK_FRESH = "pf-fresh-local";
 
 let started   = false;
+let lastBootUid = null;            // uid della sessione all'ultimo boot eseguito
+const RECONCILE_GUARD_MS  = 30000; // finestra anti-riconciliazioni ripetute
+const RECONCILE_GUARD_KEY = "pa__last-reconcile"; // persistita: sopravvive ai reload PWA
+
+// ── Guardia anti-riconciliazioni ripetute ────────────────────────────
+// Ogni avvio (inclusi i reload completi della PWA, frequenti su Android:
+// nel log reale 3 avvii in 17s) eseguiva una riconciliazione completa da
+// 8 pull — e il listener auth ne innescava una seconda identica subito
+// dopo. Se una riconciliazione per la STESSA identità è stata completata
+// negli ultimi 30s, si può saltare: realtime + poll da 15s coprono i delta.
+function chiaveReconcile() { return me ? `${me.profiloId}:${me.famigliaId}` : ""; }
+function reconcileRecente() {
+  try {
+    const raw = localStorage.getItem(RECONCILE_GUARD_KEY);
+    if (!raw) return false;
+    const { t, k } = JSON.parse(raw);
+    return k === chiaveReconcile() && (Date.now() - t) < RECONCILE_GUARD_MS;
+  } catch { return false; }
+}
+function segnaReconcile() {
+  try { localStorage.setItem(RECONCILE_GUARD_KEY, JSON.stringify({ t: Date.now(), k: chiaveReconcile() })); } catch {}
+}
 let me        = null;
 let channel   = null;
 let rtBackoff = 0;       // ms, attesa prima del retry realtime: cresce sugli errori, azzerata su SUBSCRIBED
@@ -516,6 +538,15 @@ function subscribeRealtime(fromRetry = false) {
   const devId=Math.random().toString(36).slice(2,10);
   const nomeCanale="fam-"+devId;
   logSync("realtime","Sottoscrizione canale realtime",{canale:nomeCanale});
+  // Coalescing delle raffiche: un reset spesa genera un evento per riga
+  // (21 nello stesso millisecondo nel log reale) → un solo pull per burst.
+  const raffiche = {};
+  const coalizza = (chiave, fn, ms = 400) => {
+    const r = raffiche[chiave] || (raffiche[chiave] = { n: 0, t: null });
+    r.n++;
+    clearTimeout(r.t);
+    r.t = setTimeout(() => { logSync("realtime", `Evento ricevuto: ${chiave}`, r.n > 1 ? { eventi: r.n } : undefined); r.n = 0; fn(); }, ms);
+  };
   const myCh=supabase.channel(nomeCanale);   // istanza locale: la callback agisce SOLO su questa
   myCh.__famId = me.famigliaId;
   myCh.__stato = "PENDING";
@@ -523,7 +554,7 @@ function subscribeRealtime(fromRetry = false) {
   myCh
     .on("postgres_changes",{event:"*",schema:"public",table:"profili"},()=>{logSync("realtime","Evento ricevuto: profili");pullProfili();})
     .on("postgres_changes",{event:"*",schema:"public",table:"misure"},()=>{logSync("realtime","Evento ricevuto: misure");pullMisure();})
-    .on("postgres_changes",{event:"*",schema:"public",table:"profilo_dati"},()=>{logSync("realtime","Evento ricevuto: profilo_dati");pullMealsLog();pullTargetGiornaliero();})
+    .on("postgres_changes",{event:"*",schema:"public",table:"profilo_dati"},()=>coalizza("profilo_dati",()=>{pullMealsLog();pullTargetGiornaliero();}))
     .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_dati",filter:famFilter},(p)=>{
       const chiave=p?.new?.chiave||p?.old?.chiave;
       logSync("realtime","Evento ricevuto: dati famiglia",{chiave});
@@ -531,7 +562,7 @@ function subscribeRealtime(fromRetry = false) {
       else if(chiave==="ingredienti_custom") pullCustomIngredients().then(recomputePianoLocale);
       else pullAltriDatiFamiglia();
     })
-    .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_spesa",filter:famFilter},()=>{logSync("realtime","Evento ricevuto: spesa");pullSpesa();})
+    .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_spesa",filter:famFilter},()=>coalizza("spesa",()=>pullSpesa()))
     .subscribe((status)=>{
       // Ignora i callback di un canale ormai superato: un removeChannel emette
       // CLOSED in modo asincrono, DOPO che è già stato creato il canale nuovo.
@@ -594,6 +625,7 @@ export async function startSync() {
   hookStorage();
   const boot=async()=>{
     const session=await getSession();
+    lastBootUid = session?.user?.id || null;
     if(!session){me=null;logSync("status","Nessuna sessione: utente non collegato");emitStatus({loggedIn:false,inFamily:false});return;}
     // ── Guardia cambio account ───────────────────────────────────
     // Se l'utente Google attuale è DIVERSO da quello che ha generato i
@@ -639,7 +671,11 @@ export async function startSync() {
     // l'App mostra il profilo default finché il cloud non ha completato il boot".
     emit("cloudMe", { profiloId: me.profiloId, myPersonaId: await getLocalRaw(SK_MY_PERSONA, null) });
     await window.storage.set("pf-cloud-migrated","1");
-    await reconcile();
+    if (reconcileRecente()) {
+      logSync("info","Riconciliazione recente (<30s, stessa identità): salto");
+    } else {
+      await reconcile();
+    }
     subscribeRealtime();
     clearInterval(timers.__poll);
     timers.__poll=setInterval(async()=>{
@@ -655,7 +691,21 @@ export async function startSync() {
   // causando la sovrascrittura del canale Realtime.
   if (!window.__syncAuthListenerRegistered) {
     window.__syncAuthListenerRegistered = true;
-    supabase.auth.onAuthStateChange(()=>{logSync("info","Stato autenticazione cambiato: nuovo boot");boot();});
+    supabase.auth.onAuthStateChange((evt, session)=>{
+      const uid = session?.user?.id || null;
+      // Ri-boot solo quando cambia DAVVERO qualcosa: utente diverso, logout,
+      // o sessione comparsa quando il motore non è ancora agganciato.
+      // I SIGNED_IN/TOKEN_REFRESHED ripetuti con lo stesso utente non devono
+      // innescare un'altra riconciliazione completa (nel log: 2× a ogni
+      // avvio e 1× a ogni ritorno in primo piano).
+      if (uid === lastBootUid && !(uid && !me)) {
+        logSync("info",`Stato autenticazione: ${evt||"evento"} senza cambio utente, boot saltato`);
+        return;
+      }
+      lastBootUid = uid;
+      logSync("info","Stato autenticazione cambiato: nuovo boot",{evento:evt});
+      boot();
+    });
   }
   if (!window.__syncVisListenerRegistered) {
     window.__syncVisListenerRegistered = true;
@@ -727,6 +777,7 @@ async function reconcile() {
   // il target viene pushato solo da hookStorage (su cambio profilo/misure)
   // e da App.jsx (su handleUpdatePersona/handleMisureChange).
   await pullSpesa();
+  segnaReconcile();
   logSync("info","Riconciliazione con il cloud: completata");
 }
 
@@ -776,6 +827,8 @@ export async function resetSyncState() {
   // causando l'uscita "fittizia" osservata nel log (3× STATUS Uscita).
   started = false;
   me=null;pianoLock=false;lastPushedPianoSeed=0;
+  lastBootUid=null;
+  try { localStorage.removeItem(RECONCILE_GUARD_KEY); } catch {}
   // Azzera il guard anti-loop del target così al prossimo login rifarà il push
   for (const k of Object.keys(lastPushedTarget)) delete lastPushedTarget[k];
   // resetta i flag globali così un nuovo boot può ri-registrare i listener
