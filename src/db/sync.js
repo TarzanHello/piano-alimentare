@@ -49,6 +49,8 @@ let channel   = null;
 let rtBackoff = 0;       // ms, attesa prima del retry realtime: cresce sugli errori, azzerata su SUBSCRIBED
 let timers    = {};
 let pianoLock = false;   // true mentre un push piano è in corso
+let mealsLogLock = false; // true mentre un push del log pasti è in corso (+ finestra eco)
+let mealsLogDirty = 0;    // incrementato a ogni scrittura LOCALE del log pasti
 // Seed dell'ultimo piano che QUESTO dispositivo ha scritto sul cloud.
 // Serve a scartare gli echi realtime "vecchi": un pull che riporta un
 // seed più vecchio di quello appena pushato verrebbe altrimenti applicato,
@@ -149,8 +151,34 @@ async function pullMisure() {
 }
 
 async function pullMealsLog() {
+  // ── FIX eco log pasti ────────────────────────────────────────────
+  // Bug osservato sul telefono (03/07, 23:05:55→23:06:04): due azioni
+  // rapide di fila (salta colazione, poi salta spuntino) innescavano una
+  // race — l'eco realtime del push della PRIMA azione faceva un pull che
+  // sovrascriveva il blob locale con uno stato cloud privo della SECONDA
+  // azione, "smarcandola" sotto le dita dell'utente (4 tentativi in 5s).
+  // Stessa difesa già collaudata sul piano: pull rinviato finché c'è un
+  // push del log schedulato o in volo (lock tenuto ~1.5s oltre il push,
+  // per coprire l'eco), con retry differito così un aggiornamento
+  // GENUINO di un altro device non va perso.
+  if (mealsLogLock || timers.__pushLog) {
+    logSync("info","Pull log pasti: rinviato (push log in corso)");
+    clearTimeout(timers.__pullLogRetry);
+    timers.__pullLogRetry=setTimeout(()=>{delete timers.__pullLogRetry;pullMealsLog();},1800);
+    return;
+  }
+  const dirtyAlFetch = mealsLogDirty;
   const {data,error}=await supabase.from("profilo_dati").select("*").eq("chiave","meals_log");
   if (error||!data) { if(error) logSync("error","Pull log pasti: errore",{error:error.message}); return; }
+  // Il log locale è cambiato mentre il fetch era in volo (tap dell'utente):
+  // applicare la risposta ormai stantia cancellerebbe quel tap. Scarta e
+  // riprova a breve: l'eco del push in arrivo riallineerà comunque tutto.
+  if (dirtyAlFetch !== mealsLogDirty || mealsLogLock || timers.__pushLog) {
+    logSync("info","Pull log pasti: scartato (modifica locale durante il fetch)");
+    clearTimeout(timers.__pullLogRetry);
+    timers.__pullLogRetry=setTimeout(()=>{delete timers.__pullLogRetry;pullMealsLog();},1800);
+    return;
+  }
   const log=await getLocal(SK_MEALS_LOG,{});
   for (const r of data) log[r.profilo_id]=r.valore||{};
   await setLocalQuiet(SK_MEALS_LOG,JSON.stringify(log));
@@ -501,10 +529,18 @@ function hookStorage() {
         await pushTargetTuttiEditabili();
       },900);
     } else if (key===SK_MEALS_LOG) {
+      // Ogni scrittura locale invalida i pull con fetch già in volo
+      mealsLogDirty++;
       logSync("push-schedule","Push pianificato: log pasti");
       clearTimeout(timers.__pushLog);
+  clearTimeout(timers.__mealsLockRelease);clearTimeout(timers.__pullLogRetry);
+  mealsLogLock=false;mealsLogDirty=0;
       timers.__pushLog=setTimeout(async()=>{
         delete timers.__pushLog;
+        // Lock come per il piano: attivo durante il push e per ~1.5s dopo,
+        // così l'eco realtime del NOSTRO push non sovrascrive il locale.
+        mealsLogLock=true;
+        clearTimeout(timers.__mealsLockRelease);
         const log=await getLocal(SK_MEALS_LOG,{});const ps=await getLocal(SK_PERSONAS,[]);
         const rows=ps.filter(p=>editable(p)&&log[p.id]).map(p=>({profilo_id:p.id,chiave:"meals_log",valore:log[p.id]}));
         if(rows.length) {
@@ -512,6 +548,7 @@ function hookStorage() {
           if (error) logSync("error","Push log pasti: errore",{error:error.message});
           else logSync("push","Log pasti caricato sul cloud",{profili:rows.length});
         }
+        timers.__mealsLockRelease=setTimeout(()=>{mealsLogLock=false;delete timers.__mealsLockRelease;},1500);
       },900);
     }
     return r;
@@ -821,6 +858,8 @@ export async function resetSyncState() {
   clearTimeout(timers.__pushPersonas);clearTimeout(timers.__pushMisure);
   clearTimeout(timers.__pushGusti);clearTimeout(timers.__pushExcl);
   clearTimeout(timers.__pushLog);
+  clearTimeout(timers.__mealsLockRelease);clearTimeout(timers.__pullLogRetry);
+  mealsLogLock=false;mealsLogDirty=0;
   // CRITICO: resetta started così il prossimo boot() (via onAuthStateChange)
   // può ri-eseguire correttamente. Senza questo, startSync() ritorna subito
   // per il flag già true e boot() non rileva che famiglia_id è ora null —
