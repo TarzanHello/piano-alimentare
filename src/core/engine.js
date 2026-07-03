@@ -132,24 +132,77 @@ export function elasticitaIngrediente(ing) {
 
 export function clampScale(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-// Sceglie la taglia base (uomo/donna/bimbo) più vicina al target kcal.
-
+// Sceglie la taglia base (uomo/donna/bimbo) per lo scaling del giorno.
+//
+// FIX taglia irraggiungibile: il vecchio criterio guardava solo la vicinanza
+// delle kcal DI PARTENZA al target. Ma i limiti di elasticità sono relativi
+// alla base scelta (gBase × el.min/max): partendo da "bimbo", un adulto con
+// target 2000+ kcal poteva finire sistematicamente sotto target (nel log
+// reale: −12% kcal, −33% carboidrati, loss 0.149) perché l'intervallo
+// raggiungibile non copriva né le kcal né le macro richieste.
+//
+// Nuovo criterio, in due passi:
+//   1. RAGGIUNGIBILITÀ — per ogni taglia calcolo l'inviluppo [min, max] di
+//      kcal e macro ottenibile entro i limiti elastici (e i LIMITI_SCALING
+//      assoluti). La distanza del target dall'inviluppo, normalizzata e
+//      sommata sulle dimensioni, è la penalità "fuori". Nota: l'inviluppo
+//      per-ingrediente è ottimistico (le macro di un ingrediente scalano
+//      insieme), quindi non scarta mai una taglia in realtà raggiungibile —
+//      penalizza solo le violazioni certe, che è ciò che serve.
+//   2. VICINANZA — a parità di raggiungibilità (tipicamente fuori = 0),
+//      vince la base con kcal di partenza più vicine al target: è il
+//      criterio storico, che resta il tie-break.
 export function scegliTagliaBase(pastiDelGiorno, target) {
-  const kcalBase = (persona) => {
-    let k = 0;
+  const analizza = (slot) => {
+    const base = { kcal:0, p:0, c:0, g:0 };
+    const min  = { kcal:0, p:0, c:0, g:0 };
+    const max  = { kcal:0, p:0, c:0, g:0 };
     for (const ricetta of pastiDelGiorno) {
       const qty = ING_QTY[ricetta.id];
       if (!qty) continue;
+      const custom = !!qty._scaled;
       for (const [ingId, v] of Object.entries(qty)) {
-        k += nutriPerGrammi(ingId, quantitaInGrammi(ingId, v[persona], v.unit)).kcal;
+        if (ingId === '_scaled') continue;
+        const gBase = quantitaInGrammi(ingId, custom ? (v[slot] ?? v.uomo) : v[slot], v.unit);
+        if (gBase <= 0) continue;
+        // Stessi vincoli usati poi da scalaPastiGiorno:
+        // custom → fattore condiviso 0.5–2.0, nessun limite assoluto;
+        // catalogo → elasticità per categoria + eventuale LIMITI_SCALING.
+        const el  = custom ? { min: 0.5, max: 2.0 } : elasticitaIngrediente(ING_MAP[ingId]);
+        const lim = custom ? null : (LIMITI_SCALING[ingId] || null);
+        let gMin = gBase * el.min, gMax = gBase * el.max;
+        if (lim) { gMin = clampScale(gMin, lim.min, lim.max); gMax = clampScale(gMax, lim.min, lim.max); }
+        for (const [dim, g] of [["base", gBase], ["min", gMin], ["max", gMax]]) {
+          const n = nutriPerGrammi(ingId, g);
+          const acc = dim === "base" ? base : dim === "min" ? min : max;
+          acc.kcal += n.kcal; acc.p += n.p; acc.c += n.c; acc.g += n.g;
+        }
       }
     }
-    return k;
+    return { base, min, max };
   };
-  let migliore = "donna", minDiff = Infinity;
+
+  // Distanza normalizzata del target dall'inviluppo raggiungibile,
+  // sommata su kcal e macro (le dimensioni con target 0 vengono ignorate).
+  const fuoriInviluppo = ({ min, max }) => {
+    let fuori = 0;
+    for (const dim of ["kcal", "p", "c", "g"]) {
+      const t = target[dim] || 0;
+      if (t <= 0) continue;
+      if (t > max[dim])      fuori += (t - max[dim]) / t;
+      else if (t < min[dim]) fuori += (min[dim] - t) / t;
+    }
+    return fuori;
+  };
+
+  let migliore = "donna", minFuori = Infinity, minDiff = Infinity;
   for (const persona of ["uomo", "donna", "bimbo"]) {
-    const diff = Math.abs(kcalBase(persona) - target.kcal);
-    if (diff < minDiff) { minDiff = diff; migliore = persona; }
+    const a = analizza(persona);
+    const fuori = fuoriInviluppo(a);
+    const diff  = Math.abs(a.base.kcal - target.kcal);
+    if (fuori < minFuori - 1e-9 || (Math.abs(fuori - minFuori) <= 1e-9 && diff < minDiff)) {
+      minFuori = fuori; minDiff = diff; migliore = persona;
+    }
   }
   return migliore;
 }

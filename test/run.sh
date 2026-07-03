@@ -23,6 +23,12 @@ echo "▸ TEST 2 — Logica di sincronizzazione (race, anti-eco, merge)"
 node test/test_sync_logic.mjs || FAIL=1
 
 echo ""
+echo "▸ TEST 2a — Scelta taglia base (raggiungibilità target)"
+"$EB" test/test_taglia_base.mjs --bundle --format=esm --outfile=./.ttb.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
+node ./.ttb.mjs || FAIL=1
+rm -f ./.ttb.mjs
+
+echo ""
 echo "▸ TEST 2b — Spesa consumo-aware per persona"
 "$EB" test/test_spesa_consumo.mjs --bundle --format=esm --outfile=./.tsp.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
 node ./.tsp.mjs || FAIL=1
