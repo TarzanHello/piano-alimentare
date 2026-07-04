@@ -49,6 +49,35 @@ function rowToRicetta(r) {
 let caricaInFlight = null;
 function invalidaCacheRicette() { caricaInFlight = null; }
 
+// ── Ultima lista nota (persistita) ───────────────────────────────────
+// FIX resilienza: al boot la sessione può non essere ancora pronta e
+// offline le query falliscono ("Failed to fetch"). Prima si degradava a
+// lista VUOTA: il piano veniva rigenerato senza le ricette utente
+// (categorie 36/46/48/36 invece di 40/50/50/37 nel log reale) e lo swap
+// proponeva il catalogo monco. Ora l'ultima lista caricata con successo
+// è persistita e usata come fallback. La chiave è nel namespace pa__:
+// il wipe al cambio account la azzera insieme al resto dei dati locali.
+const RICETTE_CACHE_KEY = "pa__ricette-cache";
+
+export function ricetteCachePersistita() {
+  try {
+    const v = JSON.parse(localStorage.getItem(RICETTE_CACHE_KEY) || "null");
+    return Array.isArray(v) ? v : null;
+  } catch { return null; }
+}
+function salvaCacheRicette(rs) {
+  try { localStorage.setItem(RICETTE_CACHE_KEY, JSON.stringify(rs)); } catch {}
+}
+
+// Decisione pura sul risultato di un caricamento (esportata per i test):
+// successo → usa il cloud e aggiorna la cache; fallimento → ultima lista
+// nota se esiste, altrimenti lista vuota (comportamento storico).
+export function risolviRisultatoRicette({ ok, ricette, cache }) {
+  if (ok) return { ricette: ricette || [], fonte: "cloud", salva: true };
+  if (Array.isArray(cache) && cache.length) return { ricette: cache, fonte: "cache", salva: false };
+  return { ricette: [], fonte: "vuoto", salva: false };
+}
+
 export function caricaRicette() {
   if (caricaInFlight) return caricaInFlight;
   const p = caricaRicetteRaw();
@@ -62,13 +91,26 @@ export function caricaRicette() {
 async function caricaRicetteRaw() {
   if (!supabase) { logFamily("Ricette: cloud non configurato"); return []; }
   const me = getCloudMe();
-  if (!me) { logFamily("Ricette: utente non collegato, nessuna ricetta cloud"); return []; }
+  if (!me) {
+    // Spesso è solo una finestra transitoria al boot (sessione non ancora
+    // ripristinata): l'ultima lista nota evita il piano "monco".
+    const r = risolviRisultatoRicette({ ok: false, cache: ricetteCachePersistita() });
+    if (r.fonte === "cache") logFamily("Ricette: sessione non pronta, uso ultima lista nota", { n: r.ricette.length });
+    else logFamily("Ricette: utente non collegato, nessuna ricetta cloud");
+    return r.ricette;
+  }
   const { data, error } = await supabase
     .from("ricette_utente")
     .select("*")
     .order("updated_at", { ascending: false });
-  if (error) { logFamily("Ricette: errore caricamento", { error: error.message }); return []; }
+  if (error) {
+    const r = risolviRisultatoRicette({ ok: false, cache: ricetteCachePersistita() });
+    if (r.fonte === "cache") logFamily("Ricette: errore caricamento, uso ultima lista nota", { n: r.ricette.length, error: error.message });
+    else logFamily("Ricette: errore caricamento", { error: error.message });
+    return r.ricette;
+  }
   const ricette = (data || []).map(rowToRicetta);
+  salvaCacheRicette(ricette);
   const mie = ricette.filter(r => r.isMine).length;
   logFamily("Ricette caricate dal cloud", { totali: ricette.length, mie, diFamiglia: ricette.length - mie });
   return ricette;

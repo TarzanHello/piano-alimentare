@@ -12,7 +12,7 @@ import { OggiPage } from '@/features/oggi/OggiPage';
 import { MigrationWizard } from '@/features/famiglia/MigrationWizard';
 import { UtentePage } from '@/features/utente/UtentePage';
 import { startSync, autoClaimSingle, pushTargetGiornaliero } from '@/db/sync';
-import { caricaRicette } from '@/db/ricetteCloud';
+import { caricaRicette, ricetteCachePersistita } from '@/db/ricetteCloud';
 import { logSync } from '@/db/synclog';
 import { Onboarding } from '@/features/onboarding/Onboarding';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -117,11 +117,20 @@ export function App() {
   // Cache dei target giornalieri pushati dagli owner: { [profilo_id]: targetObj }
   // Usato da personaTarget per i profili non-propri (fonte di verità cloud).
   const [targetsCloud, setTargetsCloud] = useState({});
-  // Ricette personali/famiglia caricate dal cloud — alimentano il pool del piano
-  const [ricetteUtente, setRicetteUtente] = useState([]);
+  // Ricette personali/famiglia caricate dal cloud — alimentano il pool del piano.
+  // FIX flash al boot: il primo piano veniva generato PRIMA del caricamento
+  // cloud, quindi senza le ricette utente. Idratando lo stato dall'ultima
+  // lista nota persistita, la prima generazione le include già.
+  const [ricetteUtente, setRicetteUtente] = useState(() => ricetteCachePersistita() || []);
   // Set di id-ricetta esclusi dal piano: catalogo (localStorage cat-escluse) + utente (flag esclusa)
   const [ricetteEscluseIds, setRicetteEscluseIds] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem("cat-escluse")||"[]")); } catch { return new Set(); }
+    try {
+      const cat = JSON.parse(localStorage.getItem("cat-escluse")||"[]");
+      // Anche le esclusioni delle ricette utente arrivano dalla cache,
+      // così il primo piano rispetta subito i flag "esclusa"
+      const usrEscluse = (ricetteCachePersistita() || []).filter(r => r.esclusa);
+      return new Set([...cat, ...usrEscluse.map(r => "usr_" + r.id), ...usrEscluse.map(r => r.id)]);
+    } catch { return new Set(); }
   });
 
   // ── Cloud sync: avvio, stato e applicazione degli aggiornamenti remoti ──
@@ -144,7 +153,11 @@ export function App() {
           aggiornaEscluse(rs);
         }).catch(()=>{});
       } else {
-        setRicetteUtente([]);
+        // Sessione assente: al boot è spesso solo transitoria (nel log
+        // reale "Nessuna sessione" 1s prima del ripristino). Non degradare
+        // a lista vuota: il piano perderebbe le ricette utente e verrebbe
+        // rigenerato "monco". Al logout con cambio account ci pensa il
+        // wipe dei dati locali, che azzera anche la cache pa__ricette-cache.
       }
     };
     const onUpdate = async (e)=>{

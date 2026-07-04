@@ -51,6 +51,7 @@ let timers    = {};
 let pianoLock = false;   // true mentre un push piano è in corso
 let mealsLogLock = false; // true mentre un push del log pasti è in corso (+ finestra eco)
 let mealsLogDirty = 0;    // incrementato a ogni scrittura LOCALE del log pasti
+const RT_PENDING_STALE_MS = 15000; // oltre questa età un canale PENDING è considerato zombie
 // Seed dell'ultimo piano che QUESTO dispositivo ha scritto sul cloud.
 // Serve a scartare gli echi realtime "vecchi": un pull che riporta un
 // seed più vecchio di quello appena pushato verrebbe altrimenti applicato,
@@ -534,6 +535,7 @@ function hookStorage() {
       logSync("push-schedule","Push pianificato: log pasti");
       clearTimeout(timers.__pushLog);
   clearTimeout(timers.__mealsLockRelease);clearTimeout(timers.__pullLogRetry);
+  clearTimeout(timers.__rtPending);
   mealsLogLock=false;mealsLogDirty=0;
       timers.__pushLog=setTimeout(async()=>{
         delete timers.__pushLog;
@@ -562,10 +564,21 @@ function subscribeRealtime(fromRetry = false) {
   // Non ricreare il canale se è già attivo (o in corso di sottoscrizione)
   // per questa famiglia: due chiamate ravvicinate (onAuthStateChange +
   // visibilitychange) non devono spegnersi a vicenda.
-  if (channel && channel.__famId === me.famigliaId &&
-      (channel.__stato === "SUBSCRIBED" || channel.__stato === "PENDING")) {
-    logSync("realtime","Canale già attivo, sottoscrizione saltata");
-    return;
+  //
+  // FIX canale zombie: se la callback di subscribe non arriva mai (socket
+  // morto al momento della creazione), lo stato resta PENDING per sempre e
+  // questa guardia saltava OGNI risottoscrizione futura — realtime morto
+  // fino al reload dell'app. Un PENDING più vecchio di 15s non conta più
+  // come "attivo": si ricrea il canale.
+  if (channel && channel.__famId === me.famigliaId) {
+    const pendingFresco = channel.__stato === "PENDING" &&
+      (Date.now() - (channel.__pendingDa || 0)) < RT_PENDING_STALE_MS;
+    if (channel.__stato === "SUBSCRIBED" || pendingFresco) {
+      logSync("realtime","Canale già attivo, sottoscrizione saltata");
+      return;
+    }
+    if (channel.__stato === "PENDING")
+      logSync("realtime","Canale bloccato in PENDING: ricreo la sottoscrizione");
   }
   // Le chiamate "fresche" (boot, ritorno in primo piano, cambio auth) azzerano
   // il backoff così la riconnessione è immediata; solo i retry da errore lo fanno crescere.
@@ -587,7 +600,17 @@ function subscribeRealtime(fromRetry = false) {
   const myCh=supabase.channel(nomeCanale);   // istanza locale: la callback agisce SOLO su questa
   myCh.__famId = me.famigliaId;
   myCh.__stato = "PENDING";
+  myCh.__pendingDa = Date.now();
   channel=myCh;
+  // Watchdog: se dopo 15s la callback di subscribe non è mai arrivata,
+  // il canale è uno zombie → forza una nuova sottoscrizione (con backoff).
+  clearTimeout(timers.__rtPending);
+  timers.__rtPending=setTimeout(()=>{
+    if (me && myCh===channel && myCh.__stato==="PENDING") {
+      logSync("realtime","Canale mai agganciato (PENDING >15s): riprovo",{canale:nomeCanale});
+      subscribeRealtime(true);
+    }
+  }, RT_PENDING_STALE_MS);
   myCh
     .on("postgres_changes",{event:"*",schema:"public",table:"profili"},()=>{logSync("realtime","Evento ricevuto: profili");pullProfili();})
     .on("postgres_changes",{event:"*",schema:"public",table:"misure"},()=>{logSync("realtime","Evento ricevuto: misure");pullMisure();})
@@ -610,6 +633,7 @@ function subscribeRealtime(fromRetry = false) {
       logSync("realtime",`Stato canale: ${status}`,{canale:nomeCanale});
       if(status==="SUBSCRIBED"){
         rtBackoff = 0;                       // connessione ok: azzera il backoff
+        clearTimeout(timers.__rtPending);    // il watchdog anti-zombie non serve più
         console.log("[sync] Realtime attivo");
         emitStatus({loggedIn:true,inFamily:true,me,realtime:"ok"});
       } else if(status==="CHANNEL_ERROR" || status==="TIMED_OUT"){
@@ -859,6 +883,7 @@ export async function resetSyncState() {
   clearTimeout(timers.__pushGusti);clearTimeout(timers.__pushExcl);
   clearTimeout(timers.__pushLog);
   clearTimeout(timers.__mealsLockRelease);clearTimeout(timers.__pullLogRetry);
+  clearTimeout(timers.__rtPending);
   mealsLogLock=false;mealsLogDirty=0;
   // CRITICO: resetta started così il prossimo boot() (via onAuthStateChange)
   // può ri-eseguire correttamente. Senza questo, startSync() ritorna subito

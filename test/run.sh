@@ -39,6 +39,12 @@ echo "▸ TEST 2c — Eco log pasti (race push/pull)"
 node test/test_eco_log.mjs || FAIL=1
 
 echo ""
+echo "▸ TEST 2d — Resilienza ricette + canale realtime zombie"
+"$EB" test/test_resilienza.mjs --bundle --format=esm --outfile=./.tr.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
+node ./.tr.mjs || FAIL=1
+rm -f ./.tr.mjs
+
+echo ""
 echo "▸ TEST 3 — Due device + cloud (accoppiamento, propagazione, uscita)"
 "$EB" test/test_two_devices.mjs --bundle --format=esm --outfile=./.t3.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
 node ./.t3.mjs || FAIL=1

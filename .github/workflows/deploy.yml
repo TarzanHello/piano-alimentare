@@ -38,5 +38,15 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Primo tentativo: non blocca il job se fallisce (il backend Pages
+      # ogni tanto risponde "Deployment failed, try again later" per
+      # errori transitori pur avendo creato correttamente il deployment).
       - id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      # Pausa e secondo tentativo solo se il primo è fallito
+      - if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+      - id: deployment-retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
