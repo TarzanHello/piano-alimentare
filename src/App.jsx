@@ -22,6 +22,9 @@ import { cloudEnabled } from '@/db/cloud';
 import { MealCard, TotaleBar, WaterTracker } from '@/features/piano/MealParts';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
 import { ToastHost, toast } from '@/components/toast';
+import { PrivacyPage, ConsensoGate, PRIVACY_VERSIONE, serveConsenso } from '@/features/privacy/informativa';
+import { leggiConsensoCloud, salvaConsensoCloud } from '@/db/consenso';
+import { signOut } from '@/db/cloud';
 
 // Rimappa i colori-profilo legacy sul nuovo sistema verde:
 // il vecchio blu brand (#2563eb) diventa il verde brand (#2F6B3A).
@@ -99,6 +102,16 @@ export function App() {
   const [hintPiano, setHintPiano] = useState(()=>{ try { return localStorage.getItem("pa__hint-piano-ok")!=="1"; } catch { return true; } });
   // Spesa consumo-aware (per persona): default attivo, persistito
   const [spesaConsumo, setSpesaConsumo] = useState(()=>{ try { return localStorage.getItem("pa__spesa-consumo")!=="0"; } catch { return true; } });
+  // ── Consenso privacy (GDPR) ──
+  // Specchio locale per il check istantaneo; il cloud (profilo_dati,
+  // chiave "consenso") è la fonte di verità cross-device. Il gate viene
+  // mostrato solo quando la verifica è conclusa (consensoPronto) e il
+  // record manca / è revocato / è di una versione precedente.
+  const [consenso, setConsenso] = useState(()=>{
+    try { return JSON.parse(localStorage.getItem("pa__consenso")||"null"); } catch { return null; }
+  });
+  const [consensoPronto, setConsensoPronto] = useState(false);
+  const consensoCheckRef = useRef(false); // verifica cloud one-shot per sessione
   // Strumenti di diagnostica (Test Sync / Log Sync) nel menu: nascosti di
   // default, attivabili con 7 tap sul footer di Opzioni (persistito)
   const [devMode, setDevMode] = useState(()=>{ try { return localStorage.getItem("pa__dev")==="1"; } catch { return false; } });
@@ -145,6 +158,34 @@ export function App() {
       if (primoStatus) {
         primoStatus = false;
         if (!s.loggedIn) setPage("utente");
+      }
+      // Verifica del consenso privacy: cloud → specchio locale → gate.
+      // In modalità locale (non collegato) il gate non serve: i dati non
+      // lasciano il dispositivo e il Titolare non li tratta.
+      if (s.loggedIn && s.me?.profiloId) {
+        // onStatus scatta a ogni evento (anche realtime): la verifica
+        // cloud del consenso è one-shot per sessione, non un loop.
+        // NB: niente return anticipato — sotto c'è il caricamento ricette.
+        if (!consensoCheckRef.current) {
+          consensoCheckRef.current = true;
+          leggiConsensoCloud().then(cloudRec => {
+          let localRec = null;
+          try { localRec = JSON.parse(localStorage.getItem("pa__consenso")||"null"); } catch {}
+          if (cloudRec) {
+            // Il cloud comanda: allinea lo specchio locale
+            setConsenso(cloudRec);
+            try { localStorage.setItem("pa__consenso", JSON.stringify(cloudRec)); } catch {}
+          } else if (localRec && !serveConsenso(localRec, PRIVACY_VERSIONE)) {
+            // Consenso valido solo in locale (es. dato offline): riportalo sul cloud
+            setConsenso(localRec);
+            salvaConsensoCloud(localRec);
+          }
+          setConsensoPronto(true);
+        }).catch(()=>setConsensoPronto(true));
+        }
+      } else if (!s.loggedIn) {
+        consensoCheckRef.current = false;
+        setConsensoPronto(false);
       }
       // Carica le ricette utente non appena connesso (alimentano il pool del piano)
       if (s.loggedIn) {
@@ -397,6 +438,25 @@ export function App() {
       return n;
     });
   },[]);
+
+  const handleAccettaConsenso = useCallback((rec)=>{
+    setConsenso(rec);
+    try { localStorage.setItem("pa__consenso", JSON.stringify(rec)); } catch {}
+    salvaConsensoCloud(rec);
+    toast("✓ Consenso registrato");
+  },[]);
+
+  // Rifiuto dal gate e revoca da Opzioni: stessa conseguenza — le funzioni
+  // cloud richiedono il consenso, quindi si registra la revoca (prova ai
+  // fini di accountability) e si disconnette. I dati locali restano.
+  const handleRevocaConsenso = useCallback(async ()=>{
+    const rec = { ...(consenso||{}), versione: consenso?.versione||PRIVACY_VERSIONE, revocatoTs: new Date().toISOString() };
+    try { localStorage.setItem("pa__consenso", JSON.stringify(rec)); } catch {}
+    setConsenso(rec);
+    try { await salvaConsensoCloud(rec); } catch {}
+    await signOut();
+    toast("Consenso revocato: sei stato disconnesso");
+  },[consenso]);
 
   const navigaA = useCallback((p) => {
     logSync("nav", `Navigazione → ${p}`);
@@ -820,7 +880,7 @@ export function App() {
   ];
   // Pagine "secondarie" per lo stato attivo della voce Menu: include anche
   // quelle raggiungibili senza voce dedicata (famiglia, diagnostica nascosta)
-  const PAGINE_SECONDARIE = new Set([...SUBMENU.map(x=>x.key), "famiglia", "test-sync", "synclog"]);
+  const PAGINE_SECONDARIE = new Set([...SUBMENU.map(x=>x.key), "famiglia", "privacy", "test-sync", "synclog"]);
 
   // ── Primo accesso: nessuna persona → flusso di onboarding ──
   const completaOnboarding = async (p, session) => {
@@ -868,6 +928,15 @@ export function App() {
   return (
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#ECF1E2 0%,#E2EAD9 100%)",fontFamily:"'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif",paddingBottom:80}}>
       <ToastHost/>
+      {/* ── Gate consenso privacy (GDPR, art. 9) ── */}
+      {cloudEnabled && cloudStatus.loggedIn && consensoPronto
+        && serveConsenso(consenso, PRIVACY_VERSIONE) && page!=="privacy" && (
+        <ConsensoGate
+          onAccetta={handleAccettaConsenso}
+          onRifiuta={handleRevocaConsenso}
+          onLeggiInformativa={()=>setPage("privacy")}
+        />
+      )}
       {/* AVVISO NUOVA VERSIONE */}
       {swUpdate && (
         <div style={{position:"sticky",top:0,zIndex:50,background:"#235029",color:"#fff",
@@ -1212,10 +1281,12 @@ export function App() {
         {page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={handleRicetteChange} onTorna={()=>navigaA("piano")}/>}
         {page==="test-sync"&&<SyncTestPage/>}
         {page==="synclog"&&<SyncLogPage cloudStatus={cloudStatus}/>}
-        {page==="opzioni"&&<OpzioniPage devMode={devMode} onToggleDev={toggleDevMode} notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} history={history} onLoadHistory={(s)=>{ loadHistory(s); setPage("piano"); }}/>}
+        {page==="privacy"&&<PrivacyPage onTorna={()=>navigaA("opzioni")}/>}
+        {page==="opzioni"&&<OpzioniPage devMode={devMode} onToggleDev={toggleDevMode} consenso={consenso} onGoPrivacy={()=>navigaA("privacy")} onRevocaConsenso={handleRevocaConsenso} notifSettings={notifSettings} onNotifChange={handleNotifChange} plan={plan} personas={personas} myPersonaId={myPersonaId} currentSeed={seed} overrides={overrides} onApplySeed={handleApplySeed} history={history} onLoadHistory={(s)=>{ loadHistory(s); setPage("piano"); }}/>}
         {page==="misure"&&<MisurePage personas={personas} myPersonaId={myPersonaId} onMisureChange={handleMisureChange} mealsLog={mealsLog} inFamily={cloudStatus.inFamily} myUid={myUid}/>}
         {page==="utente"&&(
-          <UtentePage personas={personas} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} onGoFamiglia={()=>setPage("famiglia")} onUpdatePersona={handleUpdatePersona} misureApp={misureApp} cloudStatus={cloudStatus}/>
+          <UtentePage
+            onGoPrivacy={()=>navigaA("privacy")} personas={personas} myPersonaId={myPersonaId} onSetMyPersona={handleSetMyPersona} onGoFamiglia={()=>setPage("famiglia")} onUpdatePersona={handleUpdatePersona} misureApp={misureApp} cloudStatus={cloudStatus}/>
         )}
         {page==="famiglia"&&(
           <FamigliaPage onGoUtente={()=>setPage("utente")} personas={personas} onUpdate={handleUpdatePersona} onAdd={handleAddPersona} onDelete={handleDeletePersona}

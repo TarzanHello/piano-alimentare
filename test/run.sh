@@ -45,6 +45,18 @@ node ./.tr.mjs || FAIL=1
 rm -f ./.tr.mjs
 
 echo ""
+echo "▸ TEST 2e — Consenso privacy (versionamento e gate)"
+"$EB" test/test_consenso.mjs --bundle --format=esm --outfile=./.tc.mjs "--alias:@=$ROOT/src" --loader:.jsx=jsx --loader:.json=json --packages=external --log-level=error
+node ./.tc.mjs || FAIL=1
+rm -f ./.tc.mjs
+
+echo ""
+echo "▸ TEST 2f — Pranzo e cena intercambiabili"
+"$EB" test/test_pranzo_cena.mjs --bundle --format=esm --outfile=./.tpc.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
+node ./.tpc.mjs || FAIL=1
+rm -f ./.tpc.mjs
+
+echo ""
 echo "▸ TEST 3 — Due device + cloud (accoppiamento, propagazione, uscita)"
 "$EB" test/test_two_devices.mjs --bundle --format=esm --outfile=./.t3.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
 node ./.t3.mjs || FAIL=1

@@ -8,7 +8,7 @@ import { calcTargetAdattivo } from '@/core';
 // Tutto il lato account: accesso, disconnessione, stato della
 // sincronizzazione e identità ("chi sono io" tra le persone).
 // La pagina Famiglia resta dedicata a creare e gestire la famiglia.
-export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia, onUpdatePersona, misureApp, cloudStatus }) {
+export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia, onGoPrivacy, onUpdatePersona, misureApp, cloudStatus }) {
   const [editing, setEditing] = useState(false);
   const [session, setSession]   = useState(null);
   const [famiglia, setFamiglia] = useState(null);
@@ -111,6 +111,12 @@ export function UtentePage({ personas, myPersonaId, onSetMyPersona, onGoFamiglia
               Accedi con il tuo account Google per sincronizzare profilo, misure, piano e spesa su tutti i tuoi dispositivi e con la tua famiglia. <strong>I dati già presenti su questo dispositivo non si perdono</strong>: vengono collegati al tuo account.
             </div>
             <button disabled={busy} onClick={()=>azione(signInWithGoogle)} style={S.btn("#15251C")}>🔑 Accedi con Google</button>
+            {/* Trasparenza al punto di raccolta: informativa PRIMA del login */}
+            <div style={{fontSize:10.5,color:"#9DB1A2",lineHeight:1.6,marginTop:10}}>
+              Accedendo, i tuoi dati saranno trattati come descritto nell'{" "}
+              <span onClick={()=>onGoPrivacy&&onGoPrivacy()} style={{color:"#2F6B3A",fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>informativa privacy</span>.
+              Dopo l'accesso ti verrà chiesto il consenso esplicito per i dati sulla salute.
+            </div>
           </>
         ) : (
           <>

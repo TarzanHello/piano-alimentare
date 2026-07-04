@@ -6,7 +6,9 @@ import { DB, DEFAULT_NOTIF, MEAL_KEYS, MEAL_META, scheduleNotifications, todayDa
 import { GustiPage } from '@/features/gusti/GustiPage';
 import { cloudEnabled, getSession, deleteAccount, exportMyData } from '@/db/cloud';
 
-export function OpzioniPage({ devMode, onToggleDev, notifSettings, onNotifChange, plan, personas, myPersonaId, currentSeed, overrides, onApplySeed, history, onLoadHistory }) {
+export function OpzioniPage({ devMode, onToggleDev, consenso, onGoPrivacy, onRevocaConsenso, notifSettings, onNotifChange, plan, personas, myPersonaId, currentSeed, overrides, onApplySeed, history, onLoadHistory }) {
+  // Revoca consenso: doppio tap di conferma (comporta la disconnessione)
+  const [confermaRevoca, setConfermaRevoca] = useState(false);
   // Gesto nascosto: 7 tap ravvicinati sul footer attivano/disattivano gli
   // strumenti di diagnostica (Test Sync / Log Sync) nel menu.
   const devTaps = useRef(0);
@@ -108,7 +110,28 @@ export function OpzioniPage({ devMode, onToggleDev, notifSettings, onNotifChange
         {MEAL_KEYS.map((mk,i)=>{const cfg=settings.meals[mk]||{active:false,hour:8,minute:0};const meta=MEAL_META[mk];const todayMeal=todayPlan&&todayPlan[mk];return(<div key={mk} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 0",borderBottom:i<MEAL_KEYS.length-1?"1px solid #EFF3EC":"none"}}><div onClick={()=>toggleMeal(mk)} style={{position:"relative",width:36,height:20,borderRadius:10,background:cfg.active?"#2F6B3A":"#E7EDE2",cursor:"pointer",transition:"background 0.2s",flexShrink:0}}><div style={{position:"absolute",top:2,left:cfg.active?17:2,width:16,height:16,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 3px #0003",transition:"left 0.2s"}}/></div><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:700,color:cfg.active?"#15251C":"#9DB1A2"}}>{MICONS[mk]} {meta.label.split(" ").slice(1).join(" ")}</div>{todayMeal&&cfg.active&&<div style={{fontSize:10,color:"#6E8576",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Oggi: {todayMeal.nome}</div>}</div><div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}><input type="number" min="0" max="23" value={cfg.hour} onChange={e=>setMealTime(mk,"hour",e.target.value)} style={{width:38,padding:"5px 4px",border:"1.5px solid #E7EDE2",borderRadius:7,fontSize:14,fontFamily:"monospace",fontWeight:700,textAlign:"center",outline:"none",color:cfg.active?"#15251C":"#9DB1A2"}}/><span style={{fontWeight:800,color:"#9DB1A2"}}>:</span><input type="number" min="0" max="59" value={cfg.minute} onChange={e=>setMealTime(mk,"minute",e.target.value)} style={{width:38,padding:"5px 4px",border:"1.5px solid #E7EDE2",borderRadius:7,fontSize:14,fontFamily:"monospace",fontWeight:700,textAlign:"center",outline:"none",color:cfg.active?"#15251C":"#9DB1A2"}}/></div></div>);})}
       </div>
       {isGranted&&<div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E7EDE2",padding:"16px",marginBottom:14}}><div style={{fontSize:13,fontWeight:800,color:"#15251C",marginBottom:10}}>🧪 Test</div><button onClick={()=>{const m=todayPlan&&todayPlan["pranzo"];new Notification("🥗 Pranzo",{body:m?m.nome:"È ora di pranzo!",icon:"./icon-192.png",tag:"test"});}} style={{width:"100%",padding:"10px",borderRadius:10,border:"1.5px solid #2F6B3A30",background:"#EDF7EF",color:"#2F6B3A",fontWeight:700,fontSize:12,cursor:"pointer"}}>📣 Invia notifica di prova (Pranzo)</button></div>}
-      {cloudEnabled && hasSession && (
+      {cloudEnabled && hasSession && (<>
+        {/* ── Privacy e consenso (GDPR) ── */}
+        <div style={{background:"#fff",borderRadius:12,border:"1.5px solid #E7EDE2",padding:"14px 16px",marginBottom:12}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#15251C",marginBottom:4}}>🔒 Privacy e consenso</div>
+          <div style={{fontSize:11.5,color:"#6E8576",lineHeight:1.6,marginBottom:10}}>
+            {consenso && !consenso.revocatoTs && consenso.salute
+              ? <>Consenso al trattamento dei dati sulla salute prestato il {new Date(consenso.ts).toLocaleDateString("it-IT")} (informativa v. {consenso.versione}).</>
+              : <>Nessun consenso attivo registrato.</>}
+          </div>
+          <button onClick={onGoPrivacy}
+            style={{width:"100%",padding:"11px",borderRadius:10,border:"1.5px solid #CBE0B4",background:"#F4FAEE",color:"#2F6B3A",fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:8}}>
+            📄 Leggi l'informativa privacy
+          </button>
+          {consenso && !consenso.revocatoTs && consenso.salute && (
+            <button
+              onClick={()=>{ if (confermaRevoca) { setConfermaRevoca(false); onRevocaConsenso&&onRevocaConsenso(); } else { setConfermaRevoca(true); setTimeout(()=>setConfermaRevoca(false), 4000); } }}
+              style={{width:"100%",padding:"10px",borderRadius:10,border:`1.5px solid ${confermaRevoca?"#fca5a5":"#E7EDE2"}`,background:confermaRevoca?"#fef2f2":"transparent",color:confermaRevoca?"#b91c1c":"#6E8576",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+              {confermaRevoca ? "Confermi? Verrai disconnesso dal cloud" : "Revoca il consenso"}
+            </button>
+          )}
+        </div>
+
         <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #E7EDE2",padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
           <div style={{fontSize:13,fontWeight:800,color:"#15251C",marginBottom:4}}>📦 I miei dati</div>
           <div style={{fontSize:11,color:"#6E8576",marginBottom:14,lineHeight:1.6}}>Scarica una copia di tutti i tuoi dati in formato JSON: profili, misurazioni, ricette, dati di famiglia e i dati salvati su questo dispositivo.</div>
@@ -116,7 +139,7 @@ export function OpzioniPage({ devMode, onToggleDev, notifSettings, onNotifChange
           {expErr && <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:9,padding:"9px 12px",fontSize:11,color:"#dc2626",fontWeight:600,marginTop:10}}>{expErr}</div>}
           {expOk && !expErr && <div style={{fontSize:11,color:"#2F6B3A",fontWeight:600,marginTop:10}}>✓ Esportazione scaricata.</div>}
         </div>
-      )}
+      </>)}
       {cloudEnabled && hasSession && (
         <div style={{background:"#fff",borderRadius:14,border:"1.5px solid #F3D6D6",padding:"16px",marginBottom:14,boxShadow:"0 2px 10px #0000000a"}}>
           <div style={{fontSize:13,fontWeight:800,color:"#b91c1c",marginBottom:4}}>⚠️ Elimina account</div>

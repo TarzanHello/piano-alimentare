@@ -1,3 +1,14 @@
+// Font self-hosted (GDPR): sostituiscono il CDN Google Fonts
+import '@fontsource/outfit/400.css';
+import '@fontsource/outfit/500.css';
+import '@fontsource/outfit/600.css';
+import '@fontsource/outfit/700.css';
+import '@fontsource/outfit/800.css';
+import '@fontsource/plus-jakarta-sans/400.css';
+import '@fontsource/plus-jakarta-sans/500.css';
+import '@fontsource/plus-jakarta-sans/600.css';
+import '@fontsource/plus-jakarta-sans/700.css';
+import '@fontsource/plus-jakarta-sans/800.css';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './db/storage.js';   // imposta window.storage PRIMA dell'app

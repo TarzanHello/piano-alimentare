@@ -614,18 +614,29 @@ export function categoriaDaMealKey(mealKey) {
        : "cena";
 }
 
-export function findAlternatives(mealKey, currentMeal, minPrep, maxPrep, excludedIds, weekMealIds, personaSlot, ricetteUtente = []) {
+// Categorie da cui un pasto può pescare quando l'utente SCEGLIE una
+// ricetta (swap / Ricettario): pranzo e cena sono intercambiabili — un
+// piatto da cena può finire a pranzo e viceversa. La GENERAZIONE del
+// piano resta invece per categoria (bilanciamento invariato).
+export function categorieCompatibili(mealKey) {
   const cat = categoriaDaMealKey(mealKey);
+  return (cat === "pranzo" || cat === "cena") ? ["pranzo", "cena"] : [cat];
+}
+
+export function findAlternatives(mealKey, currentMeal, minPrep, maxPrep, excludedIds, weekMealIds, personaSlot, ricetteUtente = []) {
+  const cats = categorieCompatibili(mealKey);
+  const cat = cats.join("+");
   const currentKcal = currentMeal[personaSlot]?.kcal || 500;
   const m = meseCorrente();
 
-  // Pool unificato: ricette utente della categoria + catalogo
+  // Pool unificato: ricette utente delle categorie compatibili + catalogo
+  // (pranzo+cena insieme quando il pasto è uno dei due)
   const utenteConvertite = (ricetteUtente || [])
-    .filter(r => r.categoria === cat && !r.esclusa)
+    .filter(r => cats.includes(r.categoria) && !r.esclusa)
     .map(r => { try { return ricettaUtenteToMealObj(r); } catch { return null; } })
     .filter(Boolean);
 
-  const tuttiCandidati = [...utenteConvertite, ...(DB[cat] || [])];
+  const tuttiCandidati = [...utenteConvertite, ...cats.flatMap(c => DB[c] || [])];
 
   let scartFascia = 0, scartEscl = 0, scartStag = 0, scartStessa = 0, ammessi = 0;
   for (const r of tuttiCandidati) {

@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DB, INGREDIENTS, ING_MAP, ING_QTY, PESO_PEZZO, UNIT_OPTIONS, calcMacroEditor, categoriaDaMealKey, cloudRecipeToMeal, formattaPorzione, ingQtyToEditor, nutriPerGrammi, quantitaInGrammi, scalaPastiGiorno } from '@/core';
+import { DB, INGREDIENTS, ING_MAP, ING_QTY, PESO_PEZZO, UNIT_OPTIONS, calcMacroEditor, categoriaDaMealKey, categorieCompatibili, cloudRecipeToMeal, formattaPorzione, ingQtyToEditor, nutriPerGrammi, quantitaInGrammi, scalaPastiGiorno } from '@/core';
 import { caricaRicette } from '@/db/ricetteCloud';
 import { MealCard, WaterTracker } from '@/features/piano/MealParts';
 
@@ -649,7 +649,12 @@ function RicettarioCard({ r, personaKey, onPick, badge }) {
 
 export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onClose, cloudStatus }) {
   const cat = categoriaDaMealKey(mealKey);
-  const meta = CAT_META[cat] || { label: cat, icon: "📖" };
+  // Pranzo e cena sono intercambiabili: il ricettario di uno mostra
+  // anche le ricette dell'altro (catalogo e ricette utente/famiglia)
+  const cats = categorieCompatibili(mealKey);
+  const meta = cats.length > 1
+    ? { label: "Pranzo e cena", icon: "🍽️" }
+    : (CAT_META[cat] || { label: cat, icon: "📖" });
   const [mie, setMie] = useState([]);
   const [diFamiglia, setDiFamiglia] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -671,7 +676,7 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
     setLoading(true);
     caricaRicette().then(ricette => {
       if (!attivo) return;
-      const dellaCategoria = ricette.filter(r => r.categoria === cat);
+      const dellaCategoria = ricette.filter(r => cats.includes(r.categoria));
       setMie(dellaCategoria.filter(r => r.isMine));
       setDiFamiglia(dellaCategoria.filter(r => !r.isMine));
     }).catch(() => { if (attivo) setErrore("Impossibile caricare le ricette di famiglia."); })
@@ -682,12 +687,12 @@ export function RicettarioModal({ mealKey, currentMeal, personaKey, onPick, onCl
   // Catalogo: tutte le ricette CRA-NUT della categoria, ordinate per tempo
   // di preparazione (le più rapide prima), escludendo quella attuale.
   const catalogo = useMemo(() => {
-    return (DB[cat] || [])
+    return cats.flatMap(c => DB[c] || [])
       .filter(r => r.id !== currentMeal?.id)
       .filter(matchCatalogo)
       .slice()
       .sort((a,b) => (a.prep||0) - (b.prep||0));
-  }, [cat, currentMeal?.id, q]);
+  }, [mealKey, currentMeal?.id, q]);
 
   const handlePick = (r, isMineOrFamily) => {
     const meal = isMineOrFamily ? cloudRecipeToMeal(r, currentMeal?.id) : r;
