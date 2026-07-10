@@ -1,7 +1,7 @@
 import React from 'react';
 const { useState, useEffect, useMemo } = React;
 import { DB, INGREDIENTS, depColor, meseCorrente } from '@/core';
-import { getCustomIngredients, addCustomIngredient, deleteCustomIngredient, pullCustomIngredients } from '@/db/customIngredients';
+import { getCustomIngredients, addCustomIngredient, updateCustomIngredient, deleteCustomIngredient, pullCustomIngredients } from '@/db/customIngredients';
 import { cloudEnabled } from '@/db/cloud';
 
 const CATEGORIE = [
@@ -21,10 +21,26 @@ const FORM_EMPTY = {
   kcal: "", p: "", c: "", g: "", z: "", f: "",
 };
 
-// ─── Modale aggiunta ingrediente ──────────────────────────────────
+// ─── Modale aggiunta/modifica ingrediente ──────────────────────────
+// editing = null → creazione; editing = ingrediente custom → modifica
+// (form pre-compilato dai dati esistenti).
 
-function AddIngredientModal({ onSave, onClose }) {
-  const [form, setForm] = useState(FORM_EMPTY);
+function formFromIngredient(ing) {
+  if (!ing) return FORM_EMPTY;
+  return {
+    nome:       ing.nome ?? "",
+    cat:        ing.cat ?? "🌾 Cereali",
+    deperibile: ing.deperibile ?? 7,
+    tuttoAnno:  !ing.stagioni,
+    stagioni:   ing.stagioni ? [...ing.stagioni] : [],
+    kcal: ing.nutri?.kcal ?? "", p: ing.nutri?.p ?? "",
+    c:    ing.nutri?.c    ?? "", g: ing.nutri?.g ?? "",
+    z:    ing.nutri?.z    ?? "", f: ing.nutri?.f ?? "",
+  };
+}
+
+function AddIngredientModal({ editing = null, onSave, onClose }) {
+  const [form, setForm] = useState(() => formFromIngredient(editing));
   const [errors, setErrors] = useState({});
 
   function set(field, val) {
@@ -106,7 +122,7 @@ function AddIngredientModal({ onSave, onClose }) {
         <div style={{ width: 36, height: 4, background: "#E7EDE2", borderRadius: 2, margin: "0 auto 16px" }} />
 
         <div style={{ fontSize: 15, fontWeight: 800, color: "#15251C", marginBottom: 16 }}>
-          ➕ Nuovo ingrediente
+          {editing ? "✏️ Modifica ingrediente" : "➕ Nuovo ingrediente"}
         </div>
 
         {/* Nome */}
@@ -200,7 +216,7 @@ function AddIngredientModal({ onSave, onClose }) {
 
         {cloudEnabled && (
           <div style={{ fontSize: 10, color: "#16a34a", background: "#EEF7F0", border: "1px solid #A9DDB8", borderRadius: 7, padding: "6px 10px", marginBottom: 14 }}>
-            ☁ L'ingrediente verrà condiviso con la tua famiglia
+            ☁ {editing ? "Le modifiche verranno condivise con la tua famiglia" : "L'ingrediente verrà condiviso con la tua famiglia"}
           </div>
         )}
 
@@ -212,7 +228,7 @@ function AddIngredientModal({ onSave, onClose }) {
           <button onClick={handleSave} style={{
             flex: 2, padding: "11px", borderRadius: 10, border: "none",
             background: "#2F6B3A", fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer",
-          }}>Salva ingrediente</button>
+          }}>{editing ? "Salva modifiche" : "Salva ingrediente"}</button>
         </div>
       </div>
     </div>
@@ -226,6 +242,7 @@ export function IngredientiPage({ excluded, onToggle }) {
   const [filterCat, setFilterCat]       = useState("Tutte");
   const [customList, setCustomList]     = useState(() => getCustomIngredients());
   const [showModal, setShowModal]       = useState(false);
+  const [editIng, setEditIng]           = useState(null);   // ingrediente custom in modifica
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [syncing, setSyncing]           = useState(false);
 
@@ -260,9 +277,11 @@ export function IngredientiPage({ excluded, onToggle }) {
   const nExcluded = excluded.length;
 
   async function handleSave(data) {
-    await addCustomIngredient(data);
+    if (editIng) await updateCustomIngredient(editIng.id, data);
+    else         await addCustomIngredient(data);
     setCustomList(getCustomIngredients());
     setShowModal(false);
+    setEditIng(null);
   }
 
   async function handleDelete(id) {
@@ -395,9 +414,14 @@ export function IngredientiPage({ excluded, onToggle }) {
                         <span style={{ fontSize: 10, background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 5, padding: "2px 6px", fontWeight: 700 }}>Escluso</span>
                       )}
                       {ing.custom && (
-                        <button onClick={() => setConfirmDelete(ing.id)}
-                          style={{ fontSize: 14, background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "2px 4px", lineHeight: 1 }}
-                          title="Elimina">🗑</button>
+                        <>
+                          <button onClick={() => { setEditIng(ing); setShowModal(true); }}
+                            style={{ fontSize: 14, background: "none", border: "none", color: "#2F6B3A", cursor: "pointer", padding: "2px 4px", lineHeight: 1 }}
+                            title="Modifica">✏️</button>
+                          <button onClick={() => setConfirmDelete(ing.id)}
+                            style={{ fontSize: 14, background: "none", border: "none", color: "#dc2626", cursor: "pointer", padding: "2px 4px", lineHeight: 1 }}
+                            title="Elimina">🗑</button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -408,8 +432,15 @@ export function IngredientiPage({ excluded, onToggle }) {
         ));
       })()}
 
-      {/* Modale aggiunta */}
-      {showModal && <AddIngredientModal onSave={handleSave} onClose={() => setShowModal(false)} />}
+      {/* Modale aggiunta/modifica */}
+      {showModal && (
+        <AddIngredientModal
+          key={editIng?.id || "new"}
+          editing={editIng}
+          onSave={handleSave}
+          onClose={() => { setShowModal(false); setEditIng(null); }}
+        />
+      )}
 
       {/* Conferma eliminazione */}
       {confirmDelete && (
