@@ -6293,7 +6293,8 @@
   "deperibile": 7,
   "stagioni": null,
   "tags": [
-   "secca"
+   "secca",
+   "uvetta"
   ],
   "nutrizione": {
    "p": 1.9,
@@ -6908,7 +6909,9 @@
    "muscolo",
    "per",
    "spalla",
-   "spezzatino"
+   "spezzatino",
+   "macinato",
+   "polpette"
   ],
   "nutrizione": {
    "p": 21.5,
@@ -15670,6 +15673,73 @@
    "f": 2,
    "kcal": 80,
    "fonte": "Zenzero (stima)*"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "db_piadina_integrale",
+  "nome": "Piadina / Tortilla integrale",
+  "cat": "🌾 Cereali",
+  "deperibile": 30,
+  "stagioni": null,
+  "tags": [
+   "piadina",
+   "tortilla",
+   "wrap",
+   "integrale"
+  ],
+  "nutrizione": {
+   "p": 8.5,
+   "c": 48,
+   "z": 3,
+   "g": 7,
+   "f": 5,
+   "kcal": 288,
+   "fonte": "Piadina integrale (media commerciale)"
+  },
+  "pesoPezzoG": 40
+ },
+ {
+  "id": "db_hummus_di_ceci",
+  "nome": "Hummus di ceci",
+  "cat": "🫘 Legumi",
+  "deperibile": 5,
+  "stagioni": null,
+  "tags": [
+   "hummus",
+   "ceci",
+   "tahina"
+  ],
+  "nutrizione": {
+   "p": 7.5,
+   "c": 14,
+   "z": 1,
+   "g": 17.5,
+   "f": 5.5,
+   "kcal": 250,
+   "fonte": "Hummus di ceci (media commerciale)"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "db_salsa_teriyaki",
+  "nome": "Salsa teriyaki",
+  "cat": "🧂 Dispensa",
+  "deperibile": 180,
+  "stagioni": null,
+  "tags": [
+   "teriyaki",
+   "salsa",
+   "soia"
+  ],
+  "nutrizione": {
+   "p": 4,
+   "c": 22,
+   "z": 18,
+   "g": 0.2,
+   "f": 0.1,
+   "kcal": 108,
+   "fonte": "Salsa teriyaki (media commerciale)"
   },
   "pesoPezzoG": null
  }

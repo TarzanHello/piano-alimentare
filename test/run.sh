@@ -23,6 +23,16 @@ echo "▸ TEST 2 — Logica di sincronizzazione (race, anti-eco, merge)"
 node test/test_sync_logic.mjs || FAIL=1
 
 echo ""
+echo "▸ TEST 2g — Allineamento ricette ↔ ingredienti (ID, porzioni, semantica)"
+node test/test_allineamento.mjs || FAIL=1
+
+echo ""
+echo "▸ TEST 2h — Ricetta → ingrediente (nutriPer100DaQuantita)"
+"$EB" test/test_ricetta_ingrediente.mjs --bundle --format=esm --outfile=./.tri.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
+node ./.tri.mjs || FAIL=1
+rm -f ./.tri.mjs
+
+echo ""
 echo "▸ TEST 2a — Scelta taglia base (raggiungibilità target)"
 "$EB" test/test_taglia_base.mjs --bundle --format=esm --outfile=./.ttb.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
 node ./.ttb.mjs || FAIL=1

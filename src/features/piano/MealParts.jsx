@@ -347,6 +347,14 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
           </div>
         )}
 
+        {/* Preparazione (se la ricetta la fornisce) — visibile a card espansa */}
+        {open && meal.preparazione && (
+          <div style={{marginTop:6,background:"#F5F8F1",border:"1px solid #E7EDE2",borderRadius:8,padding:"8px 12px",fontSize:11.5,color:"#5B6E62",lineHeight:1.5}}>
+            <span style={{fontWeight:700,color:"#2F6B3A",fontSize:10,textTransform:"uppercase",letterSpacing:0.8}}>🍳 Preparazione · </span>
+            {meal.preparazione}
+          </div>
+        )}
+
         {/* Reset override */}
         {isOverride && !swapOpen && (
           <div style={{display:"flex",gap:6,marginTop:8}}>

@@ -124,9 +124,9 @@
    "db_banane"
   ],
   "porzioni": {
-   "uomo": "3 pancakes grandi · 60g avena · 2 uova · 1 banana matura schiacciata · pizzico bicarbonato · pizzico sale · padella antiaderente a fuoco medio",
-   "donna": "2 pancakes · 45g avena · 1 uovo · ½ banana · stesso processo",
-   "bimbo": "1 pancake · 25g avena · 1 uovo · ½ banana · tagliato a pezzetti"
+   "uomo": "3 pancakes · 60g avena · 2 uova · 1 banana",
+   "donna": "2 pancakes · 45g avena · 1 uovo · ½ banana",
+   "bimbo": "1 pancake · 25g avena · 1 uovo · ½ banana"
   },
   "uomo": {
    "kcal": 430,
@@ -166,7 +166,8 @@
     "bimbo": 0.5,
     "unit": "pz"
    }
-  }
+  },
+  "preparazione": "Frulla avena, uova e banana matura con un pizzico di bicarbonato e sale; cuoci i pancakes in padella antiaderente a fuoco medio."
  },
  {
   "id": "col_04",
@@ -718,7 +719,7 @@
    "ing_mista"
   ],
   "porzioni": {
-   "uomo": "150g mango · 1 banana · 150g yogurt · 30g avena · 15g granola",
+   "uomo": "150g mango · 1 banana · 150g yogurt · 30g avena · 15g frutta secca",
    "donna": "100g mango · ½ banana · 120g yogurt · 25g avena",
    "bimbo": "80g mango · ½ banana · 70g yogurt · 15g avena"
   },
@@ -990,9 +991,9 @@
    "db_miele"
   ],
   "porzioni": {
-   "uomo": "60g avena · 2 uova · pizzico bicarbonato · sale → pastella. In padella a parte: 3 albicocche a metà con 1 cucchiaino miele, 2 min per lato. Impila pancakes e appoggia le albicocche sopra",
-   "donna": "45g avena · 1 uovo · 2 albicocche caramellate",
-   "bimbo": "25g avena · 1 uovo · 1 albicocca a fettine fresche (non caramellate)"
+   "uomo": "60g avena · 2 uova · 3 albicocche · 8g miele",
+   "donna": "45g avena · 1 uovo · 2 albicocche",
+   "bimbo": "25g avena · 1 uovo · 1 albicocca fresca a fettine"
   },
   "uomo": {
    "kcal": 410,
@@ -1038,7 +1039,8 @@
     "bimbo": 0,
     "unit": "g"
    }
-  }
+  },
+  "preparazione": "Prepara la pastella con avena, uova, bicarbonato e sale e cuoci i pancakes. In una padella a parte caramella le albicocche a metà con il miele, 2 min per lato, e appoggiale sopra."
  },
  {
   "id": "col_18",
@@ -1372,9 +1374,9 @@
    "db_yogurt_greco_da_latte_intero"
   ],
   "porzioni": {
-   "uomo": "La sera: 80g avena in 200ml latte, copri e metti in frigo. Mattina: scalda 2 min in padella o microonde, aggiungi 80g mirtilli e 1 cucchiaino miele · topping 50g yogurt greco",
-   "donna": "La sera: 60g avena in 160ml latte. Mattina: scalda, aggiungi 60g mirtilli · 30g yogurt",
-   "bimbo": "La sera: 30g avena in 100ml latte. Mattina: scalda, aggiungi 40g mirtilli schiacciati"
+   "uomo": "80g avena · 100ml latte · 80g mirtilli · 120g yogurt greco · 8g miele",
+   "donna": "60g avena · 80ml latte · 60g mirtilli · 90g yogurt greco",
+   "bimbo": "30g avena · 60ml latte · 40g mirtilli schiacciati · 50g yogurt"
   },
   "uomo": {
    "kcal": 527,
@@ -1426,7 +1428,8 @@
     "bimbo": 0,
     "unit": "g"
    }
-  }
+  },
+  "preparazione": "La sera metti l'avena nel latte, copri e lascia in frigo. La mattina scalda 2 min in padella o al microonde e completa con mirtilli, miele e yogurt."
  },
  {
   "id": "col_24",
@@ -1500,7 +1503,7 @@
   "porzioni": {
    "uomo": "1 mela · 20g mandorle",
    "donna": "1 mela · 15g mandorle",
-   "bimbo": "½ banana · 5g mandorle tritate"
+   "bimbo": "½ mela · 5g mandorle tritate"
   },
   "uomo": {
    "kcal": 200,
@@ -1636,30 +1639,30 @@
   "nome": "Carote + hummus",
   "ingredients": [
    "db_carote_crude",
-   "db_ceci_in_scatola_scolati"
+   "db_hummus_di_ceci"
   ],
   "porzioni": {
-   "uomo": "150g carote · 60g hummus",
-   "donna": "150g carote · 40g hummus",
-   "bimbo": "80g carote · 20g hummus"
+   "uomo": "150g carote · 40g hummus",
+   "donna": "150g carote · 30g hummus",
+   "bimbo": "80g carote · 15g hummus"
   },
   "uomo": {
-   "kcal": 112,
-   "p": 6,
-   "c": 20,
-   "g": 2
+   "kcal": 152,
+   "p": 5,
+   "c": 17,
+   "g": 8
   },
   "donna": {
-   "kcal": 92,
+   "kcal": 127,
    "p": 4,
-   "c": 17,
-   "g": 1
+   "c": 16,
+   "g": 5
   },
   "bimbo": {
-   "kcal": 48,
+   "kcal": 66,
    "p": 2,
-   "c": 9,
-   "g": 1
+   "c": 8,
+   "g": 3
   },
   "categoria": "spuntino",
   "quantita": {
@@ -1669,10 +1672,10 @@
     "bimbo": 80,
     "unit": "g"
    },
-   "db_ceci_in_scatola_scolati": {
-    "uomo": 60,
-    "donna": 40,
-    "bimbo": 20,
+   "db_hummus_di_ceci": {
+    "uomo": 40,
+    "donna": 30,
+    "bimbo": 15,
     "unit": "g"
    }
   }
@@ -1683,7 +1686,8 @@
   "nome": "Pane integrale + avocado",
   "ingredients": [
    "db_pane_di_tipo_integrale",
-   "ing_avocado"
+   "ing_avocado",
+   "db_limoni"
   ],
   "porzioni": {
    "uomo": "40g pane · ½ avocado · limone",
@@ -1732,7 +1736,7 @@
    "ing_mista"
   ],
   "porzioni": {
-   "uomo": "30g mix mandorle/noci/anacardi",
+   "uomo": "30g mix di frutta secca",
    "donna": "20g mix",
    "bimbo": "10g mix tritato"
   },
@@ -1965,32 +1969,32 @@
   "nome": "Crackers di riso + hummus + verdure crude",
   "ingredients": [
    "ing_crackers",
-   "db_ceci_in_scatola_scolati",
+   "db_hummus_di_ceci",
    "db_peperoni_crudi",
-   "db_carote_crude"
+   "db_sedano_crudo"
   ],
   "porzioni": {
-   "uomo": "4 crackers · 60g hummus · sedano e peperone",
-   "donna": "3 crackers · 40g hummus · verdure",
-   "bimbo": "2 crackers · 20g hummus"
+   "uomo": "4 crackers · 30g hummus · sedano e peperoni",
+   "donna": "3 crackers · 20g hummus · sedano e peperoni",
+   "bimbo": "2 crackers · 10g hummus · sedano"
   },
   "uomo": {
-   "kcal": 276,
-   "p": 9,
-   "c": 46,
-   "g": 8
+   "kcal": 279,
+   "p": 8,
+   "c": 38,
+   "g": 12
   },
   "donna": {
-   "kcal": 213,
+   "kcal": 211,
    "p": 7,
-   "c": 36,
-   "g": 6
+   "c": 29,
+   "g": 9
   },
   "bimbo": {
-   "kcal": 119,
+   "kcal": 118,
    "p": 3,
-   "c": 20,
-   "g": 3
+   "c": 17,
+   "g": 4
   },
   "categoria": "spuntino",
   "quantita": {
@@ -2000,19 +2004,19 @@
     "bimbo": 20,
     "unit": "g"
    },
-   "db_ceci_in_scatola_scolati": {
-    "uomo": 60,
-    "donna": 40,
-    "bimbo": 20,
-    "unit": "g"
-   },
    "db_peperoni_crudi": {
     "uomo": 80,
     "donna": 80,
     "bimbo": 0,
     "unit": "g"
    },
-   "db_carote_crude": {
+   "db_hummus_di_ceci": {
+    "uomo": 30,
+    "donna": 20,
+    "bimbo": 10,
+    "unit": "g"
+   },
+   "db_sedano_crudo": {
     "uomo": 80,
     "donna": 80,
     "bimbo": 40,
@@ -2322,31 +2326,31 @@
   "nome": "Sedano + hummus di ceci",
   "ingredients": [
    "db_sedano_crudo",
-   "db_ceci_in_scatola_scolati",
+   "db_hummus_di_ceci",
    "db_olio_di_oliva_extra_vergine"
   ],
   "porzioni": {
-   "uomo": "3 gambi sedano · 60g hummus",
-   "donna": "3 gambi sedano · 40g hummus",
-   "bimbo": "2 gambi sedano · 25g hummus"
+   "uomo": "3 gambi sedano · 40g hummus · filo d'EVO",
+   "donna": "3 gambi sedano · 30g hummus · filo d'EVO",
+   "bimbo": "2 gambi sedano · 15g hummus"
   },
   "uomo": {
-   "kcal": 129,
-   "p": 7,
-   "c": 11,
-   "g": 7
+   "kcal": 169,
+   "p": 6,
+   "c": 8,
+   "g": 13
   },
   "donna": {
-   "kcal": 109,
+   "kcal": 144,
    "p": 5,
-   "c": 8,
-   "g": 6
+   "c": 7,
+   "g": 10
   },
   "bimbo": {
-   "kcal": 41,
-   "p": 4,
-   "c": 5,
-   "g": 1
+   "kcal": 54,
+   "p": 3,
+   "c": 4,
+   "g": 3
   },
   "categoria": "spuntino",
   "quantita": {
@@ -2356,17 +2360,17 @@
     "bimbo": 2,
     "unit": "pz"
    },
-   "db_ceci_in_scatola_scolati": {
-    "uomo": 60,
-    "donna": 40,
-    "bimbo": 25,
-    "unit": "g"
-   },
    "db_olio_di_oliva_extra_vergine": {
     "uomo": 0.5,
     "donna": 0.5,
     "bimbo": 0,
     "unit": "cucchiaio"
+   },
+   "db_hummus_di_ceci": {
+    "uomo": 40,
+    "donna": 30,
+    "bimbo": 15,
+    "unit": "g"
    }
   }
  },
@@ -2527,7 +2531,7 @@
    "db_formaggio_cremoso_spalmabile"
   ],
   "porzioni": {
-   "uomo": "40g pane · 40g philadelphia · erba cipollina",
+   "uomo": "40g pane · 40g philadelphia",
    "donna": "30g pane · 30g philadelphia",
    "bimbo": "20g pane · 20g philadelphia"
   },
@@ -2668,7 +2672,7 @@
    "db_farro",
    "db_tonno_in_salamoia_sgocciolato",
    "db_pomodori_maturi",
-   "db_lattuga",
+   "db_rughetta_o_rucola",
    "db_olive_nere",
    "db_olio_di_oliva_extra_vergine"
   ],
@@ -2678,21 +2682,21 @@
    "bimbo": "40g farro · 60g tonno · 80g pomodorini · 10g olive"
   },
   "uomo": {
-   "kcal": 698,
+   "kcal": 702,
    "p": 58,
-   "c": 74,
+   "c": 75,
    "g": 21
   },
   "donna": {
-   "kcal": 488,
+   "kcal": 492,
    "p": 43,
-   "c": 53,
+   "c": 54,
    "g": 13
   },
   "bimbo": {
-   "kcal": 240,
+   "kcal": 243,
    "p": 23,
-   "c": 30,
+   "c": 31,
    "g": 4
   },
   "categoria": "pranzo",
@@ -2715,12 +2719,6 @@
     "bimbo": 80,
     "unit": "g"
    },
-   "db_lattuga": {
-    "uomo": 50,
-    "donna": 50,
-    "bimbo": 30,
-    "unit": "g"
-   },
    "db_olive_nere": {
     "uomo": 30,
     "donna": 20,
@@ -2732,6 +2730,12 @@
     "donna": 0.5,
     "bimbo": 0,
     "unit": "cucchiaio"
+   },
+   "db_rughetta_o_rucola": {
+    "uomo": 50,
+    "donna": 50,
+    "bimbo": 30,
+    "unit": "g"
    }
   }
  },
@@ -3137,7 +3141,7 @@
    "db_pollo_petto_crudo",
    "ing_avocado",
    "db_pomodori_maturi",
-   "db_lattuga",
+   "db_rughetta_o_rucola",
    "db_pane_di_tipo_integrale",
    "db_olio_di_oliva_extra_vergine"
   ],
@@ -3147,21 +3151,21 @@
    "bimbo": "70g pollo · pomodorini · 25g pane · 1 cucchiaino EVO"
   },
   "uomo": {
-   "kcal": 604,
+   "kcal": 608,
    "p": 52,
-   "c": 37,
+   "c": 38,
    "g": 29
   },
   "donna": {
-   "kcal": 395,
+   "kcal": 400,
    "p": 38,
-   "c": 29,
+   "c": 30,
    "g": 15
   },
   "bimbo": {
-   "kcal": 147,
+   "kcal": 150,
    "p": 20,
-   "c": 16,
+   "c": 17,
    "g": 1
   },
   "categoria": "pranzo",
@@ -3184,12 +3188,6 @@
     "bimbo": 80,
     "unit": "g"
    },
-   "db_lattuga": {
-    "uomo": 50,
-    "donna": 50,
-    "bimbo": 30,
-    "unit": "g"
-   },
    "db_pane_di_tipo_integrale": {
     "uomo": 60,
     "donna": 45,
@@ -3201,6 +3199,12 @@
     "donna": 0.5,
     "bimbo": 0,
     "unit": "cucchiaio"
+   },
+   "db_rughetta_o_rucola": {
+    "uomo": 50,
+    "donna": 50,
+    "bimbo": 30,
+    "unit": "g"
    }
   }
  },
@@ -3338,43 +3342,37 @@
   "prep": 20,
   "nome": "Wrap integrale + pollo + verdure grigliate + hummus",
   "ingredients": [
-   "db_pane_di_tipo_integrale",
+   "db_piadina_integrale",
    "db_pollo_petto_crudo",
    "db_peperoni_crudi",
    "db_zucchine_crude",
-   "db_ceci_in_scatola_scolati"
+   "db_hummus_di_ceci"
   ],
   "porzioni": {
-   "uomo": "2 wrap · 160g pollo · 150g verdure · 50g hummus",
-   "donna": "1 wrap · 120g pollo · 150g verdure · 30g hummus",
-   "bimbo": "½ wrap · 60g pollo · verdure"
+   "uomo": "2 wrap · 160g pollo · 150g verdure grigliate · 40g hummus",
+   "donna": "1 wrap · 120g pollo · 150g verdure grigliate · 30g hummus",
+   "bimbo": "½ wrap · 60g pollo · verdure grigliate"
   },
   "uomo": {
-   "kcal": 415,
+   "kcal": 516,
    "p": 48,
-   "c": 50,
-   "g": 4
+   "c": 48,
+   "g": 14
   },
   "donna": {
-   "kcal": 310,
-   "p": 36,
-   "c": 38,
-   "g": 3
+   "kcal": 336,
+   "p": 35,
+   "c": 28,
+   "g": 10
   },
   "bimbo": {
-   "kcal": 163,
-   "p": 18,
-   "c": 22,
-   "g": 1
+   "kcal": 131,
+   "p": 17,
+   "c": 12,
+   "g": 2
   },
   "categoria": "pranzo",
   "quantita": {
-   "db_pane_di_tipo_integrale": {
-    "uomo": 80,
-    "donna": 60,
-    "bimbo": 40,
-    "unit": "g"
-   },
    "db_pollo_petto_crudo": {
     "uomo": 160,
     "donna": 120,
@@ -3393,8 +3391,14 @@
     "bimbo": 40,
     "unit": "g"
    },
-   "db_ceci_in_scatola_scolati": {
-    "uomo": 50,
+   "db_piadina_integrale": {
+    "uomo": 80,
+    "donna": 40,
+    "bimbo": 20,
+    "unit": "g"
+   },
+   "db_hummus_di_ceci": {
+    "uomo": 40,
     "donna": 30,
     "bimbo": 0,
     "unit": "g"
@@ -3613,9 +3617,9 @@
    "ing_spezie"
   ],
   "porzioni": {
-   "uomo": "Soffriggi cipolla in EVO, aggiungi 350g zucca a cubetti + 350ml brodo, cuoci 20 min, frulla. Fuori dal fuoco aggiungi 80g ricotta e mescola. Servi con 60g crostini tostati e noce moscata",
-   "donna": "300ml vellutata · 50g ricotta · 40g crostini · EVO",
-   "bimbo": "180ml vellutata · 25g ricotta · 25g pane a dadini"
+   "uomo": "350g zucca · 350ml brodo · 60g cipolla · 80g ricotta · 60g pane per crostini · 1 cucchiaio EVO",
+   "donna": "280g zucca · 280ml brodo · 60g cipolla · 50g ricotta · 40g pane per crostini · ½ cucchiaio EVO",
+   "bimbo": "180g zucca · 180ml brodo · 25g ricotta · 25g pane a dadini"
   },
   "uomo": {
    "kcal": 434,
@@ -3673,7 +3677,8 @@
     "bimbo": 0,
     "unit": "cucchiaio"
    }
-  }
+  },
+  "preparazione": "Soffriggi la cipolla in EVO, aggiungi la zucca a cubetti e il brodo, cuoci 20 min e frulla. Fuori dal fuoco manteca con la ricotta. Servi con i crostini tostati e noce moscata."
  },
  {
   "id": "pra_16",
@@ -3762,9 +3767,9 @@
    "db_olio_di_oliva_extra_vergine"
   ],
   "porzioni": {
-   "uomo": "Porta a bollore acqua salata con alloro. Immergi il polpo tenendo il tentacolo e rilascialo 3 volte (si arriccia). Cuoci 45 min a fuoco basso, spegni e lascia raffreddare nell'acqua 15 min. Taglia a pezzi. Servi con 200g patate lessate a dadini, prezzemolo tritato, limone e EVO",
-   "donna": "160g polpo cotto · 150g patate · prezzemolo abbondante · EVO",
-   "bimbo": "80g polpo cotto · 100g patate · limone leggero"
+   "uomo": "220g polpo · 200g patate · prezzemolo · ½ limone · 1 cucchiaio EVO",
+   "donna": "160g polpo · 150g patate · prezzemolo · ½ limone · ½ cucchiaio EVO",
+   "bimbo": "80g polpo · 100g patate · limone leggero"
   },
   "uomo": {
    "kcal": 389,
@@ -3810,7 +3815,8 @@
     "bimbo": 0,
     "unit": "cucchiaio"
    }
-  }
+  },
+  "preparazione": "Porta a bollore acqua salata con alloro; immergi il polpo 3 volte tenendolo per un tentacolo (si arriccia), poi cuoci 45 min a fuoco basso. Spegni e lascia raffreddare nell'acqua 15 min. Taglia a pezzi e condisci con le patate lessate, prezzemolo, limone ed EVO."
  },
  {
   "id": "pra_18",
@@ -4059,32 +4065,32 @@
    "db_finocchi_crudi",
    "db_arance",
    "db_gamberi_freschi",
-   "db_lattuga",
+   "db_rughetta_o_rucola",
    "db_olive_nere",
    "db_olio_di_oliva_extra_vergine",
    "db_limoni"
   ],
   "porzioni": {
-   "uomo": "180g gamberi sgusciati saltati in padella 3 min · 1 finocchio affettato sottile · 1 arancia a vivo · manciata rucola · 20g olive · limone · EVO",
-   "donna": "130g gamberi · 1 finocchio · 1 arancia · rucola · 15g olive · EVO",
-   "bimbo": "80g gamberi · ½ finocchio · spicchi arancia · 8g olive"
+   "uomo": "180g gamberi · 200g finocchio · 1 arancia · 50g rucola · 20g olive · 1 cucchiaio EVO",
+   "donna": "130g gamberi · 180g finocchio · 1 arancia · 50g rucola · 15g olive · ½ cucchiaio EVO",
+   "bimbo": "80g gamberi · ½ finocchio · ½ arancia · 30g rucola · 8g olive"
   },
   "uomo": {
-   "kcal": 347,
+   "kcal": 352,
    "p": 29,
-   "c": 21,
+   "c": 22,
    "g": 17
   },
   "donna": {
-   "kcal": 253,
+   "kcal": 258,
    "p": 22,
-   "c": 19,
+   "c": 20,
    "g": 10
   },
   "bimbo": {
-   "kcal": 118,
+   "kcal": 121,
    "p": 13,
-   "c": 10,
+   "c": 11,
    "g": 3
   },
   "categoria": "pranzo",
@@ -4107,12 +4113,6 @@
     "bimbo": 0.5,
     "unit": "pz"
    },
-   "db_lattuga": {
-    "uomo": 50,
-    "donna": 50,
-    "bimbo": 30,
-    "unit": "g"
-   },
    "db_olive_nere": {
     "uomo": 20,
     "donna": 15,
@@ -4124,8 +4124,15 @@
     "donna": 0.5,
     "bimbo": 0,
     "unit": "cucchiaio"
+   },
+   "db_rughetta_o_rucola": {
+    "uomo": 50,
+    "donna": 50,
+    "bimbo": 30,
+    "unit": "g"
    }
-  }
+  },
+  "preparazione": "Salta i gamberi in padella 3 min. Componi l'insalata con il finocchio affettato sottile, l'arancia a vivo, rucola e olive; condisci con limone ed EVO."
  },
  {
   "id": "pra_22",
@@ -4421,8 +4428,8 @@
    "db_olio_di_oliva_extra_vergine"
   ],
   "porzioni": {
-   "uomo": "⚠️ Prep il giorno prima: tieni il baccalà in ammollo in acqua fredda 24-48h cambiando l'acqua ogni 8h. Al momento: 100g pasta · 180g baccalà dissalato a pezzi · 200g broccoli · aglio · peperoncino · EVO",
-   "donna": "70g pasta · 130g baccalà dissalato · 200g broccoli · EVO",
+   "uomo": "100g pasta · 180g baccalà · 200g broccoli · aglio · peperoncino · 1 cucchiaio EVO",
+   "donna": "70g pasta · 130g baccalà · 200g broccoli · aglio · ½ cucchiaio EVO",
    "bimbo": "50g pasta · 70g baccalà · 120g broccoli (senza peperoncino)"
   },
   "uomo": {
@@ -4475,7 +4482,8 @@
     "bimbo": 0,
     "unit": "cucchiaio"
    }
-  }
+  },
+  "preparazione": "⚠️ Il giorno prima: tieni il baccalà in ammollo in acqua fredda 24–48h cambiando l'acqua ogni 8h. Poi cuoci la pasta, salta il baccalà a pezzi con aglio, peperoncino ed EVO e unisci i broccoli."
  },
  {
   "id": "pra_27",
@@ -5112,29 +5120,30 @@
   "ingredients": [
    "db_salmone_fresco",
    "db_riso_integrale_crudo",
-   "ing_edamame"
+   "ing_edamame",
+   "db_salsa_teriyaki"
   ],
   "porzioni": {
-   "uomo": "200g salmone · 90g riso · 80g edamame · salsa teriyaki light",
-   "donna": "150g salmone · 65g riso · 60g edamame",
-   "bimbo": "80g salmone · 40g riso · 30g edamame"
+   "uomo": "200g salmone · 90g riso · 80g edamame · 15g salsa teriyaki",
+   "donna": "150g salmone · 65g riso · 60g edamame · 10g salsa teriyaki",
+   "bimbo": "80g salmone · 40g riso · 30g edamame · 5g salsa teriyaki"
   },
   "uomo": {
-   "kcal": 773,
-   "p": 52,
-   "c": 79,
+   "kcal": 789,
+   "p": 53,
+   "c": 82,
    "g": 26
   },
   "donna": {
-   "kcal": 572,
+   "kcal": 583,
    "p": 39,
-   "c": 58,
+   "c": 60,
    "g": 20
   },
   "bimbo": {
-   "kcal": 320,
+   "kcal": 325,
    "p": 21,
-   "c": 35,
+   "c": 36,
    "g": 11
   },
   "categoria": "cena",
@@ -5155,6 +5164,12 @@
     "uomo": 80,
     "donna": 60,
     "bimbo": 30,
+    "unit": "g"
+   },
+   "db_salsa_teriyaki": {
+    "uomo": 15,
+    "donna": 10,
+    "bimbo": 5,
     "unit": "g"
    }
   }
@@ -5294,9 +5309,9 @@
    "db_olio_di_oliva_extra_vergine"
   ],
   "porzioni": {
-   "uomo": "400ml zuppa (200g ceci) · 60g pane · 1 cucchiaio EVO",
-   "donna": "300ml zuppa (150g ceci) · 40g pane · 1 cucchiaino EVO",
-   "bimbo": "200ml zuppa · 25g pane"
+   "uomo": "400ml zuppa (200g ceci) · 60g crostini · 1 cucchiaio EVO",
+   "donna": "300ml zuppa (150g ceci) · 40g crostini · 1 cucchiaino EVO",
+   "bimbo": "200ml zuppa · 25g crostini"
   },
   "uomo": {
    "kcal": 561,
@@ -5911,9 +5926,9 @@
    "db_olio_di_oliva_extra_vergine"
   ],
   "porzioni": {
-   "uomo": "⚠️ Prep il giorno prima: baccalà in ammollo 24-48h in acqua fredda, cambia l'acqua ogni 8h. Al momento: 220g baccalà a pezzi rosolato in EVO con aglio · aggiungi 150g ceci, 120g datterini, capperi · cuoci 10 min",
-   "donna": "160g baccalà · 100g ceci · pomodorini · capperi · EVO",
-   "bimbo": "80g baccalà · 70g ceci · pomodorini (senza capperi)"
+   "uomo": "220g baccalà · 150g ceci · 120g datterini · 15g capperi · 1 cucchiaio EVO",
+   "donna": "160g baccalà · 100g ceci · 100g datterini · 10g capperi · ½ cucchiaio EVO",
+   "bimbo": "80g baccalà · 70g ceci · 70g datterini (senza capperi)"
   },
   "uomo": {
    "kcal": 480,
@@ -5971,7 +5986,8 @@
     "bimbo": 0,
     "unit": "cucchiaio"
    }
-  }
+  },
+  "preparazione": "⚠️ Il giorno prima: baccalà in ammollo 24–48h in acqua fredda, cambiando l'acqua ogni 8h. Poi rosola il baccalà a pezzi in EVO con aglio, aggiungi ceci, datterini e capperi e cuoci 10 min."
  },
  {
   "id": "cen_21",
@@ -6210,9 +6226,9 @@
    "db_olio_di_oliva_extra_vergine"
   ],
   "porzioni": {
-   "uomo": "Bolli il polpo 45 min in acqua con alloro, lascia intiepidire 10 min nell'acqua. Taglia i tentacoli e griglia su piastra rovente 3-4 min per lato per la crosticina. Servi con 200g patate novelle al forno (20 min), prezzemolo fresco, limone, EVO",
-   "donna": "180g polpo grigliato · 150g patate novelle · prezzemolo · EVO",
-   "bimbo": "90g polpo · 100g patate (solo bollite, niente piastra)"
+   "uomo": "250g polpo · 200g patate novelle · prezzemolo · ½ limone · 1 cucchiaio EVO",
+   "donna": "180g polpo · 150g patate novelle · prezzemolo · ½ limone · ½ cucchiaio EVO",
+   "bimbo": "90g polpo (solo bollito) · 100g patate"
   },
   "uomo": {
    "kcal": 406,
@@ -6258,7 +6274,8 @@
     "bimbo": 0,
     "unit": "cucchiaio"
    }
-  }
+  },
+  "preparazione": "Bolli il polpo 45 min in acqua con alloro e lascialo intiepidire 10 min nell'acqua. Taglia i tentacoli e grigliali su piastra rovente 3–4 min per lato per la crosticina. Patate novelle al forno 20 min."
  },
  {
   "id": "cen_25",
@@ -6485,7 +6502,7 @@
   "nome": "Tagliata di manzo con rucola, grana e aceto balsamico",
   "ingredients": [
    "db_bovino_adulto_filetto",
-   "db_lattuga",
+   "db_rughetta_o_rucola",
    "db_parmigiano",
    "db_pane_di_tipo_integrale",
    "ing_aceto",
@@ -6497,21 +6514,21 @@
    "bimbo": "80g manzo · rucola · grana · 30g pane"
   },
   "uomo": {
-   "kcal": 548,
+   "kcal": 553,
    "p": 52,
-   "c": 30,
+   "c": 31,
    "g": 25
   },
   "donna": {
-   "kcal": 387,
+   "kcal": 392,
    "p": 39,
-   "c": 23,
+   "c": 24,
    "g": 16
   },
   "bimbo": {
-   "kcal": 207,
+   "kcal": 211,
    "p": 22,
-   "c": 15,
+   "c": 16,
    "g": 7
   },
   "categoria": "cena",
@@ -6520,12 +6537,6 @@
     "uomo": 200,
     "donna": 150,
     "bimbo": 80,
-    "unit": "g"
-   },
-   "db_lattuga": {
-    "uomo": 60,
-    "donna": 60,
-    "bimbo": 40,
     "unit": "g"
    },
    "db_parmigiano": {
@@ -6551,6 +6562,12 @@
     "donna": 0.5,
     "bimbo": 0,
     "unit": "cucchiaio"
+   },
+   "db_rughetta_o_rucola": {
+    "uomo": 60,
+    "donna": 60,
+    "bimbo": 40,
+    "unit": "g"
    }
   }
  },

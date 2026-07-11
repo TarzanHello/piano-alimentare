@@ -1,6 +1,8 @@
 import React from 'react';
 const { useState, useEffect, useMemo, useCallback, useRef } = React;
-import { DB, ING_QTY, INGREDIENTS, ING_MAP, cercaIngredienti, quantitaInGrammi, nutriPerGrammi } from '@/core';
+import { DB, ING_QTY, INGREDIENTS, ING_MAP, cercaIngredienti, nutriPer100DaQuantita, quantitaInGrammi, nutriPerGrammi } from '@/core';
+import { AddIngredientModal } from '@/features/ingredienti/IngredientiPage';
+import { addCustomIngredient } from '@/db/customIngredients';
 import { EmptyState } from '@/components/shared';
 import { caricaRicette, creaRicetta, aggiornaRicetta, eliminaRicetta,
          toggleEsclusaRicetta } from '@/db/ricetteCloud';
@@ -272,7 +274,7 @@ function EditorRicetta({ iniziale, onSalva, onAnnulla }) {
 }
 
 // ── Card ricetta utente ───────────────────────────────────────────────────
-function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) {
+function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa, onComeIngrediente }) {
   // Eliminazione a doppio tap: il primo tocco chiede conferma inline
   // (coerente con lo stile dell'app, niente confirm() nativo), il secondo
   // entro 3,5s elimina davvero.
@@ -344,6 +346,8 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
       <div style={{ display:"flex", gap:6, marginTop:10, flexWrap:"wrap" }}>
         {mine && <button onClick={onEdit} style={btnGhost}>✏️ Modifica</button>}
         <button onClick={onDuplica} style={btnGhost}>📋 Duplica</button>
+        <button onClick={onComeIngrediente} title="Salva questa preparazione come ingrediente riusabile"
+          style={btnGhost}>🧪 Ingrediente</button>
         <button onClick={onToggleEsclusa}
           style={{ ...btnGhost,
                    background:   r.esclusa ? "#f0fdf4" : "#fff",
@@ -367,7 +371,7 @@ function CardRicetta({ r, mine, onEdit, onDelete, onDuplica, onToggleEsclusa }) 
 }
 
 // ── Card ricetta catalogo ─────────────────────────────────────────────────
-function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
+function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa, onComeIngrediente }) {
   const [espanso, setEspanso] = useState(false);
   // Le quantità del catalogo vivono in ING_QTY (DB le esclude dalle ricette).
   // Slot uomo = batch di riferimento.
@@ -436,6 +440,8 @@ function CardCatalogo({ r, catKey, esclusa, onDuplica, onToggleEsclusa }) {
       {/* Azioni */}
       <div style={{ display:"flex", gap:6, marginTop:8, flexWrap:"wrap" }}>
         <button onClick={() => onDuplica(quantitaRaw)} style={btnGhost}>📋 Duplica e personalizza</button>
+        <button onClick={() => onComeIngrediente(quantitaRaw)} title="Salva questa preparazione come ingrediente riusabile"
+          style={btnGhost}>🧪 Ingrediente</button>
         <button onClick={onToggleEsclusa}
           style={{ ...btnGhost,
                    background:  esclusa ? "#f0fdf4" : "#fff",
@@ -458,6 +464,17 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
   const [tornaAlPiano, setTornaAlPiano] = useState(false);
   // Ricerca per nome o ingrediente, condivisa tra le tab Ricette e Catalogo
   const [query, setQuery] = useState("");
+  // Ricetta → ingrediente: prefill del modale calcolato dal batch
+  const [daRicetta, setDaRicetta] = useState(null);
+  const comeIngrediente = (nome, quantita) => {
+    const res = nutriPer100DaQuantita(quantita);
+    if (!res) { toast("Quantità non disponibili per questa ricetta", "err"); return; }
+    logSync("ricette", `Ricetta → ingrediente: ${nome?.slice(0, 30)}`, { pesoTotale: res.pesoTotale });
+    setDaRicetta({
+      sorgente: nome,
+      initial: { nome, cat: "🥫 Varie", deperibile: 5, stagioni: null, nutri: res.per100 },
+    });
+  };
   const q = query.trim().toLowerCase();
   const norm = s => (s || "").toLowerCase();
   // ricette utente: titolo o nomi degli ingredienti (chiavi di quantita)
@@ -627,7 +644,8 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
                           } catch (e) { toast(e?.message || "Errore nell'eliminazione", "err"); }
                         }}
                         onDuplica={() => duplica(r)}
-                        onToggleEsclusa={() => toggleEsclusa(r)}/>
+                        onToggleEsclusa={() => toggleEsclusa(r)}
+                        onComeIngrediente={() => comeIngrediente(r.titolo, r.quantita)}/>
                     ))}
               </>
       )}
@@ -636,7 +654,7 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
       {tab === "catalogo" && (
         <>
           <div style={{ fontSize:12, color:"#6E8576", marginBottom:12, lineHeight:1.5 }}>
-            166 ricette CRA-NUT. Le quantità mostrate sono il batch di riferimento — il piano
+            {Object.values(DB).reduce((s, a) => s + a.length, 0)} ricette CRA-NUT. Le quantità mostrate sono il batch di riferimento — il piano
             le scala automaticamente per il fabbisogno di ciascun membro.
             Duplica una ricetta per personalizzarla e aggiungerla alle ricette di famiglia.
           </div>
@@ -665,7 +683,8 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
                       <CardCatalogo key={r.id} r={r} catKey={c.key}
                         esclusa={escluseCatalogo.has(r.id)}
                         onDuplica={(quantitaRaw) => duplica(r, c.key, quantitaRaw)}
-                        onToggleEsclusa={() => toggleEsclusaCatalogo(r.id)}/>
+                        onToggleEsclusa={() => toggleEsclusaCatalogo(r.id)}
+                        onComeIngrediente={(quantitaRaw) => comeIngrediente(r.nome, quantitaRaw)}/>
                     ))}
                   </div>
                 )}
@@ -673,6 +692,22 @@ export function RicettePage({ cloudStatus, onRicetteChange, onTorna }) {
             );
           })}
         </>
+      )}
+
+      {/* Modale ricetta → ingrediente */}
+      {daRicetta && (
+        <AddIngredientModal
+          initial={daRicetta.initial}
+          sorgente={daRicetta.sorgente}
+          onSave={async (data) => {
+            try {
+              await addCustomIngredient(data);
+              toast("✓ Ingrediente creato: lo trovi in ricerca, ricette e spesa");
+              setDaRicetta(null);
+            } catch (e) { toast(e?.message || "Errore nella creazione", "err"); }
+          }}
+          onClose={() => setDaRicetta(null)}
+        />
       )}
     </div>
   );

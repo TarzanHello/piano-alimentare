@@ -23,7 +23,9 @@ const FORM_EMPTY = {
 
 // ─── Modale aggiunta/modifica ingrediente ──────────────────────────
 // editing = null → creazione; editing = ingrediente custom → modifica
-// (form pre-compilato dai dati esistenti).
+// (form pre-compilato dai dati esistenti); initial = prefill senza
+// semantica di modifica (es. ricetta trasformata in ingrediente),
+// sorgente = etichetta della provenienza mostrata sotto il titolo.
 
 function formFromIngredient(ing) {
   if (!ing) return FORM_EMPTY;
@@ -39,8 +41,8 @@ function formFromIngredient(ing) {
   };
 }
 
-function AddIngredientModal({ editing = null, onSave, onClose }) {
-  const [form, setForm] = useState(() => formFromIngredient(editing));
+export function AddIngredientModal({ editing = null, initial = null, sorgente = null, onSave, onClose }) {
+  const [form, setForm] = useState(() => formFromIngredient(editing || initial));
   const [errors, setErrors] = useState({});
 
   function set(field, val) {
@@ -121,9 +123,14 @@ function AddIngredientModal({ editing = null, onSave, onClose }) {
 
         <div style={{ width: 36, height: 4, background: "#E7EDE2", borderRadius: 2, margin: "0 auto 16px" }} />
 
-        <div style={{ fontSize: 15, fontWeight: 800, color: "#15251C", marginBottom: 16 }}>
-          {editing ? "✏️ Modifica ingrediente" : "➕ Nuovo ingrediente"}
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#15251C", marginBottom: sorgente ? 4 : 16 }}>
+          {editing ? "✏️ Modifica ingrediente" : initial ? "🧪 Da ricetta a ingrediente" : "➕ Nuovo ingrediente"}
         </div>
+        {sorgente && (
+          <div style={{ fontSize: 11, color: "#6E8576", marginBottom: 14, lineHeight: 1.4 }}>
+            Valori per 100g calcolati dal batch di <b>{sorgente}</b> (peso a crudo, cali di cottura esclusi). Puoi correggerli prima di salvare.
+          </div>
+        )}
 
         {/* Nome */}
         <div style={{ marginBottom: 10 }}>

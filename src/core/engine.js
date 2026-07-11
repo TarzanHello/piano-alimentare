@@ -58,6 +58,33 @@ export function quantitaInGrammi(ingId, valore, unit) {
   }
 }
 
+// ── Ricetta → ingrediente ─────────────────────────────────────────
+// Converte la quantita di una ricetta (batch di riferimento, persona
+// "uomo" o campo g per ricette utente) in valori nutrizionali per 100g,
+// così una preparazione (es. salsa teriyaki fatta in casa) può essere
+// salvata come ingrediente custom e riusata in altre ricette.
+// Nota: non modella i cali di cottura (evaporazione): i valori sono
+// riferiti al peso a crudo degli ingredienti.
+export function nutriPer100DaQuantita(quantita) {
+  if (!quantita || typeof quantita !== "object") return null;
+  let tot = 0;
+  const sum = { kcal:0, p:0, c:0, z:0, g:0, f:0 };
+  for (const [ingId, v] of Object.entries(quantita)) {
+    if (ingId === "_scaled" || !v) continue;
+    const grams = quantitaInGrammi(ingId, v.uomo ?? v.g ?? 0, v.unit || "g");
+    if (!grams) continue;
+    tot += grams;
+    const n = ING_MAP[ingId]?.nutri;
+    if (n) for (const k of Object.keys(sum)) sum[k] += (n[k] || 0) * grams / 100;
+  }
+  if (!tot) return null;
+  const per100 = {};
+  for (const k of Object.keys(sum))
+    per100[k] = k === "kcal" ? Math.round(sum[k] / tot * 100)
+                             : Math.round(sum[k] / tot * 100 * 10) / 10;
+  return { per100, pesoTotale: Math.round(tot) };
+}
+
 // Macro di una ricetta per una persona ("uomo" | "donna" | "bimbo"),
 // calcolati sommando gli ingredienti. Restituisce null se mancano le
 // quantità per quella ricetta.
