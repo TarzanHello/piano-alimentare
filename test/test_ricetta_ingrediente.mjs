@@ -61,3 +61,28 @@ ok(senzaNutri && senzaNutri.pesoTotale === 100 && senzaNutri.per100.kcal === 0,
 
 console.log(fail === 0 ? "RICETTA→INGREDIENTE: TUTTO OK" : `RICETTA→INGREDIENTE: ${fail} FALLIMENTI`);
 if (fail > 0) process.exit(1);
+
+// ── Appendice: calcolaEquivalenza (hub Strumenti) ────────────────────
+// Banana ≈ 89 kcal/100g pesoPezzo 120 · Pesca ≈ 39 kcal/100g pesoPezzo 140.
+// 1,5 banane (180g) = 160,2 kcal → 410,8g di pesche ≈ 2,9 pezzi.
+const { calcolaEquivalenza } = await import('@/features/strumenti/StrumentiPage');
+let fail2 = 0;
+const ok2 = (cond, msg) => { console.log((cond ? "  ✓ " : "  ✗ ") + msg); if (!cond) fail2++; };
+
+ING_MAP.tst_banana = { id:"tst_banana", nome:"Banana test", nutri:{ kcal:89, p:1.1, c:22.8, z:12, g:0.3, f:2.6 } };
+ING_MAP.tst_pesca  = { id:"tst_pesca",  nome:"Pesca test",  nutri:{ kcal:39, p:0.9, c:9.5,  z:8,  g:0.2, f:1.5 } };
+PESO_PEZZO.tst_banana = 120;
+PESO_PEZZO.tst_pesca  = 140;
+
+const eq = calcolaEquivalenza(ING_MAP.tst_banana, 180, ING_MAP.tst_pesca, "kcal");
+ok2(eq && Math.abs(eq.valore - 160.2) < 0.5, `1,5 banane = 160 kcal — ottenuto ${eq?.valore}`);
+ok2(eq && Math.abs(eq.gramsB - 410.8) < 2, `equivalgono a ≈411g di pesche — ottenuto ${Math.round(eq?.gramsB)}`);
+ok2(eq && Math.abs(eq.pezziB - 2.93) < 0.1, `≈2,9 pesche — ottenuto ${eq?.pezziB?.toFixed(2)}`);
+
+const eqZero = calcolaEquivalenza(ING_MAP.tst_banana, 100, { id:"tst_acqua", nutri:{ kcal:0, p:0, c:0, z:0, g:0, f:0 } }, "p");
+ok2(eqZero?.errore === "zero", "criterio assente nel cibo di destinazione → errore 'zero'");
+ok2(calcolaEquivalenza(null, 100, ING_MAP.tst_pesca, "kcal") === null, "ingrediente mancante → null");
+ok2(calcolaEquivalenza(ING_MAP.tst_banana, 0, ING_MAP.tst_pesca, "kcal") === null, "quantità zero → null");
+
+console.log(fail2 === 0 ? "EQUIVALENZE: TUTTO OK" : `EQUIVALENZE: ${fail2} FALLIMENTI`);
+if (fail2 > 0) process.exit(1);

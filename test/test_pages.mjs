@@ -98,6 +98,17 @@ await new Promise(r=>setTimeout(r,200));
 const hCatExpanded = document.body.innerHTML;
 ok('categoria Colazione del catalogo si espande con ricette', /kcal/.test(hCatExpanded) && !hCatExpanded.includes('Qualcosa si è inceppato'));
 
+// menu → strumenti → tool equivalenze
+await clickByText('Menu');
+await new Promise(r=>setTimeout(r,200));
+const wentStrumenti = await clickByText('Strumenti');
+const hStrumenti = document.body.innerHTML;
+ok('hub Strumenti si apre con le card', wentStrumenti && /Equivalenze cibi/.test(hStrumenti) && /Misure casalinghe/.test(hStrumenti) && !hStrumenti.includes('Qualcosa si è inceppato'));
+await clickByText('Equivalenze cibi');
+await new Promise(r=>setTimeout(r,200));
+const hEquiv = document.body.innerHTML;
+ok('tool Equivalenze si apre', /A parità di/.test(hEquiv) && !hEquiv.includes('Qualcosa si è inceppato'));
+
 console.error = origErr;
 ok('nessun errore React durante la navigazione', reactErrors.length === 0);
 if (reactErrors.length) reactErrors.slice(0,3).forEach(e=>console.log('   react-err:', e));
