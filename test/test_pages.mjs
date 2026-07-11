@@ -66,7 +66,8 @@ const hadPorzioneBefore = /📏 Porzione/.test(beforeClick);
 const nameDivs = [...document.querySelectorAll('div')].filter(d =>
   d.children.length === 0 && d.textContent.trim().length > 3 &&
   d.getAttribute('style') && d.getAttribute('style').includes('cursor: pointer') &&
-  d.getAttribute('style').includes('font-weight: 600')
+  /font-weight: (600|700)/.test(d.getAttribute('style')) &&
+  d.getAttribute('style').includes('line-height: 1.3')
 );
 if (nameDivs[0]) nameDivs[0].click();
 await new Promise(r=>setTimeout(r,250));

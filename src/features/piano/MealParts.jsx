@@ -3,7 +3,6 @@ const { useState, useEffect, useCallback, useMemo, useRef } = React;
 import { MEAL_KEYS, MEAL_META, PREP_SLOTS, SK_WATER, WATER_GOAL, WATER_MAX, WATER_ML, classifySwap, findAlternatives, formattaPorzione } from '@/core';
 import { logSync } from '@/db/synclog';
 import { ConsumedEditorModal, RecipeEditorModal, RicettarioModal } from '@/components/modals';
-import { MacroBadge, ProgressBar } from '@/components/shared';
 import { ShoppingPage } from '@/features/spesa/ShoppingPage';
 
 export function WaterTracker({ dayKey, personaColor, personaId, readOnly }) {
@@ -169,6 +168,19 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
     onEditConsumed({ kcal:Math.round(base.kcal*factor), p:Math.round(base.p*factor), c:Math.round(base.c*factor), g:Math.round(base.g*factor), gPiano, gConsumati:g, _ingredienti:null });
   };
 
+  // ── Bottone azione della card: icona + micro-etichetta, larghezza fluida ──
+  const ActionBtn = ({ onClick, title, ariaLabel, active, accent="#2F6B3A", filled, icon, label, dimIcon=true }) => (
+    <button onClick={onClick} title={title} aria-label={ariaLabel || title}
+      style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2.5,
+        padding:"7px 2px",borderRadius:10,cursor:"pointer",transition:"all 0.15s",
+        border:`1.5px solid ${filled?accent:active?accent:"#E7EDE2"}`,
+        background: filled?accent : active?accent+"14" : "#F8FAF6",
+        color: filled?"#fff" : active?accent : "#6E8576"}}>
+      <span style={{fontSize:14,lineHeight:1,fontWeight:800,filter:(active||filled||!dimIcon)?"none":"grayscale(1) opacity(0.55)"}}>{icon}</span>
+      <span style={{fontSize:8.5,fontWeight:800,letterSpacing:0.3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100%"}}>{label}</span>
+    </button>
+  );
+
   return (
     <div ref={rootRef} style={{background:"#fff",borderRadius:18,border:`1.5px solid ${isOverride?"#DCEBCF":"#fff"}`,marginBottom:11,overflow:"hidden",boxShadow:"0 12px 30px -18px rgba(15,58,41,0.28)"}}>
 
@@ -197,82 +209,104 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
       </div>
 
       {/* ── Corpo principale ── */}
-      <div style={{padding:"10px 14px"}}>
-        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:8}}>
-          <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}
-            style={{fontSize:isSnack?13:14.5,fontWeight:600,color:"#15251C",lineHeight:1.35,flex:1,cursor:"pointer",userSelect:"none"}}>
-            {meal.nome}
-          </div>
-          <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
-            {/* Bottone like */}
-            <button
-              onClick={e=>{ e.stopPropagation(); onToggleLike && (logSync("gusti", `${prefEntry?.liked?"Rimosso like":"Like"}: ${meal.nome?.slice(0,30)}`, {id:meal.id}), onToggleLike()); }}
-              aria-label={prefEntry?.liked ? "Rimuovi preferito" : "Segna come preferito"}
-              title={prefEntry?.liked ? "Tolta dai preferiti" : "Aggiungi ai preferiti"}
-              style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${prefEntry?.liked?"#ef4444":"#E7EDE2"}`,background:prefEntry?.liked?"#fef2f2":"#F5F8F1",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
-              <span style={{filter:prefEntry?.liked?"none":"grayscale(1) opacity(0.55)"}}>{prefEntry?.liked?"❤️":"🤍"}</span>
-            </button>
-            {/* Bottone dislike esplicito: "non proporla più" senza dover
-                aspettare che si accumulino gli swap */}
-            {onToggleDislike && (
-              <button
-                onClick={e=>{ e.stopPropagation(); logSync("gusti", `${prefEntry?.disliked?"Rimosso dislike":"Dislike"}: ${meal.nome?.slice(0,30)}`, {id:meal.id}); onToggleDislike(); }}
-                aria-label={prefEntry?.disliked ? "Rimuovi non gradita" : "Segna come non gradita"}
-                title={prefEntry?.disliked ? "Tolta dalle non gradite" : "Non mi piace: proponila il meno possibile"}
-                style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${prefEntry?.disliked?"#7c3aed":"#E7EDE2"}`,background:prefEntry?.disliked?"#f5f3ff":"#F5F8F1",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
-                <span style={{filter:prefEntry?.disliked?"none":"grayscale(1) opacity(0.55)"}}>👎</span>
-              </button>
-            )}
-            {/* Bottone consumato */}
-            {!readOnly && (
-            <button onClick={e=>{ e.stopPropagation(); logSync("pasto-log", `${consumed?"Rimarca non consumato":"Segna consumato"}: ${mealKey}`, {dayIdx, mealKey, pasto:meal?.nome?.slice(0,25)}); onToggleConsumed&&onToggleConsumed(); }} title={consumed?"Segna come non consumato":"Segna come consumato"}
-              style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${consumed?"#16a34a":"#E7EDE2"}`,background:consumed?"#f0fdf4":"#F5F8F1",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,padding:0}}>
-              <span style={{filter:consumed?"none":"grayscale(1) opacity(0.4)"}}>{consumed?"✅":"☑️"}</span>
-            </button>
-            )}
-            {/* Bottone "non mangiato" (✗) — nascosto se già consumato */}
-            {!readOnly && !consumed && (
-            <button onClick={e=>{ e.stopPropagation(); logSync("pasto-log", `${saltato?"Annulla saltato":"Segna non mangiato"}: ${mealKey}`, {dayIdx, mealKey, pasto:meal?.nome?.slice(0,25)}); onToggleSaltato&&onToggleSaltato(); }} title={saltato?"Annulla: non saltato":"Non l'ho mangiato"}
-              style={{flexShrink:0,width:31,height:28,borderRadius:7,border:`1.5px solid ${saltato?"#dc2626":"#E7EDE2"}`,background:saltato?"#fef2f2":"#F5F8F1",color:saltato?"#dc2626":"#B9C6BD",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:900,padding:0}}>
-              ✗
-            </button>
-            )}
-            {/* Bottone modifica calorie consumate — visibile solo se consumato */}
-            {!readOnly && consumed && (
-              <button
-                onClick={e=>{ e.stopPropagation(); setConsumedEditOpen(true); setOpen(false); setSwapOpen(false); }}
-                title="Modifica cosa hai mangiato davvero"
-                style={{flexShrink:0,padding:"5px 8px",borderRadius:7,border:"1.5px solid #16a34a",background:"#f0fdf4",color:"#16a34a",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:3}}>
-                ✏️ <span style={{fontSize:10}}>mangiato</span>
-              </button>
-            )}
-            {/* Bottone modifica ricetta (solo se NON consumato e NON saltato) */}
-            {!readOnly && !consumed && !saltato && (
-              <button
-                onClick={e=>{ e.stopPropagation(); setEditOpen(true); setOpen(false); setSwapOpen(false); }}
-                title="Modifica ingredienti e quantità"
-                style={{flexShrink:0,width:31,height:28,borderRadius:7,border:"1.5px solid #E7EDE2",background:"#F5F8F1",cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,padding:0,color:"#6E8576",fontWeight:700}}>
-                ✏️
-              </button>
-            )}
-            {/* Bottone swap (solo se NON consumato e NON saltato) */}
-            {!readOnly && !consumed && !saltato && (
-              <button
-                onClick={e=>{ e.stopPropagation(); setSwapOpen(s=>!s); setOpen(false); if(!swapOpen) setPrepSlot(null); }}
-                style={{flexShrink:0,padding:"5px 10px",borderRadius:7,border:`1.5px solid ${swapOpen?"#7c3aed":"#E7EDE2"}`,background:swapOpen?"#7c3aed":"#F5F8F1",color:swapOpen?"#fff":"#6E8576",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all 0.15s",whiteSpace:"nowrap"}}>
-                {swapOpen?"✕":"⇄ Cambia"}
-              </button>
-            )}
-            {/* Sola lettura: profilo di un altro membro */}
-            {readOnly && (
-              <span title="Profilo di un altro membro: sola lettura" style={{flexShrink:0,padding:"5px 9px",borderRadius:7,background:"#EFF3EC",color:"#9DB1A2",fontWeight:700,fontSize:11,display:"flex",alignItems:"center",gap:4}}>🔒 sola lettura</span>
-            )}
-          </div>
+      <div style={{padding:"12px 14px"}}>
+        {/* Nome pasto: riga piena, mai schiacciato dalle azioni */}
+        <div onClick={()=>{ setOpen(o=>!o); if(swapOpen) setSwapOpen(false); }}
+          style={{fontSize:isSnack?13.5:15.5,fontWeight:700,color:saltato?"#9DB1A2":"#15251C",lineHeight:1.3,letterSpacing:-0.2,cursor:"pointer",userSelect:"none",textDecoration:saltato?"line-through":"none"}}>
+          {meal.nome}
         </div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          <MacroBadge label="P" value={m.p} color="#1FA2D8"/>
-          <MacroBadge label="C" value={m.c} color="#F2A93B"/>
-          <MacroBadge label="G" value={m.g} color="#8E7BE8"/>
+
+        {/* Ripartizione energetica: barra segmentata + chip P/C/G con % kcal */}
+        {(()=>{
+          const segs = [
+            { k:"P", nome:"Proteine",    g:m.p, kcal:(m.p||0)*4, c:"#1FA2D8" },
+            { k:"C", nome:"Carboidrati", g:m.c, kcal:(m.c||0)*4, c:"#F2A93B" },
+            { k:"G", nome:"Grassi",      g:m.g, kcal:(m.g||0)*9, c:"#8E7BE8" },
+          ];
+          const kTot = Math.max(1, segs.reduce((a,s)=>a+s.kcal,0));
+          return (
+            <div style={{marginTop:10,opacity:saltato?0.55:1}}>
+              <div style={{display:"flex",gap:2.5,height:7,borderRadius:99,overflow:"hidden",background:"#EFF3EC"}}>
+                {segs.map(s=>(
+                  <div key={s.k} title={`${s.nome}: ${Math.round(s.kcal/kTot*100)}% delle kcal`}
+                    style={{width:`${Math.max(2, s.kcal/kTot*100)}%`,background:s.c,transition:"width 0.4s ease"}}/>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:6,marginTop:7}}>
+                {segs.map(s=>(
+                  <div key={s.k} title={s.nome} style={{flex:1,display:"flex",alignItems:"baseline",justifyContent:"center",gap:4,background:s.c+"12",borderRadius:8,padding:"5px 4px",minWidth:0}}>
+                    <span style={{fontSize:10,fontWeight:800,color:s.c}}>{s.k}</span>
+                    <span style={{fontSize:11.5,fontWeight:800,color:"#15251C",whiteSpace:"nowrap"}}>{Math.round(s.g||0)}g</span>
+                    <span style={{fontSize:9,fontWeight:700,color:"#8AA192",whiteSpace:"nowrap"}}>{Math.round(s.kcal/kTot*100)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Barra azioni: larghezza piena, bottoni equidistribuiti icona+etichetta */}
+        <div style={{display:"flex",gap:6,marginTop:11}}>
+          {/* Like */}
+          <ActionBtn
+            onClick={e=>{ e.stopPropagation(); onToggleLike && (logSync("gusti", `${prefEntry?.liked?"Rimosso like":"Like"}: ${meal.nome?.slice(0,30)}`, {id:meal.id}), onToggleLike()); }}
+            ariaLabel={prefEntry?.liked ? "Rimuovi preferito" : "Segna come preferito"}
+            title={prefEntry?.liked ? "Tolta dai preferiti" : "Aggiungi ai preferiti"}
+            active={!!prefEntry?.liked} accent="#ef4444"
+            icon={prefEntry?.liked?"❤️":"🤍"} label="Adoro"/>
+          {/* Dislike esplicito: "non proporla più" senza dover
+              aspettare che si accumulino gli swap */}
+          {onToggleDislike && (
+            <ActionBtn
+              onClick={e=>{ e.stopPropagation(); logSync("gusti", `${prefEntry?.disliked?"Rimosso dislike":"Dislike"}: ${meal.nome?.slice(0,30)}`, {id:meal.id}); onToggleDislike(); }}
+              ariaLabel={prefEntry?.disliked ? "Rimuovi non gradita" : "Segna come non gradita"}
+              title={prefEntry?.disliked ? "Tolta dalle non gradite" : "Non mi piace: proponila il meno possibile"}
+              active={!!prefEntry?.disliked} accent="#7c3aed"
+              icon="👎" label="Evita"/>
+          )}
+          {/* Consumato */}
+          {!readOnly && (
+            <ActionBtn
+              onClick={e=>{ e.stopPropagation(); logSync("pasto-log", `${consumed?"Rimarca non consumato":"Segna consumato"}: ${mealKey}`, {dayIdx, mealKey, pasto:meal?.nome?.slice(0,25)}); onToggleConsumed&&onToggleConsumed(); }}
+              title={consumed?"Segna come non consumato":"Segna come consumato"}
+              active={consumed} accent="#16a34a"
+              icon={consumed?"✅":"☑️"} label="Fatto"/>
+          )}
+          {/* Non mangiato (✗) — nascosto se già consumato */}
+          {!readOnly && !consumed && (
+            <ActionBtn
+              onClick={e=>{ e.stopPropagation(); logSync("pasto-log", `${saltato?"Annulla saltato":"Segna non mangiato"}: ${mealKey}`, {dayIdx, mealKey, pasto:meal?.nome?.slice(0,25)}); onToggleSaltato&&onToggleSaltato(); }}
+              title={saltato?"Annulla: non saltato":"Non l'ho mangiato"}
+              active={saltato} accent="#dc2626"
+              icon="✗" label="Salto" dimIcon={false}/>
+          )}
+          {/* Modifica calorie consumate — visibile solo se consumato */}
+          {!readOnly && consumed && (
+            <ActionBtn
+              onClick={e=>{ e.stopPropagation(); setConsumedEditOpen(true); setOpen(false); setSwapOpen(false); }}
+              title="Modifica cosa hai mangiato davvero"
+              active accent="#16a34a"
+              icon="✏️" label="Mangiato"/>
+          )}
+          {/* Modifica ricetta (solo se NON consumato e NON saltato) */}
+          {!readOnly && !consumed && !saltato && (
+            <ActionBtn
+              onClick={e=>{ e.stopPropagation(); setEditOpen(true); setOpen(false); setSwapOpen(false); }}
+              title="Modifica ingredienti e quantità"
+              icon="✏️" label="Modifica"/>
+          )}
+          {/* Swap (solo se NON consumato e NON saltato) */}
+          {!readOnly && !consumed && !saltato && (
+            <ActionBtn
+              onClick={e=>{ e.stopPropagation(); setSwapOpen(s=>!s); setOpen(false); if(!swapOpen) setPrepSlot(null); }}
+              title={swapOpen?"Chiudi le alternative":"Cambia ricetta"}
+              active accent="#7c3aed" filled={swapOpen}
+              icon={swapOpen?"✕":"⇄"} label={swapOpen?"Chiudi":"Cambia"} dimIcon={false}/>
+          )}
+          {/* Sola lettura: profilo di un altro membro */}
+          {readOnly && (
+            <div title="Profilo di un altro membro: sola lettura" style={{flex:1.6,display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRadius:10,background:"#EFF3EC",color:"#9DB1A2",fontWeight:700,fontSize:10.5}}>🔒 sola lettura</div>
+          )}
         </div>
 
         {/* Quantità consumata: appare sul pasto mangiato; vuoto ⇒ ricetta intera */}
