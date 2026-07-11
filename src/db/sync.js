@@ -8,6 +8,7 @@ import { calcTargetAdattivo } from '@/core/engine';
 import { dataNascitaToEta, etaToDataNascita, getSession, supabase } from './cloud';
 import { logSync } from './synclog';
 import { pullCustomIngredients } from './customIngredients';
+import { pullTarature } from './tarature';
 
 const SK_CLOUD_ME = "pf-cloud-me";
 // Proprietario dei dati locali: l'id utente Google (auth.uid) che li ha
@@ -620,6 +621,7 @@ function subscribeRealtime(fromRetry = false) {
       logSync("realtime","Evento ricevuto: dati famiglia",{chiave});
       if(chiave==="piano") pullPiano();
       else if(chiave==="ingredienti_custom") pullCustomIngredients().then(recomputePianoLocale);
+      else if(chiave==="pesi_pezzo") pullTarature();
       else pullAltriDatiFamiglia();
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"famiglia_spesa",filter:famFilter},()=>coalizza("spesa",()=>pullSpesa()))
@@ -799,6 +801,7 @@ async function reconcile() {
   // emette "piano" e App rigenera il piano, ING_MAP contiene già le entry
   // custom e le ricette che le richiamano risolvono nome/macro correttamente.
   await pullCustomIngredients();
+  await pullTarature();
   if(!chiaviCloud.has("piano")) {
     logSync("info","Riconciliazione: piano assente sul cloud, lo carico");
     await pushPianoConLock();
@@ -913,6 +916,7 @@ export async function riallineaForzato() {
   if(!mio.famiglia_id){try{await window.storage.delete("pf-cloud-migrated");}catch{} logSync("info","Riallineamento forzato: completato (nessuna famiglia)"); return{ok:true,inFamily:false};}
   await ancoraIdentitaAlCloud();
   await pullCustomIngredients();
+  await pullTarature();
   await pullPiano();await pullAltriDatiFamiglia();
   await pullProfili();await pullMisure();await pullMealsLog();await pullTargetGiornaliero();await pullSpesa();
   await window.storage.set("pf-cloud-migrated","1");

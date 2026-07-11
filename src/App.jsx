@@ -1279,7 +1279,7 @@ export function App() {
         )}
         {page==="spesa"&&<ShoppingPage planState={{baseSeed:seed, frozen}} overrides={overrides} genArgs={{excludedIds:excluded, ricetteUtente, ricetteEscluseIds}} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa} personas={personas} mealsLog={mealsLog} consumoAttivo={spesaConsumo} onToggleConsumo={toggleSpesaConsumo}/>}
         {page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
-        {page==="strumenti"&&<StrumentiPage onGo={(k)=>navigaA(k)}/>}
+        {page==="strumenti"&&<StrumentiPage/>}
         {page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onToggleDislike={handleToggleDislike} onResetPrefs={handleResetPrefs}/>}
         {page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={handleRicetteChange} onTorna={()=>navigaA("piano")}/>}
         {page==="test-sync"&&<SyncTestPage/>}

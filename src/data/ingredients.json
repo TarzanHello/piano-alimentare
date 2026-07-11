@@ -4583,7 +4583,11 @@
    "kcal": 28,
    "fonte": "Albicocche"
   },
-  "pesoPezzoG": 40
+  "pesoPezzoG": 40,
+  "pesoPezzoRange": [
+   30,
+   55
+  ]
  },
  {
   "id": "db_albicocche_disidratate",
@@ -4756,7 +4760,11 @@
    "kcal": 34,
    "fonte": "Arance"
   },
-  "pesoPezzoG": 160
+  "pesoPezzoG": 160,
+  "pesoPezzoRange": [
+   130,
+   220
+  ]
  },
  {
   "id": "db_arance_succo",
@@ -4818,7 +4826,11 @@
    "kcal": 65,
    "fonte": "Banane"
   },
-  "pesoPezzoG": 120
+  "pesoPezzoG": 120,
+  "pesoPezzoRange": [
+   90,
+   150
+  ]
  },
  {
   "id": "db_carrube",
@@ -5101,7 +5113,11 @@
    "kcal": 253,
    "fonte": "Datteri secchi"
   },
-  "pesoPezzoG": null
+  "pesoPezzoG": 15,
+  "pesoPezzoRange": [
+   7,
+   25
+  ]
  },
  {
   "id": "db_feijoa",
@@ -5298,7 +5314,11 @@
    "kcal": 44,
    "fonte": "Kiwi"
   },
-  "pesoPezzoG": 80
+  "pesoPezzoG": 80,
+  "pesoPezzoRange": [
+   65,
+   110
+  ]
  },
  {
   "id": "db_lamponi",
@@ -5342,7 +5362,11 @@
    "kcal": 11,
    "fonte": "Limoni"
   },
-  "pesoPezzoG": 60
+  "pesoPezzoG": 60,
+  "pesoPezzoRange": [
+   50,
+   90
+  ]
  },
  {
   "id": "db_limoni_succo",
@@ -5451,7 +5475,11 @@
    "kcal": 72,
    "fonte": "Mandarini"
   },
-  "pesoPezzoG": 70
+  "pesoPezzoG": 70,
+  "pesoPezzoRange": [
+   50,
+   90
+  ]
  },
  {
   "id": "db_mango",
@@ -5636,7 +5664,11 @@
    "kcal": 44,
    "fonte": "Mele fresche imperatore"
   },
-  "pesoPezzoG": null
+  "pesoPezzoG": null,
+  "pesoPezzoRange": [
+   130,
+   200
+  ]
  },
  {
   "id": "db_mele_fresche_renette",
@@ -6001,7 +6033,11 @@
    "kcal": 35,
    "fonte": "Pere fresche senza buccia"
   },
-  "pesoPezzoG": 150
+  "pesoPezzoG": 150,
+  "pesoPezzoRange": [
+   130,
+   200
+  ]
  },
  {
   "id": "db_pere_candite",
@@ -6051,7 +6087,11 @@
    "kcal": 27,
    "fonte": "Pesche senza buccia"
   },
-  "pesoPezzoG": 120
+  "pesoPezzoG": 120,
+  "pesoPezzoRange": [
+   90,
+   160
+  ]
  },
  {
   "id": "db_pesche_disidratate",
@@ -15186,7 +15226,11 @@
    "kcal": 231,
    "fonte": "Avocado (analogo)*"
   },
-  "pesoPezzoG": 140
+  "pesoPezzoG": 140,
+  "pesoPezzoRange": [
+   110,
+   200
+  ]
  },
  {
   "id": "ing_bm",

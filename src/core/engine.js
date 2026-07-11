@@ -1,5 +1,5 @@
 // ── Motore: calcolo macro, scaling, piano, lista spesa ────────────
-import { DB, INGREDIENTS, ING_MAP, ING_QTY, PESO_PEZZO } from '@/data';
+import { DB, INGREDIENTS, ING_MAP, ING_QTY, PESO_PEZZO, PESO_PEZZO_RANGE, PESO_PEZZO_TARATO } from '@/data';
 import { CONFIDENZA, DAYS, LAF_TAB_LARN, LAVORI, LIMITI_SCALING, MB_COEFF_LARN, MEAL_HOUR, MEAL_KEYS, MEAL_META, PERSONAS_KEYS, PREF_WEIGHTS, RICALCOLO_AUTO, STILE_LEGACY_ADULTI, STILE_LEGACY_BAMBINI, SWAP_CONTEXT_HOURS } from './constants';
 import { logCalc } from '@/db/synclog';
 
@@ -53,9 +53,28 @@ export function quantitaInGrammi(ingId, valore, unit) {
     case "ml":         return valore;                       // densità ≈ 1
     case "cucchiaio":  return valore * 10;                   // 1 cucchiaio ≈ 10 g
     case "cucchiaino": return valore * 5;
-    case "pz":         return valore * (PESO_PEZZO[ingId] || 100);
+    case "pz":         return valore * (pesoPezzoInfo(ingId)?.g || 100);
     default:           return valore;
   }
+}
+
+// ── Peso pezzo effettivo ──────────────────────────────────────────
+// Un "pezzo" è una misura di presentazione, mai di calcolo: qui si
+// risolve in grammi con priorità taratura famiglia > mediana DB >
+// mediana del range di calibro. `incerto` segnala quando il calibro
+// varia molto (max/min ≥ 1.5) e non c'è taratura: in quel caso la UI
+// deve mostrare un range, non un decimale fasullo.
+export function pesoPezzoInfo(ingId) {
+  const tarato = PESO_PEZZO_TARATO[ingId];
+  const db     = PESO_PEZZO[ingId];
+  const range  = PESO_PEZZO_RANGE[ingId] || null;
+  let g, fonte;
+  if (tarato > 0)      { g = tarato; fonte = "taratura"; }
+  else if (db > 0)     { g = db;     fonte = "db"; }
+  else if (range)      { g = (range[0] + range[1]) / 2; fonte = "range"; }
+  else return null;
+  const incerto = fonte !== "taratura" && !!range && range[1] / range[0] >= 1.5;
+  return { g, fonte, range, incerto };
 }
 
 // ── Ricetta → ingrediente ─────────────────────────────────────────

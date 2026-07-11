@@ -62,10 +62,9 @@ ok(senzaNutri && senzaNutri.pesoTotale === 100 && senzaNutri.per100.kcal === 0,
 console.log(fail === 0 ? "RICETTA→INGREDIENTE: TUTTO OK" : `RICETTA→INGREDIENTE: ${fail} FALLIMENTI`);
 if (fail > 0) process.exit(1);
 
-// ── Appendice: calcolaEquivalenza (hub Strumenti) ────────────────────
-// Banana ≈ 89 kcal/100g pesoPezzo 120 · Pesca ≈ 39 kcal/100g pesoPezzo 140.
-// 1,5 banane (180g) = 160,2 kcal → 410,8g di pesche ≈ 2,9 pezzi.
+// ── Appendice: calcolaEquivalenza + pesoPezzoInfo (hub Strumenti) ────
 const { calcolaEquivalenza } = await import('@/features/strumenti/StrumentiPage');
+const { pesoPezzoInfo, PESO_PEZZO_RANGE, PESO_PEZZO_TARATO } = await import('@/core');
 let fail2 = 0;
 const ok2 = (cond, msg) => { console.log((cond ? "  ✓ " : "  ✗ ") + msg); if (!cond) fail2++; };
 
@@ -77,12 +76,51 @@ PESO_PEZZO.tst_pesca  = 140;
 const eq = calcolaEquivalenza(ING_MAP.tst_banana, 180, ING_MAP.tst_pesca, "kcal");
 ok2(eq && Math.abs(eq.valore - 160.2) < 0.5, `1,5 banane = 160 kcal — ottenuto ${eq?.valore}`);
 ok2(eq && Math.abs(eq.gramsB - 410.8) < 2, `equivalgono a ≈411g di pesche — ottenuto ${Math.round(eq?.gramsB)}`);
-ok2(eq && Math.abs(eq.pezziB - 2.93) < 0.1, `≈2,9 pesche — ottenuto ${eq?.pezziB?.toFixed(2)}`);
+ok2(eq && Math.abs(eq.pezzi.n - 2.93) < 0.1 && !eq.pezzi.incerto, `≈2,9 pesche, calibro stabile — ottenuto ${eq?.pezzi?.n?.toFixed(2)}`);
 
 const eqZero = calcolaEquivalenza(ING_MAP.tst_banana, 100, { id:"tst_acqua", nutri:{ kcal:0, p:0, c:0, z:0, g:0, f:0 } }, "p");
 ok2(eqZero?.errore === "zero", "criterio assente nel cibo di destinazione → errore 'zero'");
 ok2(calcolaEquivalenza(null, 100, ING_MAP.tst_pesca, "kcal") === null, "ingrediente mancante → null");
 ok2(calcolaEquivalenza(ING_MAP.tst_banana, 0, ING_MAP.tst_pesca, "kcal") === null, "quantità zero → null");
+
+// ── pesoPezzoInfo: priorità taratura > DB > range, e onestà sul calibro ──
+// Caso datteri: range largo [7,25], nessuna taratura → incerto.
+ING_MAP.tst_dattero = { id:"tst_dattero", nome:"Dattero test", nutri:{ kcal:282, p:2.5, c:75, z:63, g:0.4, f:8 } };
+PESO_PEZZO_RANGE.tst_dattero = [7, 25];
+let info = pesoPezzoInfo("tst_dattero");
+ok2(info && info.fonte === "range" && info.g === 16 && info.incerto,
+    `senza DB né taratura: mediana range (16g) e incerto=true — ottenuto ${info?.g}/${info?.fonte}/${info?.incerto}`);
+
+// con range largo, l'equivalenza espone il range di pezzi (niente decimale fasullo)
+const eqDatteri = calcolaEquivalenza(ING_MAP.tst_banana, 180, ING_MAP.tst_dattero, "kcal");
+ok2(eqDatteri?.pezzi?.incerto && eqDatteri.pezzi.range &&
+    Math.abs(eqDatteri.pezzi.range[0] - eqDatteri.gramsB/25) < 0.01 &&
+    Math.abs(eqDatteri.pezzi.range[1] - eqDatteri.gramsB/7)  < 0.01,
+    "calibro incerto → range di pezzi min–max esposto");
+
+// la taratura vince su tutto e spegne l'incertezza
+PESO_PEZZO_TARATO.tst_dattero = 12;
+info = pesoPezzoInfo("tst_dattero");
+ok2(info.fonte === "taratura" && info.g === 12 && !info.incerto,
+    `taratura famiglia: 12g, incerto=false — ottenuto ${info.g}/${info.fonte}/${info.incerto}`);
+const eqTarato = calcolaEquivalenza(ING_MAP.tst_banana, 180, ING_MAP.tst_dattero, "kcal");
+ok2(eqTarato?.pezzi && !eqTarato.pezzi.incerto && Math.abs(eqTarato.pezzi.n - eqTarato.gramsB/12) < 0.01,
+    "dopo taratura: pezzi precisi al decimale");
+delete PESO_PEZZO_TARATO.tst_dattero;
+
+// il DB (mediana) batte il range ma non la taratura
+PESO_PEZZO.tst_dattero = 15;
+info = pesoPezzoInfo("tst_dattero");
+ok2(info.fonte === "db" && info.g === 15 && info.incerto, "mediana DB usata ma incertezza dichiarata (range largo)");
+PESO_PEZZO_TARATO.tst_dattero = 12;
+ok2(pesoPezzoInfo("tst_dattero").fonte === "taratura", "priorità: taratura > DB > range");
+delete PESO_PEZZO_TARATO.tst_dattero; delete PESO_PEZZO.tst_dattero;
+
+// quantitaInGrammi usa il peso effettivo (taratura inclusa)
+const { quantitaInGrammi: qig } = await import('@/core');
+PESO_PEZZO_TARATO.tst_dattero = 12;
+ok2(qig("tst_dattero", 3, "pz") === 36, "quantitaInGrammi pz usa la taratura (3 pz × 12g = 36g)");
+delete PESO_PEZZO_TARATO.tst_dattero;
 
 console.log(fail2 === 0 ? "EQUIVALENZE: TUTTO OK" : `EQUIVALENZE: ${fail2} FALLIMENTI`);
 if (fail2 > 0) process.exit(1);
