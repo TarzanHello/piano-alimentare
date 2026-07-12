@@ -844,26 +844,100 @@ export function regeneraPlanState(planState, opts = {}) {
 // vecchio formato "weekday-mealKey" (assegnato alla settimana indicata).
 export function overrideKey(weekIndex, weekday, mealKey) { return `${weekIndex}:${weekday}-${mealKey}`; }
 
-export function migraOverridesASettimana(overrides, weekIndex) {
-  const out = {};
-  for (const [k, v] of Object.entries(overrides || {})) {
-    if (/^-?\d+:/.test(k)) { out[k] = v; continue; }   // già nel nuovo formato
-    out[`${weekIndex}:${k}`] = v;                        // "weekday-mealKey" → "wk:weekday-mealKey"
+// ── Override per-membro (v2) ─────────────────────────────────────────
+// Legacy (v1): mappa flat { "wk:wd-mealKey": ricetta } CONDIVISA da tutta
+// la famiglia → uno swap di un membro sporcava il piano degli altri.
+// v2: { _v:2, condivisi:{...}, perPersona:{ [personaId]: {...} } }.
+// La mappa flat legacy viene normalizzata in `condivisi` (comportamento
+// identico a prima finché non si creano nuovi swap); i nuovi swap vanno
+// in perPersona[id] e in lettura vincono sul condiviso.
+export function normalizeOverrides(raw) {
+  if (raw && raw._v === 2) return { _v: 2, condivisi: raw.condivisi || {}, perPersona: raw.perPersona || {} };
+  return { _v: 2, condivisi: { ...(raw || {}) }, perPersona: {} };
+}
+export function overridesForPersona(raw, personaId) {
+  const o = normalizeOverrides(raw);
+  return personaId ? { ...o.condivisi, ...(o.perPersona[personaId] || {}) } : { ...o.condivisi };
+}
+export function tuttiOverrideMeals(raw) {
+  const o = normalizeOverrides(raw);
+  return [...Object.values(o.condivisi), ...Object.values(o.perPersona).flatMap(m => Object.values(m))];
+}
+export function filtraOverrides(raw, keep) {
+  const o = normalizeOverrides(raw);
+  const f = m => Object.fromEntries(Object.entries(m).filter(([k]) => keep(k)));
+  const pp = {};
+  for (const [pid, m] of Object.entries(o.perPersona)) { const fm = f(m); if (Object.keys(fm).length) pp[pid] = fm; }
+  return { _v: 2, condivisi: f(o.condivisi), perPersona: pp };
+}
+// Scrive (meal) o rimuove (meal=null) un override. Il reset rimuove anche
+// l'eventuale voce legacy condivisa: è ciò che l'utente vede e vuole togliere.
+export function scriviOverride(raw, personaId, key, meal) {
+  const o = normalizeOverrides(raw);
+  const condivisi = { ...o.condivisi }, perPersona = { ...o.perPersona };
+  if (meal) {
+    if (personaId) perPersona[personaId] = { ...(perPersona[personaId] || {}), [key]: meal };
+    else condivisi[key] = meal;
+  } else {
+    if (personaId && perPersona[personaId]) {
+      const m = { ...perPersona[personaId] }; delete m[key];
+      if (Object.keys(m).length) perPersona[personaId] = m; else delete perPersona[personaId];
+    }
+    delete condivisi[key];
   }
-  return out;
+  return { _v: 2, condivisi, perPersona };
+}
+export function contaOverrides(raw) {
+  const o = normalizeOverrides(raw);
+  return Object.keys(o.condivisi).length + Object.values(o.perPersona).reduce((s, m) => s + Object.keys(m).length, 0);
+}
+
+export function migraOverridesASettimana(overrides, weekIndex) {
+  const o = normalizeOverrides(overrides);
+  const mig = m => {
+    const out = {};
+    for (const [k, v] of Object.entries(m || {})) {
+      if (/^-?\d+:/.test(k)) { out[k] = v; continue; }   // già nel nuovo formato
+      out[`${weekIndex}:${k}`] = v;                        // "weekday-mealKey" → "wk:weekday-mealKey"
+    }
+    return out;
+  };
+  const pp = {};
+  for (const [pid, m] of Object.entries(o.perPersona)) pp[pid] = mig(m);
+  return { _v: 2, condivisi: mig(o.condivisi), perPersona: pp };
 }
 
 // Applica gli override (per-settimana) a un piano-settimana di weekIndex dato.
-export function applyOverridesWeek(week, overrides, weekIndex) {
-  if (!overrides || Object.keys(overrides).length === 0) return week;
+// personaId opzionale: con l'id si vede condivisi+propri, senza solo condivisi.
+export function applyOverridesWeek(week, overrides, weekIndex, personaId = null) {
+  const flat = overridesForPersona(overrides, personaId);
+  if (Object.keys(flat).length === 0) return week;
   return week.map((day, wd) => {
     let copy = null;
     MEAL_KEYS.forEach(mk => {
-      const ov = overrides[`${weekIndex}:${wd}-${mk}`];
+      const ov = flat[`${weekIndex}:${wd}-${mk}`];
       if (ov) { if (!copy) copy = { ...day }; copy[mk] = ov; }
     });
     return copy || day;
   });
+}
+
+// ── Costituzione ossea (indice di Grant) ─────────────────────────────
+// altezza(cm) / circonferenza polso(cm) → esile | normale | robusta.
+// Soglie standard per sesso; la costituzione corregge il peso forma di
+// riferimento (BMI 22): esile −7,5%, normale 0, robusta +7,5%.
+export function indiceGrant(sesso, altezzaCm, polsoCm) {
+  if (!(altezzaCm > 0) || !(polsoCm > 0)) return null;
+  const r = altezzaCm / polsoCm;
+  const soglie = sesso === "F" ? [9.9, 10.9] : [9.6, 10.4];
+  const tipo = r > soglie[1] ? "esile" : r < soglie[0] ? "robusta" : "normale";
+  const correzione = { esile: -0.075, normale: 0, robusta: 0.075 }[tipo];
+  const base = 22 * (altezzaCm / 100) ** 2;
+  const centro = base * (1 + correzione);
+  return {
+    indice: Math.round(r * 100) / 100, tipo, correzione,
+    pesoForma: [Math.round(centro * 0.96 * 10) / 10, Math.round(centro * 1.04 * 10) / 10],
+  };
 }
 
 // ─── SVG Line Chart ────────────────────────────────────────────────
@@ -885,7 +959,13 @@ export function calcPesoObiettivo(persona, lastMisura, pesoTargetManuale) {
       return { peso: Math.round(m * 2) / 2, metodo: "manuale", descrizione: "Peso obiettivo impostato manualmente", bmiMin: bmiMinKg, bmiMax: bmiMaxKg };
     }
   }
-  const meta = { bmiMin: bmiMinKg, bmiMax: bmiMaxKg };
+  // Costituzione ossea (indice di Grant) dal polso dell'ultima misura:
+  // corregge SOLO il ramo antropometrico (Hamwi). Il ramo LBM misura la
+  // composizione reale e non va corretto; la costituzione viene comunque
+  // riportata per il display.
+  const polso = lastMisura ? parseFloat(lastMisura.polso) : NaN;
+  const grant = !isNaN(polso) ? indiceGrant(sesso, altezza, polso) : null;
+  const meta = { bmiMin: bmiMinKg, bmiMax: bmiMaxKg, costituzione: grant };
   const pctGrasso = stimaGrasso(persona, lastMisura);
   if (pctGrasso !== null) {
     const lbm = pesoAttuale * (1 - pctGrasso / 100);
@@ -901,10 +981,16 @@ export function calcPesoObiettivo(persona, lastMisura, pesoTargetManuale) {
     return { peso: Math.max(pesoTarget, Math.round(18.5*altM*altM*2)/2), metodo: "LBM+ACSM", descrizione: `%grasso target ${pctTarget}% (ACSM)`, ...meta };
   }
   const baseH = 152.4, kgPer254 = sesso==="M"?2.7:2.2, baseKg = sesso==="M"?48.0:45.5;
-  const hamwi = altezza>=baseH ? baseKg+kgPer254*((altezza-baseH)/2.54) : baseKg-kgPer254*((baseH-altezza)/2.54);
+  let hamwi = altezza>=baseH ? baseKg+kgPer254*((altezza-baseH)/2.54) : baseKg-kgPer254*((baseH-altezza)/2.54);
+  let metodoH = "Hamwi", descrH = "Formula Hamwi";
+  if (grant && grant.correzione !== 0) {
+    hamwi *= 1 + grant.correzione;
+    metodoH = "Hamwi+Grant";
+    descrH = `Formula Hamwi corretta per costituzione ${grant.tipo} (${grant.correzione > 0 ? "+" : ""}${Math.round(grant.correzione * 100)}%)`;
+  }
   const hamwiR = Math.round(hamwi*2)/2;
-  if (obiettivo === "perdita") return { peso: Math.max(hamwiR, Math.round(18.5*altM*altM*2)/2), metodo: "Hamwi", descrizione: "Formula Hamwi", ...meta };
-  return { peso: Math.min(Math.round(hamwiR*1.05*2)/2, Math.round(25*altM*altM*2)/2), metodo: "Hamwi+5%", descrizione: "Formula Hamwi +5%", ...meta };
+  if (obiettivo === "perdita") return { peso: Math.max(hamwiR, Math.round(18.5*altM*altM*2)/2), metodo: metodoH, descrizione: descrH, ...meta };
+  return { peso: Math.min(Math.round(hamwiR*1.05*2)/2, Math.round(25*altM*altM*2)/2), metodo: metodoH+"+5%", descrizione: descrH+" +5%", ...meta };
 }
 
 // ─── WeightProgressChart ─────────────────────────────────────────────
@@ -1743,6 +1829,58 @@ export function buildShoppingForDayObjects(dayObjs, consumo) {
       meal.ingredients.forEach(ingId => addQty(meal.id, ingId, fattoreSlots));
     });
   });
+  const grouped = {};
+  const catOrder = ["🥩 Proteine","🥛 Latticini","🍎 Frutta","🥦 Verdure","🫘 Legumi","🌾 Cereali","🥜 Frutta secca","🧂 Dispensa","🛒 Altro"];
+  Object.entries(acc).forEach(([ingId,{total,unit}]) => {
+    const ing = ING_MAP[ingId]; if (!ing) return;
+    const qtyStr = (total===null||unit==="qb"||unit==="cucchiaio"||unit==="cucchiaino") ? "q.b." : formatQty(total,unit);
+    if (!grouped[ing.cat]) grouped[ing.cat] = [];
+    grouped[ing.cat].push({...ing, qtyStr, rawTotal:total, rawUnit:unit});
+  });
+  const result = {};
+  catOrder.forEach(cat => { if (grouped[cat]) result[cat] = grouped[cat].sort((a,b)=>a.deperibile-b.deperibile); });
+  Object.keys(grouped).forEach(cat => { if (!result[cat]) result[cat] = grouped[cat]; });
+  return result;
+}
+
+// Spesa per-persona: ogni membro contribuisce con il SUO piatto effettivo
+// (override propri inclusi) e con il SUO slot (uomo/donna/bimbo). Sostituisce
+// l'aggregazione per-slot fissa quando gli override sono per-membro.
+// giorni: [{ dateKey, byPersona: { [personaId]: dayObj } }]
+export function buildShoppingPerPersona(giorni, personas, consumo) {
+  const acc = {};
+  const aware = !!(consumo && consumo.mealsLog);
+  const risolto = (p, dateKey, mk) => {
+    const e = consumo.mealsLog?.[p.id]?.[dateKey]?.[mk];
+    return !!(e && (e.consumed || e.saltato));
+  };
+  const addQty = (recipeId, ingId, slotKey) => {
+    const qtyMap = ING_QTY[recipeId];
+    const q = qtyMap && qtyMap[ingId];
+    if (q) {
+      if (!acc[ingId]) acc[ingId] = { total: 0, unit: q.unit };
+      if (acc[ingId].total === null) acc[ingId].total = 0;
+      acc[ingId].total += (q[slotKey] || 0);
+      acc[ingId].unit = q.unit;
+    } else {
+      if (!acc[ingId]) acc[ingId] = { total: null, unit: "qb" };
+    }
+  };
+  (giorni || []).forEach(g => {
+    if (!g) return;
+    MEAL_KEYS.forEach(mk => {
+      (personas || []).forEach(p => {
+        if (aware && g.dateKey && risolto(p, g.dateKey, mk)) return;
+        const meal = g.byPersona?.[p.id]?.[mk];
+        if (!meal || !meal.ingredients) return;
+        meal.ingredients.forEach(ingId => addQty(meal.id, ingId, slotForPersona(p)));
+      });
+    });
+  });
+  return raggruppaSpesa(acc);
+}
+
+function raggruppaSpesa(acc) {
   const grouped = {};
   const catOrder = ["🥩 Proteine","🥛 Latticini","🍎 Frutta","🥦 Verdure","🫘 Legumi","🌾 Cereali","🥜 Frutta secca","🧂 Dispensa","🛒 Altro"];
   Object.entries(acc).forEach(([ingId,{total,unit}]) => {

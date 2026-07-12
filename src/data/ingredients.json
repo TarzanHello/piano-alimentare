@@ -15786,5 +15786,227 @@
    "fonte": "Salsa teriyaki (media commerciale)"
   },
   "pesoPezzoG": null
+ },
+ {
+  "id": "ing_skyr",
+  "nome": "Skyr",
+  "cat": "🥛 Latticini",
+  "deperibile": 7,
+  "stagioni": null,
+  "tags": [
+   "skyr"
+  ],
+  "nutrizione": {
+   "p": 11,
+   "c": 4,
+   "z": 4,
+   "g": 0.2,
+   "f": 0,
+   "kcal": 63,
+   "fonte": "Skyr (CREA/USDA, media)"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "ing_kefir",
+  "nome": "Kefir",
+  "cat": "🥛 Latticini",
+  "deperibile": 7,
+  "stagioni": null,
+  "tags": [
+   "kefir"
+  ],
+  "nutrizione": {
+   "p": 3.3,
+   "c": 4.5,
+   "z": 4.5,
+   "g": 3.5,
+   "f": 0,
+   "kcal": 65,
+   "fonte": "Kefir (CREA/USDA, media)"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "ing_tempeh",
+  "nome": "Tempeh",
+  "cat": "🫘 Legumi",
+  "deperibile": 7,
+  "stagioni": null,
+  "tags": [
+   "tempeh"
+  ],
+  "nutrizione": {
+   "p": 19,
+   "c": 9,
+   "z": 0.5,
+   "g": 11,
+   "f": 5,
+   "kcal": 193,
+   "fonte": "Tempeh (CREA/USDA, media)"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "ing_semi_di_chia",
+  "nome": "Semi di chia",
+  "cat": "🥜 Frutta secca",
+  "deperibile": 180,
+  "stagioni": null,
+  "tags": [
+   "semi",
+   "di",
+   "chia"
+  ],
+  "nutrizione": {
+   "p": 17,
+   "c": 42,
+   "z": 0,
+   "g": 31,
+   "f": 34,
+   "kcal": 486,
+   "fonte": "Semi di chia (CREA/USDA, media)"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "ing_gallette_di_riso",
+  "nome": "Gallette di riso",
+  "cat": "🌾 Cereali",
+  "deperibile": 180,
+  "stagioni": null,
+  "tags": [
+   "gallette",
+   "di",
+   "riso"
+  ],
+  "nutrizione": {
+   "p": 8,
+   "c": 82,
+   "z": 0.8,
+   "g": 2.8,
+   "f": 3.5,
+   "kcal": 387,
+   "fonte": "Gallette di riso (CREA/USDA, media)"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "ing_yogurt_di_soia",
+  "nome": "Yogurt di soia bianco",
+  "cat": "🥛 Latticini",
+  "deperibile": 7,
+  "stagioni": null,
+  "tags": [
+   "yogurt",
+   "di",
+   "soia",
+   "bianco"
+  ],
+  "nutrizione": {
+   "p": 4,
+   "c": 4,
+   "z": 2.5,
+   "g": 2.3,
+   "f": 0.5,
+   "kcal": 50,
+   "fonte": "Yogurt di soia bianco (CREA/USDA, media)"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "ing_farina_di_ceci",
+  "nome": "Farina di ceci",
+  "cat": "🫘 Legumi",
+  "deperibile": 180,
+  "stagioni": null,
+  "tags": [
+   "farina",
+   "di",
+   "ceci"
+  ],
+  "nutrizione": {
+   "p": 21.8,
+   "c": 54.3,
+   "z": 3.7,
+   "g": 4.9,
+   "f": 13.6,
+   "kcal": 334,
+   "fonte": "Farina di ceci (CREA/USDA, media)"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "ing_cime_di_rapa",
+  "nome": "Cime di rapa",
+  "cat": "🥦 Verdure",
+  "deperibile": 4,
+  "stagioni": [
+   10,
+   11,
+   12,
+   1,
+   2,
+   3
+  ],
+  "tags": [
+   "cime",
+   "di",
+   "rapa"
+  ],
+  "nutrizione": {
+   "p": 2.9,
+   "c": 2,
+   "z": 2,
+   "g": 0.3,
+   "f": 2.9,
+   "kcal": 27,
+   "fonte": "Cime di rapa (CREA/USDA, media)"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "ing_marmellata",
+  "nome": "Marmellata / Confettura",
+  "cat": "🧂 Dispensa",
+  "deperibile": 180,
+  "stagioni": null,
+  "tags": [
+   "marmellata",
+   "confettura"
+  ],
+  "nutrizione": {
+   "p": 0.5,
+   "c": 58,
+   "z": 55,
+   "g": 0.1,
+   "f": 1,
+   "kcal": 222,
+   "fonte": "Marmellata / Confettura (CREA/USDA, media)"
+  },
+  "pesoPezzoG": null
+ },
+ {
+  "id": "ing_orecchiette",
+  "nome": "Orecchiette / Pasta di semola",
+  "cat": "🌾 Cereali",
+  "deperibile": 365,
+  "stagioni": null,
+  "tags": [
+   "orecchiette",
+   "pasta",
+   "di",
+   "semola"
+  ],
+  "nutrizione": {
+   "p": 11,
+   "c": 79,
+   "z": 4,
+   "g": 1.4,
+   "f": 2.7,
+   "kcal": 353,
+   "fonte": "Orecchiette / Pasta di semola (CREA/USDA, media)"
+  },
+  "pesoPezzoG": null
  }
 ]

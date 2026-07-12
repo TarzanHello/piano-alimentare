@@ -1,27 +1,12 @@
 import React from 'react';
 const { useState, useMemo } = React;
-import { ING_MAP, INGREDIENTS, PESO_PEZZO, cercaIngredienti, pesoPezzoInfo, calcTarget, nutriPer100DaQuantita, LAVORI, OBIETTIVI, SESSI } from '@/core';
+import { ING_MAP, INGREDIENTS, PESO_PEZZO, cercaIngredienti, pesoPezzoInfo, calcTarget, indiceGrant, nutriPer100DaQuantita, LAVORI, OBIETTIVI, SESSI } from '@/core';
+export { indiceGrant };
 import { salvaTaratura, contaTarature } from '@/db/tarature';
 import { AddIngredientModal } from '@/features/ingredienti/IngredientiPage';
 import { addCustomIngredient } from '@/db/customIngredients';
 import { toast } from '@/components/toast';
 
-// Indice di Grant: altezza(cm) / circonferenza polso(cm) → costituzione.
-// Soglie standard per sesso; la costituzione corregge il peso forma di
-// riferimento (BMI 22): esile −7,5%, normale 0, robusta +7,5%.
-export function indiceGrant(sesso, altezzaCm, polsoCm) {
-  if (!(altezzaCm > 0) || !(polsoCm > 0)) return null;
-  const r = altezzaCm / polsoCm;
-  const soglie = sesso === "F" ? [9.9, 10.9] : [9.6, 10.4];
-  const tipo = r > soglie[1] ? "esile" : r < soglie[0] ? "robusta" : "normale";
-  const correzione = { esile: -0.075, normale: 0, robusta: 0.075 }[tipo];
-  const base = 22 * (altezzaCm / 100) ** 2;           // peso a BMI 22
-  const centro = base * (1 + correzione);
-  return {
-    indice: Math.round(r * 100) / 100, tipo, correzione,
-    pesoForma: [Math.round(centro * 0.96 * 10) / 10, Math.round(centro * 1.04 * 10) / 10],
-  };
-}
 
 // ─── Helper puri (esportati per i test) ──────────────────────────────
 
@@ -526,6 +511,41 @@ function AnalizzatoreTool() {
   );
 }
 
+// ─── Tool: fabbisogno idrico ─────────────────────────────────────────
+// 30–35 ml/kg/die (EFSA-compatibile) + ~500 ml per giorno di allenamento,
+// spalmati sulla settimana. Alimenta mentalmente il tracker acqua di Oggi.
+
+function IdricoTool() {
+  const [peso, setPeso] = useState("");
+  const [allen, setAllen] = useState(2);
+  const kg = parseFloat(String(peso).replace(",", ".")) || 0;
+  const ml = kg > 0 ? Math.round((kg * 32 + (allen * 500) / 7) / 50) * 50 : 0;
+  const bicchieri = ml ? Math.round(ml / 240) : 0;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div>
+          <div style={stileLabel}>Peso (kg)</div>
+          <input inputMode="decimal" value={peso} onChange={e => setPeso(e.target.value)} style={stileInput}/>
+        </div>
+        <div>
+          <div style={stileLabel}>Allenamenti/sett.: {allen}</div>
+          <input type="range" min="0" max="7" value={allen} onChange={e => setAllen(+e.target.value)} style={{ width: "100%", marginTop: 12 }}/>
+        </div>
+      </div>
+      {ml > 0 && (
+        <div style={{ background: "#EDF7EF", border: "1.5px solid #2F6B3A30", borderRadius: 12, padding: "14px 16px" }}>
+          <div style={{ fontSize: 19, fontWeight: 800, color: "#15251C" }}>💧 ≈ {(ml / 1000).toLocaleString("it-IT")} L al giorno</div>
+          <div style={{ fontSize: 12.5, color: "#4A6152", marginTop: 3 }}>circa {bicchieri} bicchieri da 240 ml</div>
+          <div style={{ fontSize: 10.5, color: "#8AA192", marginTop: 8, lineHeight: 1.4 }}>
+            Stima: 32 ml/kg + quota allenamenti. Aumenta con caldo intenso, febbre o sudorazione abbondante. L'acqua degli alimenti conta: frutta e verdura aiutano.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Pagina: flusso verticale, tutti i tool aperti ───────────────────
 // Niente click per aprire: si scorre. Una chip-nav sticky evidenzia la
 // sezione visibile e al tap ci salta con uno scroll morbido.
@@ -541,6 +561,7 @@ const TOOLS = [
   { id: "fabbisogno",   icon: "🧮", t: "Fabbisogno energetico", d: "MB, LAF e macro spiegati, anche per ospiti", nav: "Fabbisogno",   col: "#1FA2D8" },
   { id: "costituzione", icon: "⌚", t: "Costituzione (polso)",  d: "Indice di Grant e peso forma per ossatura",  nav: "Costituzione", col: "#7c3aed" },
   { id: "analizzatore", icon: "📊", t: "Analizzatore ricetta",  d: "Macro di qualsiasi preparazione",            nav: "Analizzatore", col: "#0F766E" },
+  { id: "idrico",       icon: "💧", t: "Fabbisogno idrico",     d: "Quanta acqua al giorno, in litri e bicchieri", nav: "Acqua",       col: "#0284c7" },
 ];
 
 export function StrumentiPage() {
@@ -587,6 +608,7 @@ export function StrumentiPage() {
       case "fabbisogno":   return <FabbisognoTool/>;
       case "costituzione": return <CostituzioneTool/>;
       case "analizzatore": return <AnalizzatoreTool/>;
+      case "idrico":       return <IdricoTool/>;
       default: return null;
     }
   };
@@ -601,7 +623,7 @@ export function StrumentiPage() {
         )}
       </div>
       <div style={{ fontSize: 12.5, color: "#6E8576", marginBottom: 10, lineHeight: 1.5 }}>
-        Sei utility pronte all'uso: scorri, sono tutte già aperte.
+        Sette utility pronte all'uso: scorri, sono tutte già aperte.
       </div>
 
       {/* Chip-nav sticky */}

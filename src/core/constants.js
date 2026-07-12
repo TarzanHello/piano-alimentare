@@ -153,6 +153,7 @@ export const TUTTI_FIELDS = [
   { key:"petto",    label:"Petto / Seno", emoji:"🫁",  color:"#db2777", unit:"cm" },
   { key:"vita",     label:"Vita",         emoji:"⌛",  color:"#d97706", unit:"cm" },
   { key:"fianchi",  label:"Fianchi",      emoji:"🍑",  color:"#7c3aed", unit:"cm" },
+  { key:"polso",    label:"Polso",        emoji:"⌚",  color:"#8b5cf6", unit:"cm" },
   { key:"coscia",   label:"Coscia",       emoji:"🦵",  color:"#0891b2", unit:"cm" },
   { key:"polpaccio",label:"Polpaccio",    emoji:"🦶",  color:"#16a34a", unit:"cm" },
 ];

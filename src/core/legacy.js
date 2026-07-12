@@ -152,6 +152,14 @@ export function migrateRecipe(r) {
 // Mappa di override { "day-meal": ricetta } → ricette migrate.
 export function migrateOverrides(ovr) {
   if (!ovr || typeof ovr !== "object") return ovr;
+  // Container v2 (override per-membro): migra le ricette dentro ogni layer
+  // senza toccare la struttura.
+  if (ovr._v === 2) {
+    const mig = m => Object.fromEntries(Object.entries(m || {}).map(([k, r]) => [k, migrateRecipe(r)]));
+    const perPersona = {};
+    for (const [pid, m] of Object.entries(ovr.perPersona || {})) perPersona[pid] = mig(m);
+    return { _v: 2, condivisi: mig(ovr.condivisi), perPersona };
+  }
   return Object.fromEntries(Object.entries(ovr).map(([k, r]) => [k, migrateRecipe(r)]));
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, MEAL_FASCIA, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO, SK_FROZEN, buildShoppingForDayObjects, applyOverrides, applyOverridesWeek, autoFlagSaltati, calcTargetAdattivo, classifySwap, computePrefScore, dateForOffset, dateKeyForDayIdx, dateKeyForOffset, emojiBySesso, generateWeekPlan, getPrefEntry, grammiDaQuantita, grammiRicettaCalc, hoursUntilMeal, localDateKey, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, migraOverridesASettimana, normalizePrefs, overrideKey, pianoPersonalizzato, planForWeek, regeneraPlanState, restoreCustomING_QTY, ricalcolaMacroAdattati, ricettaUtenteToMealObj, scheduleNotifications, seedForWeek, slotForPersona, todayDayIndex, weekIndexForDate, weekdayForDate } from '@/core';
+import { DAYS, DB, DEFAULT_NOTIF, DEFAULT_PERSONAS, ING_QTY, MEAL_KEYS, MEAL_FASCIA, OBIETTIVI, normalizeAttivita, parseDataIT, SK_EXCL, SK_HISTORY, SK_MEALS_LOG, SK_MISURE, SK_MY_PERSONA, SK_NOTIF, SK_OVERRIDES, SK_PERSONAS, SK_PREFS, SK_SEED, SK_SPESA, SK_TARGET_GIORNALIERO, SK_FROZEN, buildShoppingForDayObjects, applyOverrides, applyOverridesWeek, buildShoppingPerPersona, filtraOverrides, overridesForPersona, scriviOverride, tuttiOverrideMeals, autoFlagSaltati, calcTargetAdattivo, classifySwap, computePrefScore, dateForOffset, dateKeyForDayIdx, dateKeyForOffset, emojiBySesso, generateWeekPlan, getPrefEntry, grammiDaQuantita, grammiRicettaCalc, hoursUntilMeal, localDateKey, meseCorrente, migrateIdList, migrateMealsLog, migrateOverrides, migraOverridesASettimana, normalizePrefs, overrideKey, pianoPersonalizzato, planForWeek, regeneraPlanState, restoreCustomING_QTY, ricalcolaMacroAdattati, ricettaUtenteToMealObj, scheduleNotifications, seedForWeek, slotForPersona, todayDayIndex, weekIndexForDate, weekdayForDate } from '@/core';
 import { SwipeContainer } from '@/components/shared';
 import { FamigliaPage } from '@/features/famiglia/FamigliaPage';
 import { GustiPage } from '@/features/gusti/GustiPage';
@@ -398,7 +398,7 @@ export function App() {
           window.storage.set(SK_FROZEN, JSON.stringify(loadedFrozen)).catch(()=>{});
         }
         // Ripristina ING_QTY per ricette custom salvate negli overrides
-        for (const ricetta of Object.values(ovWeek || {})) {
+        for (const ricetta of tuttiOverrideMeals(ovWeek)) {
           restoreCustomING_QTY(ricetta);
         }
         setMisureApp(loadedMisu); setOverrides(ovWeek); setFrozen(loadedFrozen); setPrefs(loadedPrefs); setMealsLog(loadedMealsLog); setNotifSettings(loadedNotif);
@@ -703,7 +703,7 @@ export function App() {
     restoreCustomING_QTY(newMeal);
     const key = overrideKey(weekIndex, weekday, mealKey);
     setOverrides(prev => {
-      const next = {...prev, [key]: newMeal};
+      const next = scriviOverride(prev, myPersonaId, key, newMeal);
       window.storage.set(SK_OVERRIDES, JSON.stringify(next)).catch(()=>{});
       return next;
     });
@@ -722,12 +722,11 @@ export function App() {
   const handleResetSwap = useCallback(async(weekIndex, weekday, mealKey) => {
     const key = overrideKey(weekIndex, weekday, mealKey);
     setOverrides(prev => {
-      const next = {...prev};
-      delete next[key];
+      const next = scriviOverride(prev, myPersonaId, key, null);
       window.storage.set(SK_OVERRIDES, JSON.stringify(next)).catch(()=>{});
       return next;
     });
-  }, []);
+  }, [myPersonaId]);
 
   const handleApplySeed = useCallback(async(newSeed, newOverrides)=>{
     logSync("piano", `Piano applicato da storico`, { seed: String(newSeed) });
@@ -764,7 +763,8 @@ export function App() {
     const newState = regeneraPlanState(oldState, {});
     const np = planForWeek(newState, cur, {excludedIds:excluded, ricetteUtente, ricetteEscluseIds});
     // Override: mantieni quelli delle settimane PASSATE...
-    const nextOv = Object.fromEntries(Object.entries(overrides).filter(([k])=>{ const wk=parseInt(k,10); return Number.isFinite(wk) && wk < cur; }));
+    const nextOv0 = filtraOverrides(overrides, k => { const wk = parseInt(k, 10); return Number.isFinite(wk) && wk < cur; });
+    const nextOv = nextOv0;  // container v2: le scritture sotto passano da scriviOverride
     // ...e RIPRISTINA la regione da preservare della settimana corrente:
     //    giorni < oggi (interi) + pasti di oggi già consumati.
     for (let wd=0; wd<=twd; wd++) {
@@ -772,7 +772,7 @@ export function App() {
         const preserva = wd < twd || (wd === twd && consumatoOggi(mk));
         if (!preserva) continue;
         const meal = oldWeek[wd] && oldWeek[wd][mk];
-        if (meal) nextOv[overrideKey(cur, wd, mk)] = meal;
+        if (meal) nextOv.condivisi[overrideKey(cur, wd, mk)] = meal;
       }
     }
     const nh=[{seed,date:new Date().toLocaleDateString("it-IT"),label:`Piano del ${new Date().toLocaleDateString("it-IT")}`},...history].slice(0,5);
@@ -989,7 +989,7 @@ export function App() {
             persona={oggiPersona}
             personaSlot={oggiSlot}
             target={oggiTarget}
-            effectivePlan={applyOverridesWeek(plan||[], overrides, weekIndexForDate(new Date()))}
+            effectivePlan={applyOverridesWeek(plan||[], overrides, weekIndexForDate(new Date()), oggiPersona?.id)}
             misure={misureApp[oggiPersona?.id]}
             mealsLog={mealsLog}
             onToggleMeal={handleToggleMealLog}
@@ -1063,7 +1063,7 @@ export function App() {
                   // con gli override per-settimana applicati.
                   const selWeek = applyOverridesWeek(
                     planForWeek(planState, selWeekIndex, { excludedIds: excluded, ricetteUtente, ricetteEscluseIds }),
-                    overrides, selWeekIndex
+                    overrides, selWeekIndex, persona?.id
                   );
                   const weekMealIds = new Set(
                     selWeek.flatMap(d => MEAL_KEYS.map(mk => d[mk]?.id)).filter(Boolean)
@@ -1095,7 +1095,7 @@ export function App() {
                       )}
                       {MEAL_KEYS.map(mk => {
                         const key = overrideKey(selWeekIndex, selWeekday, mk);
-                        const isOverride = !!overrides[key];
+                        const isOverride = !!overridesForPersona(overrides, persona?.id)[key];
                         const isConsumed = !!selDayLog[mk]?.consumed;
                         const isSaltato  = !!selDayLog[mk]?.saltato;
                         // Per i pasti né consumati né saltati usa i macro riadattati; per i consumati restano quelli reali del log
@@ -1317,18 +1317,16 @@ export function App() {
           // quello mostrato dentro la pagina.
           if (tab.key==="spesa") {
             try {
-              const dayObjs = [], dateKeys = [];
+              const giorni = [], dateKeys = [];
               [0,1,2].forEach(off=>{
                 const d = dateForOffset(off);
                 const wk = weekIndexForDate(d), wd = weekdayForDate(d);
-                const week = applyOverridesWeek(
-                  planForWeek({baseSeed:seed, frozen}, wk, { excludedIds: excluded, ricetteUtente, ricetteEscluseIds }),
-                  overrides, wk
-                );
-                if (week[wd]) { dayObjs.push(week[wd]); dateKeys.push(dateKeyForOffset(off)); }
+                const base = planForWeek({baseSeed:seed, frozen}, wk, { excludedIds: excluded, ricetteUtente, ricetteEscluseIds });
+                const byPersona = Object.fromEntries(personas.map(p => [p.id, applyOverridesWeek(base, overrides, wk, p.id)[wd]]));
+                if (base[wd]) { giorni.push({ dateKey: dateKeyForOffset(off), byPersona }); dateKeys.push(dateKeyForOffset(off)); }
               });
-              const consumo = spesaConsumo ? { personas, mealsLog, dateKeys } : null;
-              const ids = Object.values(buildShoppingForDayObjects(dayObjs, consumo)).flat().map(i=>i.id);
+              const consumo = spesaConsumo ? { mealsLog } : null;
+              const ids = Object.values(buildShoppingPerPersona(giorni, personas, consumo)).flat().map(i=>i.id);
               const wk = spesaChecks[String(seed)]||{};
               badge = ids.filter(id=>!wk[id]).length;
             } catch { badge = 0; }

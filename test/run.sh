@@ -27,6 +27,12 @@ echo "▸ TEST 2g — Allineamento ricette ↔ ingredienti (ID, porzioni, semant
 node test/test_allineamento.mjs || FAIL=1
 
 echo ""
+echo "▸ TEST 2i — Override per-membro (isolamento swap)"
+"$EB" test/test_override_membri.mjs --bundle --format=esm --outfile=./.tom.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
+node ./.tom.mjs || FAIL=1
+rm -f ./.tom.mjs
+
+echo ""
 echo "▸ TEST 2h — Ricetta → ingrediente (nutriPer100DaQuantita)"
 "$EB" test/test_ricetta_ingrediente.mjs --bundle --format=esm --outfile=./.tri.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
 node ./.tri.mjs || FAIL=1

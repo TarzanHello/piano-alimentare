@@ -143,3 +143,22 @@ ok2(indiceGrant("M", 178, 0) === null && indiceGrant("M", 0, 17) === null, "inpu
 
 console.log(fail2 === 0 ? "EQUIVALENZE: TUTTO OK" : `EQUIVALENZE: ${fail2} FALLIMENTI`);
 if (fail2 > 0) process.exit(1);
+
+// ── Costituzione integrata in calcPesoObiettivo ─────────────────────
+const { calcPesoObiettivo } = await import('@/core');
+let fail3 = 0;
+const ok3 = (cond, msg) => { console.log((cond ? "  ✓ " : "  ✗ ") + msg); if (!cond) fail3++; };
+const pers = { sesso: "M", eta: 40, altezza: 178, peso: 90, obiettivo: "perdita" };
+// senza polso: Hamwi puro; con polso robusto (19cm → r 9.37): +7.5%
+const base = calcPesoObiettivo(pers, { peso: 90 });
+const conGrant = calcPesoObiettivo(pers, { peso: 90, polso: 19 });
+ok3(base.metodo === "Hamwi" && !base.costituzione, "senza polso: Hamwi puro, nessuna costituzione");
+ok3(conGrant.metodo === "Hamwi+Grant" && conGrant.costituzione?.tipo === "robusta",
+    `con polso 19cm: Hamwi+Grant robusta — ottenuto ${conGrant.metodo}/${conGrant.costituzione?.tipo}`);
+ok3(conGrant.peso > base.peso, `peso forma corretto verso l'alto per ossatura robusta (${base.peso} → ${conGrant.peso})`);
+// ramo LBM (vita+collo presenti): niente correzione al target, ma costituzione riportata
+const conLBM = calcPesoObiettivo(pers, { peso: 90, polso: 19, vita: 100, collo: 40 });
+ok3(conLBM.metodo === "LBM+ACSM" && conLBM.costituzione?.tipo === "robusta",
+    "ramo LBM: target non corretto, costituzione riportata per il display");
+console.log(fail3 === 0 ? "COSTITUZIONE NEL PIANO: TUTTO OK" : `COSTITUZIONE: ${fail3} FALLIMENTI`);
+if (fail3 > 0) process.exit(1);

@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DAYS, applyOverridesWeek, buildShoppingForDayObjects, dateForOffset, dateKeyForOffset, depColor, depLabel, planForWeek, weekIndexForDate, weekdayForDate } from '@/core';
+import { DAYS, applyOverridesWeek, buildShoppingPerPersona, dateForOffset, dateKeyForOffset, depColor, depLabel, planForWeek, weekIndexForDate, weekdayForDate } from '@/core';
 import { IngredientiPage } from '@/features/ingredienti/IngredientiPage';
 
 export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, onReset, personas, mealsLog, consumoAttivo, onToggleConsumo }) {
@@ -49,15 +49,20 @@ export function ShoppingPage({ planState, overrides, genArgs, checks, onToggle, 
   // Le dateKeys restano ALLINEATE ai dayObjs (indice per indice): servono al
   // motore per l'esclusione consumo-aware per persona.
   const grouped = useMemo(() => {
-    const dayObjs = [], dateKeys = [];
+    // Giorni per-persona: ogni membro contribuisce col SUO piatto effettivo
+    // (override propri inclusi) e col suo slot.
+    const giorni = [];
     selOffsets.forEach(off => {
       const d = dateForOffset(off);
       const wk = weekIndexForDate(d), wd = weekdayForDate(d);
-      const week = applyOverridesWeek(planForWeek(planState, wk, genArgs || {}), overrides || {}, wk);
-      if (week[wd]) { dayObjs.push(week[wd]); dateKeys.push(dateKeyForOffset(off)); }
+      const base = planForWeek(planState, wk, genArgs || {});
+      if (!base[wd]) return;
+      const byPersona = Object.fromEntries((personas || []).map(p =>
+        [p.id, applyOverridesWeek(base, overrides || {}, wk, p.id)[wd]]));
+      giorni.push({ dateKey: dateKeyForOffset(off), byPersona });
     });
-    const consumo = (consumoAttivo && personas?.length) ? { personas, mealsLog, dateKeys } : null;
-    return buildShoppingForDayObjects(dayObjs, consumo);
+    const consumo = (consumoAttivo && personas?.length) ? { mealsLog } : null;
+    return buildShoppingPerPersona(giorni, personas || [], consumo);
   }, [selOffsets, planState, overrides, genArgs, consumoAttivo, personas, mealsLog]);
   const allIds = Object.values(grouped).flat().map(i=>i.id);
   const done = allIds.filter(id=>checked[id]).length;

@@ -10709,5 +10709,1777 @@
     "unit": "ml"
    }
   }
+ },
+ {
+  "id": "col_37",
+  "categoria": "colazione",
+  "nome": "Fette biscottate integrali con marmellata e latte",
+  "ingredients": [
+   "db_fette_biscottate_integrali",
+   "ing_marmellata",
+   "db_yogurt_da_latte_parzialmente_scremato"
+  ],
+  "quantita": {
+   "db_fette_biscottate_integrali": {
+    "uomo": 48,
+    "donna": 40,
+    "bimbo": 24,
+    "unit": "g"
+   },
+   "ing_marmellata": {
+    "uomo": 30,
+    "donna": 25,
+    "bimbo": 15,
+    "unit": "g"
+   },
+   "db_yogurt_da_latte_parzialmente_scremato": {
+    "uomo": 200,
+    "donna": 150,
+    "bimbo": 150,
+    "unit": "ml"
+   }
+  },
+  "uomo": {
+   "kcal": 335,
+   "p": 14,
+   "c": 55,
+   "g": 8
+  },
+  "donna": {
+   "kcal": 272,
+   "p": 11,
+   "c": 45,
+   "g": 7
+  },
+  "bimbo": {
+   "kcal": 189,
+   "p": 9,
+   "c": 29,
+   "g": 5
+  },
+  "porzioni": {
+   "uomo": "48g fette biscottate integrali · 30g marmellata · 200ml yogurt da latte parzialmente scremato",
+   "donna": "40g fette biscottate integrali · 25g marmellata · 150ml yogurt da latte parzialmente scremato",
+   "bimbo": "24g fette biscottate integrali · 15g marmellata · 150ml yogurt da latte parzialmente scremato"
+  }
+ },
+ {
+  "id": "col_38",
+  "categoria": "colazione",
+  "nome": "Chia pudding con latte e lamponi",
+  "ingredients": [
+   "ing_semi_di_chia",
+   "db_yogurt_da_latte_parzialmente_scremato",
+   "db_lamponi",
+   "db_miele"
+  ],
+  "quantita": {
+   "ing_semi_di_chia": {
+    "uomo": 35,
+    "donna": 28,
+    "bimbo": 15,
+    "unit": "g"
+   },
+   "db_yogurt_da_latte_parzialmente_scremato": {
+    "uomo": 200,
+    "donna": 160,
+    "bimbo": 120,
+    "unit": "ml"
+   },
+   "db_lamponi": {
+    "uomo": 80,
+    "donna": 70,
+    "bimbo": 50,
+    "unit": "g"
+   },
+   "db_miele": {
+    "uomo": 8,
+    "donna": 5,
+    "bimbo": 5,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 308,
+   "p": 14,
+   "c": 34,
+   "g": 15
+  },
+  "donna": {
+   "kcal": 244,
+   "p": 11,
+   "c": 26,
+   "g": 12
+  },
+  "bimbo": {
+   "kcal": 157,
+   "p": 7,
+   "c": 18,
+   "g": 7
+  },
+  "porzioni": {
+   "uomo": "35g semi di chia · 200ml yogurt da latte parzialmente scremato · 80g lamponi · 8g miele",
+   "donna": "28g semi di chia · 160ml yogurt da latte parzialmente scremato · 70g lamponi · 5g miele",
+   "bimbo": "15g semi di chia · 120ml yogurt da latte parzialmente scremato · 50g lamponi · 5g miele"
+  },
+  "preparazione": "La sera mescola i semi di chia nel latte con il miele, copri e lascia in frigo. La mattina completa con i lamponi."
+ },
+ {
+  "id": "col_39",
+  "categoria": "colazione",
+  "nome": "Pane, pomodoro e olio EVO con spremuta",
+  "ingredients": [
+   "db_pane_di_tipo_integrale",
+   "db_pomodori_da_insalata",
+   "db_olio_di_oliva_extra_vergine",
+   "db_arance"
+  ],
+  "quantita": {
+   "db_pane_di_tipo_integrale": {
+    "uomo": 90,
+    "donna": 70,
+    "bimbo": 40,
+    "unit": "g"
+   },
+   "db_pomodori_da_insalata": {
+    "uomo": 100,
+    "donna": 80,
+    "bimbo": 50,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 12,
+    "donna": 8,
+    "bimbo": 5,
+    "unit": "g"
+   },
+   "db_arance": {
+    "uomo": 2,
+    "donna": 2,
+    "bimbo": 1,
+    "unit": "pz"
+   }
+  },
+  "uomo": {
+   "kcal": 435,
+   "p": 10,
+   "c": 71,
+   "g": 14
+  },
+  "donna": {
+   "kcal": 351,
+   "p": 8,
+   "c": 61,
+   "g": 10
+  },
+  "bimbo": {
+   "kcal": 197,
+   "p": 5,
+   "c": 33,
+   "g": 6
+  },
+  "porzioni": {
+   "uomo": "90g pane integrale · 100g pomodori da insalata · 12g olio evo · 2 arance",
+   "donna": "70g pane integrale · 80g pomodori da insalata · 8g olio evo · 2 arance",
+   "bimbo": "40g pane integrale · 50g pomodori da insalata · 5g olio evo · 1 arance"
+  }
+ },
+ {
+  "id": "col_40",
+  "categoria": "colazione",
+  "nome": "Kefir con muesli e pera",
+  "ingredients": [
+   "ing_kefir",
+   "db_muesli",
+   "db_pere_fresche_senza_buccia"
+  ],
+  "quantita": {
+   "ing_kefir": {
+    "uomo": 250,
+    "donna": 200,
+    "bimbo": 150,
+    "unit": "ml"
+   },
+   "db_muesli": {
+    "uomo": 55,
+    "donna": 45,
+    "bimbo": 25,
+    "unit": "g"
+   },
+   "db_pere_fresche_senza_buccia": {
+    "uomo": 1,
+    "donna": 1,
+    "bimbo": 0.5,
+    "unit": "pz"
+   }
+  },
+  "uomo": {
+   "kcal": 415,
+   "p": 14,
+   "c": 64,
+   "g": 12
+  },
+  "donna": {
+   "kcal": 346,
+   "p": 11,
+   "c": 55,
+   "g": 10
+  },
+  "bimbo": {
+   "kcal": 215,
+   "p": 8,
+   "c": 31,
+   "g": 7
+  },
+  "porzioni": {
+   "uomo": "250ml kefir · 55g muesli · 1 pere",
+   "donna": "200ml kefir · 45g muesli · 1 pere",
+   "bimbo": "150ml kefir · 25g muesli · 0.5 pere"
+  }
+ },
+ {
+  "id": "col_41",
+  "categoria": "colazione",
+  "nome": "Semolino dolce con cannella e miele",
+  "ingredients": [
+   "db_farina_di_frumento_tipo_00",
+   "db_yogurt_da_latte_parzialmente_scremato",
+   "db_miele",
+   "ing_cannella"
+  ],
+  "quantita": {
+   "db_farina_di_frumento_tipo_00": {
+    "uomo": 55,
+    "donna": 45,
+    "bimbo": 30,
+    "unit": "g"
+   },
+   "db_yogurt_da_latte_parzialmente_scremato": {
+    "uomo": 250,
+    "donna": 200,
+    "bimbo": 150,
+    "unit": "ml"
+   },
+   "db_miele": {
+    "uomo": 12,
+    "donna": 8,
+    "bimbo": 6,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 331,
+   "p": 15,
+   "c": 62,
+   "g": 5
+  },
+  "donna": {
+   "kcal": 263,
+   "p": 12,
+   "c": 49,
+   "g": 4
+  },
+  "bimbo": {
+   "kcal": 185,
+   "p": 8,
+   "c": 34,
+   "g": 3
+  },
+  "porzioni": {
+   "uomo": "55g farina 00 · 250ml yogurt da latte parzialmente scremato · 12g miele · cannella",
+   "donna": "45g farina 00 · 200ml yogurt da latte parzialmente scremato · 8g miele · cannella",
+   "bimbo": "30g farina 00 · 150ml yogurt da latte parzialmente scremato · 6g miele · cannella"
+  },
+  "preparazione": "Porta il latte a bollore, versa il semolino a pioggia mescolando 5 min, spegni e completa con miele e cannella."
+ },
+ {
+  "id": "col_42",
+  "categoria": "colazione",
+  "nome": "Toast integrale con fesa di tacchino e spremuta",
+  "ingredients": [
+   "db_pane_di_tipo_integrale",
+   "db_tacchino_intero_senza_pelle_crudo",
+   "db_arance"
+  ],
+  "quantita": {
+   "db_pane_di_tipo_integrale": {
+    "uomo": 90,
+    "donna": 70,
+    "bimbo": 40,
+    "unit": "g"
+   },
+   "db_tacchino_intero_senza_pelle_crudo": {
+    "uomo": 60,
+    "donna": 45,
+    "bimbo": 25,
+    "unit": "g"
+   },
+   "db_arance": {
+    "uomo": 2,
+    "donna": 1,
+    "bimbo": 1,
+    "unit": "pz"
+   }
+  },
+  "uomo": {
+   "kcal": 376,
+   "p": 22,
+   "c": 69,
+   "g": 3
+  },
+  "donna": {
+   "kcal": 260,
+   "p": 16,
+   "c": 46,
+   "g": 2
+  },
+  "bimbo": {
+   "kcal": 171,
+   "p": 10,
+   "c": 32,
+   "g": 1
+  },
+  "porzioni": {
+   "uomo": "90g pane integrale · 60g tacchino intero senza pelle crudo · 2 arance",
+   "donna": "70g pane integrale · 45g tacchino intero senza pelle crudo · 1 arance",
+   "bimbo": "40g pane integrale · 25g tacchino intero senza pelle crudo · 1 arance"
+  }
+ },
+ {
+  "id": "col_43",
+  "categoria": "colazione",
+  "nome": "Yogurt di soia con muesli e kiwi",
+  "ingredients": [
+   "ing_yogurt_di_soia",
+   "db_muesli",
+   "db_kiwi",
+   "db_miele"
+  ],
+  "quantita": {
+   "ing_yogurt_di_soia": {
+    "uomo": 250,
+    "donna": 200,
+    "bimbo": 150,
+    "unit": "g"
+   },
+   "db_muesli": {
+    "uomo": 55,
+    "donna": 45,
+    "bimbo": 25,
+    "unit": "g"
+   },
+   "db_kiwi": {
+    "uomo": 1,
+    "donna": 1,
+    "bimbo": 1,
+    "unit": "pz"
+   },
+   "db_miele": {
+    "uomo": 8,
+    "donna": 5,
+    "bimbo": 0,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 385,
+   "p": 16,
+   "c": 63,
+   "g": 10
+  },
+  "donna": {
+   "kcal": 314,
+   "p": 13,
+   "c": 52,
+   "g": 8
+  },
+  "bimbo": {
+   "kcal": 201,
+   "p": 9,
+   "c": 31,
+   "g": 5
+  },
+  "porzioni": {
+   "uomo": "250g yogurt di soia bianco · 55g muesli · 1 kiwi · 8g miele",
+   "donna": "200g yogurt di soia bianco · 45g muesli · 1 kiwi · 5g miele",
+   "bimbo": "150g yogurt di soia bianco · 25g muesli · 1 kiwi"
+  }
+ },
+ {
+  "id": "spu_37",
+  "categoria": "spuntino",
+  "nome": "Uovo sodo con gallette di riso",
+  "ingredients": [
+   "db_uova_di_gallina_intero",
+   "ing_gallette_di_riso"
+  ],
+  "quantita": {
+   "db_uova_di_gallina_intero": {
+    "uomo": 1,
+    "donna": 1,
+    "bimbo": 1,
+    "unit": "pz"
+   },
+   "ing_gallette_di_riso": {
+    "uomo": 18,
+    "donna": 18,
+    "bimbo": 9,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 134,
+   "p": 8,
+   "c": 15,
+   "g": 5
+  },
+  "donna": {
+   "kcal": 134,
+   "p": 8,
+   "c": 15,
+   "g": 5
+  },
+  "bimbo": {
+   "kcal": 99,
+   "p": 7,
+   "c": 7,
+   "g": 5
+  },
+  "porzioni": {
+   "uomo": "1 uova · 18g gallette di riso",
+   "donna": "1 uova · 18g gallette di riso",
+   "bimbo": "1 uova · 9g gallette di riso"
+  }
+ },
+ {
+  "id": "spu_38",
+  "categoria": "spuntino",
+  "nome": "Edamame al sale",
+  "ingredients": [
+   "ing_edamame"
+  ],
+  "quantita": {
+   "ing_edamame": {
+    "uomo": 130,
+    "donna": 110,
+    "bimbo": 70,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 162,
+   "p": 13,
+   "c": 13,
+   "g": 1
+  },
+  "donna": {
+   "kcal": 138,
+   "p": 11,
+   "c": 11,
+   "g": 1
+  },
+  "bimbo": {
+   "kcal": 88,
+   "p": 7,
+   "c": 7,
+   "g": 1
+  },
+  "porzioni": {
+   "uomo": "130g edamame",
+   "donna": "110g edamame",
+   "bimbo": "70g edamame"
+  }
+ },
+ {
+  "id": "spu_39",
+  "categoria": "spuntino",
+  "nome": "Pera e scaglie di parmigiano",
+  "ingredients": [
+   "db_pere_fresche_senza_buccia",
+   "db_parmigiano"
+  ],
+  "quantita": {
+   "db_pere_fresche_senza_buccia": {
+    "uomo": 1,
+    "donna": 1,
+    "bimbo": 0.5,
+    "unit": "pz"
+   },
+   "db_parmigiano": {
+    "uomo": 25,
+    "donna": 20,
+    "bimbo": 10,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 149,
+   "p": 9,
+   "c": 13,
+   "g": 7
+  },
+  "donna": {
+   "kcal": 130,
+   "p": 7,
+   "c": 13,
+   "g": 6
+  },
+  "bimbo": {
+   "kcal": 65,
+   "p": 4,
+   "c": 7,
+   "g": 3
+  },
+  "porzioni": {
+   "uomo": "1 pere · 25g parmigiano",
+   "donna": "1 pere · 20g parmigiano",
+   "bimbo": "0.5 pere · 10g parmigiano"
+  }
+ },
+ {
+  "id": "spu_40",
+  "categoria": "spuntino",
+  "nome": "Gallette con bresaola",
+  "ingredients": [
+   "ing_gallette_di_riso",
+   "db_bresaola"
+  ],
+  "quantita": {
+   "ing_gallette_di_riso": {
+    "uomo": 18,
+    "donna": 18,
+    "bimbo": 9,
+    "unit": "g"
+   },
+   "db_bresaola": {
+    "uomo": 40,
+    "donna": 30,
+    "bimbo": 20,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 130,
+   "p": 14,
+   "c": 15,
+   "g": 2
+  },
+  "donna": {
+   "kcal": 115,
+   "p": 11,
+   "c": 15,
+   "g": 1
+  },
+  "bimbo": {
+   "kcal": 65,
+   "p": 7,
+   "c": 7,
+   "g": 1
+  },
+  "porzioni": {
+   "uomo": "18g gallette di riso · 40g bresaola",
+   "donna": "18g gallette di riso · 30g bresaola",
+   "bimbo": "9g gallette di riso · 20g bresaola"
+  }
+ },
+ {
+  "id": "spu_41",
+  "categoria": "spuntino",
+  "nome": "Cioccolato fondente e noci",
+  "ingredients": [
+   "db_cioccolato_fondente",
+   "db_noci"
+  ],
+  "quantita": {
+   "db_cioccolato_fondente": {
+    "uomo": 20,
+    "donna": 15,
+    "bimbo": 10,
+    "unit": "g"
+   },
+   "db_noci": {
+    "uomo": 12,
+    "donna": 10,
+    "bimbo": 6,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 173,
+   "p": 3,
+   "c": 11,
+   "g": 14
+  },
+  "donna": {
+   "kcal": 135,
+   "p": 2,
+   "c": 8,
+   "g": 11
+  },
+  "bimbo": {
+   "kcal": 86,
+   "p": 1,
+   "c": 5,
+   "g": 7
+  },
+  "porzioni": {
+   "uomo": "20g cioccolato fondente · 12g noci",
+   "donna": "15g cioccolato fondente · 10g noci",
+   "bimbo": "10g cioccolato fondente · 6g noci"
+  }
+ },
+ {
+  "id": "spu_42",
+  "categoria": "spuntino",
+  "nome": "Skyr con mirtilli",
+  "ingredients": [
+   "ing_skyr",
+   "db_mirtilli"
+  ],
+  "quantita": {
+   "ing_skyr": {
+    "uomo": 170,
+    "donna": 150,
+    "bimbo": 100,
+    "unit": "g"
+   },
+   "db_mirtilli": {
+    "uomo": 80,
+    "donna": 60,
+    "bimbo": 40,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 127,
+   "p": 19,
+   "c": 11,
+   "g": 0
+  },
+  "donna": {
+   "kcal": 110,
+   "p": 17,
+   "c": 9,
+   "g": 0
+  },
+  "bimbo": {
+   "kcal": 73,
+   "p": 11,
+   "c": 6,
+   "g": 0
+  },
+  "porzioni": {
+   "uomo": "170g skyr · 80g mirtilli",
+   "donna": "150g skyr · 60g mirtilli",
+   "bimbo": "100g skyr · 40g mirtilli"
+  }
+ },
+ {
+  "id": "pra_47",
+  "categoria": "pranzo",
+  "nome": "Pasta e ceci",
+  "ingredients": [
+   "ing_orecchiette",
+   "db_ceci_in_scatola_scolati",
+   "db_olio_di_oliva_extra_vergine",
+   "db_rosmarino",
+   "db_aglio"
+  ],
+  "quantita": {
+   "ing_orecchiette": {
+    "uomo": 80,
+    "donna": 60,
+    "bimbo": 45,
+    "unit": "g"
+   },
+   "db_ceci_in_scatola_scolati": {
+    "uomo": 150,
+    "donna": 120,
+    "bimbo": 70,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 12,
+    "donna": 8,
+    "bimbo": 5,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 540,
+   "p": 19,
+   "c": 84,
+   "g": 17
+  },
+  "donna": {
+   "kcal": 404,
+   "p": 15,
+   "c": 64,
+   "g": 12
+  },
+  "bimbo": {
+   "kcal": 274,
+   "p": 10,
+   "c": 45,
+   "g": 7
+  },
+  "porzioni": {
+   "uomo": "80g orecchiette · 150g ceci · 12g olio evo · rosmarino · aglio",
+   "donna": "60g orecchiette · 120g ceci · 8g olio evo · rosmarino · aglio",
+   "bimbo": "45g orecchiette · 70g ceci · 5g olio evo · rosmarino · aglio"
+  },
+  "preparazione": "Soffriggi aglio e rosmarino in EVO, aggiungi i ceci (metà frullati) con acqua calda, poi la pasta e cuoci nel brodo di ceci."
+ },
+ {
+  "id": "pra_48",
+  "categoria": "pranzo",
+  "nome": "Pasta e fagioli con rosmarino",
+  "ingredients": [
+   "ing_orecchiette",
+   "db_fagioli_borlotti_freschi_crudi",
+   "db_olio_di_oliva_extra_vergine",
+   "db_rosmarino",
+   "db_cipolle_crude"
+  ],
+  "quantita": {
+   "ing_orecchiette": {
+    "uomo": 80,
+    "donna": 60,
+    "bimbo": 45,
+    "unit": "g"
+   },
+   "db_fagioli_borlotti_freschi_crudi": {
+    "uomo": 160,
+    "donna": 130,
+    "bimbo": 80,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 12,
+    "donna": 8,
+    "bimbo": 5,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 603,
+   "p": 25,
+   "c": 100,
+   "g": 14
+  },
+  "donna": {
+   "kcal": 457,
+   "p": 20,
+   "c": 77,
+   "g": 10
+  },
+  "bimbo": {
+   "kcal": 310,
+   "p": 13,
+   "c": 54,
+   "g": 6
+  },
+  "porzioni": {
+   "uomo": "80g orecchiette · 160g fagioli borlotti freschi crudi · 12g olio evo · rosmarino · cipolla",
+   "donna": "60g orecchiette · 130g fagioli borlotti freschi crudi · 8g olio evo · rosmarino · cipolla",
+   "bimbo": "45g orecchiette · 80g fagioli borlotti freschi crudi · 5g olio evo · rosmarino · cipolla"
+  }
+ },
+ {
+  "id": "pra_49",
+  "categoria": "pranzo",
+  "nome": "Orecchiette con cime di rapa e alici",
+  "ingredients": [
+   "ing_orecchiette",
+   "ing_cime_di_rapa",
+   "db_acciuga_o_alice_fresca",
+   "db_olio_di_oliva_extra_vergine",
+   "db_aglio"
+  ],
+  "quantita": {
+   "ing_orecchiette": {
+    "uomo": 90,
+    "donna": 70,
+    "bimbo": 50,
+    "unit": "g"
+   },
+   "ing_cime_di_rapa": {
+    "uomo": 250,
+    "donna": 200,
+    "bimbo": 120,
+    "unit": "g"
+   },
+   "db_acciuga_o_alice_fresca": {
+    "uomo": 25,
+    "donna": 20,
+    "bimbo": 0,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 13,
+    "donna": 10,
+    "bimbo": 6,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 526,
+   "p": 21,
+   "c": 76,
+   "g": 16
+  },
+  "donna": {
+   "kcal": 410,
+   "p": 17,
+   "c": 60,
+   "g": 12
+  },
+  "bimbo": {
+   "kcal": 263,
+   "p": 9,
+   "c": 42,
+   "g": 7
+  },
+  "porzioni": {
+   "uomo": "90g orecchiette · 250g cime di rapa · 25g alici · 13g olio evo · aglio",
+   "donna": "70g orecchiette · 200g cime di rapa · 20g alici · 10g olio evo · aglio",
+   "bimbo": "50g orecchiette · 120g cime di rapa · 6g olio evo · aglio"
+  },
+  "preparazione": "Cuoci le cime di rapa nell'acqua della pasta, sciogli le alici in EVO con aglio e peperoncino, salta tutto insieme."
+ },
+ {
+  "id": "pra_50",
+  "categoria": "pranzo",
+  "nome": "Burger di ceci con insalata e pane integrale",
+  "ingredients": [
+   "db_ceci_in_scatola_scolati",
+   "db_uova_di_gallina_intero",
+   "db_pane_di_tipo_integrale",
+   "db_lattuga",
+   "db_olio_di_oliva_extra_vergine"
+  ],
+  "quantita": {
+   "db_ceci_in_scatola_scolati": {
+    "uomo": 180,
+    "donna": 140,
+    "bimbo": 90,
+    "unit": "g"
+   },
+   "db_uova_di_gallina_intero": {
+    "uomo": 1,
+    "donna": 1,
+    "bimbo": 0.5,
+    "unit": "pz"
+   },
+   "db_pane_di_tipo_integrale": {
+    "uomo": 70,
+    "donna": 50,
+    "bimbo": 35,
+    "unit": "g"
+   },
+   "db_lattuga": {
+    "uomo": 60,
+    "donna": 60,
+    "bimbo": 30,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 10,
+    "donna": 7,
+    "bimbo": 4,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 502,
+   "p": 25,
+   "c": 60,
+   "g": 20
+  },
+  "donna": {
+   "kcal": 390,
+   "p": 20,
+   "c": 45,
+   "g": 15
+  },
+  "bimbo": {
+   "kcal": 242,
+   "p": 12,
+   "c": 30,
+   "g": 9
+  },
+  "porzioni": {
+   "uomo": "180g ceci · 1 uova · 70g pane integrale · 60g lattuga · 10g olio evo",
+   "donna": "140g ceci · 1 uova · 50g pane integrale · 60g lattuga · 7g olio evo",
+   "bimbo": "90g ceci · 0.5 uova · 35g pane integrale · 30g lattuga · 4g olio evo"
+  },
+  "preparazione": "Frulla i ceci con uovo e aromi, forma i burger e cuoci in padella antiaderente 4 min per lato."
+ },
+ {
+  "id": "pra_51",
+  "categoria": "pranzo",
+  "nome": "Farinata di ceci con verdure grigliate",
+  "ingredients": [
+   "ing_farina_di_ceci",
+   "db_olio_di_oliva_extra_vergine",
+   "db_zucchine_crude",
+   "db_peperoni_crudi"
+  ],
+  "quantita": {
+   "ing_farina_di_ceci": {
+    "uomo": 110,
+    "donna": 85,
+    "bimbo": 55,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 15,
+    "donna": 10,
+    "bimbo": 6,
+    "unit": "g"
+   },
+   "db_zucchine_crude": {
+    "uomo": 150,
+    "donna": 120,
+    "bimbo": 80,
+    "unit": "g"
+   },
+   "db_peperoni_crudi": {
+    "uomo": 120,
+    "donna": 100,
+    "bimbo": 60,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 545,
+   "p": 27,
+   "c": 67,
+   "g": 21
+  },
+  "donna": {
+   "kcal": 409,
+   "p": 21,
+   "c": 52,
+   "g": 15
+  },
+  "bimbo": {
+   "kcal": 260,
+   "p": 14,
+   "c": 34,
+   "g": 9
+  },
+  "porzioni": {
+   "uomo": "110g farina di ceci · 15g olio evo · 150g zucchine · 120g peperoni",
+   "donna": "85g farina di ceci · 10g olio evo · 120g zucchine · 100g peperoni",
+   "bimbo": "55g farina di ceci · 6g olio evo · 80g zucchine · 60g peperoni"
+  },
+  "preparazione": "Mescola farina di ceci, acqua (1:3), EVO e sale; riposo 2h, poi forno a 220° per 20 min in teglia oliata."
+ },
+ {
+  "id": "pra_52",
+  "categoria": "pranzo",
+  "nome": "Poke bowl con riso, salmone, edamame e avocado",
+  "ingredients": [
+   "db_riso_brillato_crudo",
+   "db_salmone_fresco",
+   "ing_edamame",
+   "ing_avocado",
+   "db_cetrioli"
+  ],
+  "quantita": {
+   "db_riso_brillato_crudo": {
+    "uomo": 85,
+    "donna": 65,
+    "bimbo": 45,
+    "unit": "g"
+   },
+   "db_salmone_fresco": {
+    "uomo": 130,
+    "donna": 100,
+    "bimbo": 60,
+    "unit": "g"
+   },
+   "ing_edamame": {
+    "uomo": 60,
+    "donna": 50,
+    "bimbo": 30,
+    "unit": "g"
+   },
+   "ing_avocado": {
+    "uomo": 60,
+    "donna": 50,
+    "bimbo": 30,
+    "unit": "g"
+   },
+   "db_cetrioli": {
+    "uomo": 80,
+    "donna": 60,
+    "bimbo": 40,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 748,
+   "p": 39,
+   "c": 78,
+   "g": 31
+  },
+  "donna": {
+   "kcal": 587,
+   "p": 30,
+   "c": 60,
+   "g": 24
+  },
+  "bimbo": {
+   "kcal": 373,
+   "p": 19,
+   "c": 41,
+   "g": 15
+  },
+  "porzioni": {
+   "uomo": "85g riso brillato crudo · 130g salmone fresco · 60g edamame · 60g avocado · 80g cetrioli",
+   "donna": "65g riso brillato crudo · 100g salmone fresco · 50g edamame · 50g avocado · 60g cetrioli",
+   "bimbo": "45g riso brillato crudo · 60g salmone fresco · 30g edamame · 30g avocado · 40g cetrioli"
+  }
+ },
+ {
+  "id": "pra_53",
+  "categoria": "pranzo",
+  "nome": "Gazpacho con pane e uovo sodo",
+  "ingredients": [
+   "db_pomodori_da_insalata",
+   "db_cetrioli",
+   "db_peperoni_crudi",
+   "db_pane_di_tipo_integrale",
+   "db_uova_di_gallina_intero",
+   "db_olio_di_oliva_extra_vergine"
+  ],
+  "quantita": {
+   "db_pomodori_da_insalata": {
+    "uomo": 350,
+    "donna": 300,
+    "bimbo": 180,
+    "unit": "g"
+   },
+   "db_cetrioli": {
+    "uomo": 100,
+    "donna": 80,
+    "bimbo": 50,
+    "unit": "g"
+   },
+   "db_peperoni_crudi": {
+    "uomo": 80,
+    "donna": 60,
+    "bimbo": 40,
+    "unit": "g"
+   },
+   "db_pane_di_tipo_integrale": {
+    "uomo": 70,
+    "donna": 50,
+    "bimbo": 35,
+    "unit": "g"
+   },
+   "db_uova_di_gallina_intero": {
+    "uomo": 1,
+    "donna": 1,
+    "bimbo": 1,
+    "unit": "pz"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 12,
+    "donna": 8,
+    "bimbo": 5,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 420,
+   "p": 17,
+   "c": 49,
+   "g": 19
+  },
+  "donna": {
+   "kcal": 323,
+   "p": 15,
+   "c": 37,
+   "g": 14
+  },
+  "bimbo": {
+   "kcal": 234,
+   "p": 12,
+   "c": 25,
+   "g": 11
+  },
+  "porzioni": {
+   "uomo": "350g pomodori da insalata · 100g cetrioli · 80g peperoni · 70g pane integrale · 1 uova · 12g olio evo",
+   "donna": "300g pomodori da insalata · 80g cetrioli · 60g peperoni · 50g pane integrale · 1 uova · 8g olio evo",
+   "bimbo": "180g pomodori da insalata · 50g cetrioli · 40g peperoni · 35g pane integrale · 1 uova · 5g olio evo"
+  },
+  "preparazione": "Frulla pomodori, cetriolo, peperone con EVO e aceto; frigo 2h. Servi freddo con pane tostato e uovo sodo a spicchi."
+ },
+ {
+  "id": "pra_54",
+  "categoria": "pranzo",
+  "nome": "Seppie con piselli e pane",
+  "ingredients": [
+   "db_seppia",
+   "db_piselli_freschi_crudi",
+   "db_pane_di_tipo_integrale",
+   "db_olio_di_oliva_extra_vergine",
+   "db_pomodori_passata",
+   "db_cipolle_crude"
+  ],
+  "quantita": {
+   "db_seppia": {
+    "uomo": 220,
+    "donna": 170,
+    "bimbo": 90,
+    "unit": "g"
+   },
+   "db_piselli_freschi_crudi": {
+    "uomo": 150,
+    "donna": 120,
+    "bimbo": 80,
+    "unit": "g"
+   },
+   "db_pane_di_tipo_integrale": {
+    "uomo": 60,
+    "donna": 45,
+    "bimbo": 30,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 12,
+    "donna": 8,
+    "bimbo": 5,
+    "unit": "g"
+   },
+   "db_pomodori_passata": {
+    "uomo": 100,
+    "donna": 80,
+    "bimbo": 50,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 497,
+   "p": 45,
+   "c": 43,
+   "g": 17
+  },
+  "donna": {
+   "kcal": 372,
+   "p": 35,
+   "c": 33,
+   "g": 12
+  },
+  "bimbo": {
+   "kcal": 228,
+   "p": 20,
+   "c": 22,
+   "g": 7
+  },
+  "porzioni": {
+   "uomo": "220g seppia · 150g piselli freschi crudi · 60g pane integrale · 12g olio evo · 100g passata di pomodoro · cipolla",
+   "donna": "170g seppia · 120g piselli freschi crudi · 45g pane integrale · 8g olio evo · 80g passata di pomodoro · cipolla",
+   "bimbo": "90g seppia · 80g piselli freschi crudi · 30g pane integrale · 5g olio evo · 50g passata di pomodoro · cipolla"
+  }
+ },
+ {
+  "id": "pra_55",
+  "categoria": "pranzo",
+  "nome": "Buddha bowl con tempeh, quinoa e verdure",
+  "ingredients": [
+   "ing_tempeh",
+   "ing_quinoa",
+   "db_carote_crude",
+   "db_zucchine_crude",
+   "db_olio_di_oliva_extra_vergine"
+  ],
+  "quantita": {
+   "ing_tempeh": {
+    "uomo": 110,
+    "donna": 85,
+    "bimbo": 50,
+    "unit": "g"
+   },
+   "ing_quinoa": {
+    "uomo": 75,
+    "donna": 60,
+    "bimbo": 40,
+    "unit": "g"
+   },
+   "db_carote_crude": {
+    "uomo": 80,
+    "donna": 70,
+    "bimbo": 40,
+    "unit": "g"
+   },
+   "db_zucchine_crude": {
+    "uomo": 120,
+    "donna": 100,
+    "bimbo": 60,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 10,
+    "donna": 7,
+    "bimbo": 4,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 579,
+   "p": 33,
+   "c": 65,
+   "g": 25
+  },
+  "donna": {
+   "kcal": 451,
+   "p": 26,
+   "c": 52,
+   "g": 19
+  },
+  "bimbo": {
+   "kcal": 279,
+   "p": 16,
+   "c": 33,
+   "g": 11
+  },
+  "porzioni": {
+   "uomo": "110g tempeh · 75g quinoa · 80g carote · 120g zucchine · 10g olio evo",
+   "donna": "85g tempeh · 60g quinoa · 70g carote · 100g zucchine · 7g olio evo",
+   "bimbo": "50g tempeh · 40g quinoa · 40g carote · 60g zucchine · 4g olio evo"
+  }
+ },
+ {
+  "id": "cen_49",
+  "categoria": "cena",
+  "nome": "Alici al forno con patate e origano",
+  "ingredients": [
+   "db_acciuga_o_alice_fresca",
+   "db_patate_crude",
+   "db_olio_di_oliva_extra_vergine",
+   "db_limoni",
+   "db_rosmarino"
+  ],
+  "quantita": {
+   "db_acciuga_o_alice_fresca": {
+    "uomo": 230,
+    "donna": 180,
+    "bimbo": 90,
+    "unit": "g"
+   },
+   "db_patate_crude": {
+    "uomo": 250,
+    "donna": 200,
+    "bimbo": 120,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 13,
+    "donna": 10,
+    "bimbo": 6,
+    "unit": "g"
+   },
+   "db_limoni": {
+    "uomo": 0.5,
+    "donna": 0.5,
+    "bimbo": 0,
+    "unit": "pz"
+   }
+  },
+  "uomo": {
+   "kcal": 553,
+   "p": 44,
+   "c": 49,
+   "g": 21
+  },
+  "donna": {
+   "kcal": 436,
+   "p": 35,
+   "c": 39,
+   "g": 17
+  },
+  "bimbo": {
+   "kcal": 242,
+   "p": 18,
+   "c": 23,
+   "g": 10
+  },
+  "porzioni": {
+   "uomo": "230g alici · 250g patate · 13g olio evo · 0.5 limone · rosmarino",
+   "donna": "180g alici · 200g patate · 10g olio evo · 0.5 limone · rosmarino",
+   "bimbo": "90g alici · 120g patate · 6g olio evo · rosmarino"
+  },
+  "preparazione": "Alterna strati di patate a fettine sottili e alici con origano ed EVO; forno 200° per 25 min."
+ },
+ {
+  "id": "cen_50",
+  "categoria": "cena",
+  "nome": "Spigola al sale con verdure al vapore",
+  "ingredients": [
+   "db_spigola",
+   "db_zucchine_crude",
+   "db_carote_crude",
+   "db_patate_crude",
+   "db_olio_di_oliva_extra_vergine"
+  ],
+  "quantita": {
+   "db_spigola": {
+    "uomo": 280,
+    "donna": 220,
+    "bimbo": 110,
+    "unit": "g"
+   },
+   "db_zucchine_crude": {
+    "uomo": 150,
+    "donna": 120,
+    "bimbo": 80,
+    "unit": "g"
+   },
+   "db_carote_crude": {
+    "uomo": 100,
+    "donna": 80,
+    "bimbo": 50,
+    "unit": "g"
+   },
+   "db_patate_crude": {
+    "uomo": 150,
+    "donna": 120,
+    "bimbo": 80,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 12,
+    "donna": 8,
+    "bimbo": 5,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 516,
+   "p": 52,
+   "c": 38,
+   "g": 18
+  },
+  "donna": {
+   "kcal": 396,
+   "p": 41,
+   "c": 31,
+   "g": 13
+  },
+  "bimbo": {
+   "kcal": 229,
+   "p": 21,
+   "c": 20,
+   "g": 8
+  },
+  "porzioni": {
+   "uomo": "280g spigola · 150g zucchine · 100g carote · 150g patate · 12g olio evo",
+   "donna": "220g spigola · 120g zucchine · 80g carote · 120g patate · 8g olio evo",
+   "bimbo": "110g spigola · 80g zucchine · 50g carote · 80g patate · 5g olio evo"
+  }
+ },
+ {
+  "id": "cen_51",
+  "categoria": "cena",
+  "nome": "Pollo al limone con riso",
+  "ingredients": [
+   "db_pollo_petto_crudo",
+   "db_riso_brillato_crudo",
+   "db_limoni",
+   "db_olio_di_oliva_extra_vergine",
+   "db_rosmarino"
+  ],
+  "quantita": {
+   "db_pollo_petto_crudo": {
+    "uomo": 220,
+    "donna": 170,
+    "bimbo": 90,
+    "unit": "g"
+   },
+   "db_riso_brillato_crudo": {
+    "uomo": 70,
+    "donna": 55,
+    "bimbo": 40,
+    "unit": "g"
+   },
+   "db_limoni": {
+    "uomo": 1,
+    "donna": 0.5,
+    "bimbo": 0.5,
+    "unit": "pz"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 12,
+    "donna": 8,
+    "bimbo": 5,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 567,
+   "p": 56,
+   "c": 58,
+   "g": 14
+  },
+  "donna": {
+   "kcal": 428,
+   "p": 43,
+   "c": 45,
+   "g": 10
+  },
+  "bimbo": {
+   "kcal": 271,
+   "p": 24,
+   "c": 33,
+   "g": 6
+  },
+  "porzioni": {
+   "uomo": "220g petto di pollo · 70g riso brillato crudo · 1 limone · 12g olio evo · rosmarino",
+   "donna": "170g petto di pollo · 55g riso brillato crudo · 0.5 limone · 8g olio evo · rosmarino",
+   "bimbo": "90g petto di pollo · 40g riso brillato crudo · 0.5 limone · 5g olio evo · rosmarino"
+  }
+ },
+ {
+  "id": "cen_52",
+  "categoria": "cena",
+  "nome": "Zucchine ripiene di tacchino con pane",
+  "ingredients": [
+   "db_zucchine_crude",
+   "db_tacchino_intero_senza_pelle_crudo",
+   "db_parmigiano",
+   "db_pane_di_tipo_integrale",
+   "db_olio_di_oliva_extra_vergine"
+  ],
+  "quantita": {
+   "db_zucchine_crude": {
+    "uomo": 300,
+    "donna": 250,
+    "bimbo": 150,
+    "unit": "g"
+   },
+   "db_tacchino_intero_senza_pelle_crudo": {
+    "uomo": 160,
+    "donna": 120,
+    "bimbo": 70,
+    "unit": "g"
+   },
+   "db_parmigiano": {
+    "uomo": 15,
+    "donna": 12,
+    "bimbo": 8,
+    "unit": "g"
+   },
+   "db_pane_di_tipo_integrale": {
+    "uomo": 50,
+    "donna": 40,
+    "bimbo": 25,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 10,
+    "donna": 7,
+    "bimbo": 4,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 467,
+   "p": 48,
+   "c": 28,
+   "g": 19
+  },
+  "donna": {
+   "kcal": 357,
+   "p": 37,
+   "c": 23,
+   "g": 14
+  },
+  "bimbo": {
+   "kcal": 216,
+   "p": 22,
+   "c": 14,
+   "g": 8
+  },
+  "porzioni": {
+   "uomo": "300g zucchine · 160g tacchino intero senza pelle crudo · 15g parmigiano · 50g pane integrale · 10g olio evo",
+   "donna": "250g zucchine · 120g tacchino intero senza pelle crudo · 12g parmigiano · 40g pane integrale · 7g olio evo",
+   "bimbo": "150g zucchine · 70g tacchino intero senza pelle crudo · 8g parmigiano · 25g pane integrale · 4g olio evo"
+  },
+  "preparazione": "Svuota le zucchine, farcisci con tacchino tritato, mollica e parmigiano; forno 190° per 30 min."
+ },
+ {
+  "id": "cen_53",
+  "categoria": "cena",
+  "nome": "Zuppa di pesce con pane",
+  "ingredients": [
+   "db_merluzzo_o_nasello_baccala_secco",
+   "db_gamberi_freschi",
+   "db_pomodori_passata",
+   "db_pane_di_tipo_integrale",
+   "db_olio_di_oliva_extra_vergine",
+   "db_aglio"
+  ],
+  "quantita": {
+   "db_merluzzo_o_nasello_baccala_secco": {
+    "uomo": 180,
+    "donna": 140,
+    "bimbo": 80,
+    "unit": "g"
+   },
+   "db_gamberi_freschi": {
+    "uomo": 80,
+    "donna": 60,
+    "bimbo": 30,
+    "unit": "g"
+   },
+   "db_pomodori_passata": {
+    "uomo": 150,
+    "donna": 120,
+    "bimbo": 80,
+    "unit": "g"
+   },
+   "db_pane_di_tipo_integrale": {
+    "uomo": 60,
+    "donna": 45,
+    "bimbo": 30,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 13,
+    "donna": 10,
+    "bimbo": 6,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 571,
+   "p": 70,
+   "c": 36,
+   "g": 18
+  },
+  "donna": {
+   "kcal": 438,
+   "p": 54,
+   "c": 27,
+   "g": 14
+  },
+  "bimbo": {
+   "kcal": 262,
+   "p": 31,
+   "c": 18,
+   "g": 8
+  },
+  "porzioni": {
+   "uomo": "180g merluzzo o nasello baccalà secco · 80g gamberi · 150g passata di pomodoro · 60g pane integrale · 13g olio evo · aglio",
+   "donna": "140g merluzzo o nasello baccalà secco · 60g gamberi · 120g passata di pomodoro · 45g pane integrale · 10g olio evo · aglio",
+   "bimbo": "80g merluzzo o nasello baccalà secco · 30g gamberi · 80g passata di pomodoro · 30g pane integrale · 6g olio evo · aglio"
+  }
+ },
+ {
+  "id": "cen_54",
+  "categoria": "cena",
+  "nome": "Tempeh alla piastra con cavolo e riso integrale",
+  "ingredients": [
+   "ing_tempeh",
+   "db_cavolo_cappuccio_rosso",
+   "db_riso_brillato_crudo",
+   "db_olio_di_oliva_extra_vergine"
+  ],
+  "quantita": {
+   "ing_tempeh": {
+    "uomo": 130,
+    "donna": 100,
+    "bimbo": 60,
+    "unit": "g"
+   },
+   "db_cavolo_cappuccio_rosso": {
+    "uomo": 150,
+    "donna": 120,
+    "bimbo": 70,
+    "unit": "g"
+   },
+   "db_riso_brillato_crudo": {
+    "uomo": 70,
+    "donna": 55,
+    "bimbo": 40,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 10,
+    "donna": 7,
+    "bimbo": 4,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 603,
+   "p": 32,
+   "c": 72,
+   "g": 25
+  },
+  "donna": {
+   "kcal": 463,
+   "p": 25,
+   "c": 56,
+   "g": 18
+  },
+  "bimbo": {
+   "kcal": 299,
+   "p": 15,
+   "c": 39,
+   "g": 11
+  },
+  "porzioni": {
+   "uomo": "130g tempeh · 150g cavolo cappuccio rosso · 70g riso brillato crudo · 10g olio evo",
+   "donna": "100g tempeh · 120g cavolo cappuccio rosso · 55g riso brillato crudo · 7g olio evo",
+   "bimbo": "60g tempeh · 70g cavolo cappuccio rosso · 40g riso brillato crudo · 4g olio evo"
+  }
+ },
+ {
+  "id": "cen_55",
+  "categoria": "cena",
+  "nome": "Frittata di albumi con asparagi e pane",
+  "ingredients": [
+   "db_uova_di_gallina_albume",
+   "db_asparagi_di_campo_crudi",
+   "db_parmigiano",
+   "db_pane_di_tipo_integrale",
+   "db_olio_di_oliva_extra_vergine"
+  ],
+  "quantita": {
+   "db_uova_di_gallina_albume": {
+    "uomo": 220,
+    "donna": 170,
+    "bimbo": 100,
+    "unit": "g"
+   },
+   "db_asparagi_di_campo_crudi": {
+    "uomo": 180,
+    "donna": 150,
+    "bimbo": 80,
+    "unit": "g"
+   },
+   "db_parmigiano": {
+    "uomo": 15,
+    "donna": 12,
+    "bimbo": 8,
+    "unit": "g"
+   },
+   "db_pane_di_tipo_integrale": {
+    "uomo": 60,
+    "donna": 45,
+    "bimbo": 30,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 10,
+    "donna": 7,
+    "bimbo": 4,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 429,
+   "p": 40,
+   "c": 35,
+   "g": 15
+  },
+  "donna": {
+   "kcal": 327,
+   "p": 31,
+   "c": 27,
+   "g": 11
+  },
+  "bimbo": {
+   "kcal": 200,
+   "p": 19,
+   "c": 17,
+   "g": 7
+  },
+  "porzioni": {
+   "uomo": "220g uova di gallina albume · 180g asparagi · 15g parmigiano · 60g pane integrale · 10g olio evo",
+   "donna": "170g uova di gallina albume · 150g asparagi · 12g parmigiano · 45g pane integrale · 7g olio evo",
+   "bimbo": "100g uova di gallina albume · 80g asparagi · 8g parmigiano · 30g pane integrale · 4g olio evo"
+  }
+ },
+ {
+  "id": "cen_56",
+  "categoria": "cena",
+  "nome": "Melanzane ripiene di ricotta con pane",
+  "ingredients": [
+   "db_melanzane_crude",
+   "db_ricotta_di_bufala",
+   "db_pomodori_passata",
+   "db_parmigiano",
+   "db_pane_di_tipo_integrale",
+   "db_olio_di_oliva_extra_vergine",
+   "db_basilico"
+  ],
+  "quantita": {
+   "db_melanzane_crude": {
+    "uomo": 300,
+    "donna": 250,
+    "bimbo": 150,
+    "unit": "g"
+   },
+   "db_ricotta_di_bufala": {
+    "uomo": 130,
+    "donna": 100,
+    "bimbo": 60,
+    "unit": "g"
+   },
+   "db_pomodori_passata": {
+    "uomo": 100,
+    "donna": 80,
+    "bimbo": 50,
+    "unit": "g"
+   },
+   "db_parmigiano": {
+    "uomo": 15,
+    "donna": 12,
+    "bimbo": 8,
+    "unit": "g"
+   },
+   "db_pane_di_tipo_integrale": {
+    "uomo": 50,
+    "donna": 40,
+    "bimbo": 25,
+    "unit": "g"
+   },
+   "db_olio_di_oliva_extra_vergine": {
+    "uomo": 10,
+    "donna": 7,
+    "bimbo": 4,
+    "unit": "g"
+   }
+  },
+  "uomo": {
+   "kcal": 608,
+   "p": 27,
+   "c": 40,
+   "g": 39
+  },
+  "donna": {
+   "kcal": 470,
+   "p": 21,
+   "c": 32,
+   "g": 29
+  },
+  "bimbo": {
+   "kcal": 286,
+   "p": 13,
+   "c": 20,
+   "g": 18
+  },
+  "porzioni": {
+   "uomo": "300g melanzane · 130g ricotta di bufala · 100g passata di pomodoro · 15g parmigiano · 50g pane integrale · 10g olio evo · basilico fresco",
+   "donna": "250g melanzane · 100g ricotta di bufala · 80g passata di pomodoro · 12g parmigiano · 40g pane integrale · 7g olio evo · basilico fresco",
+   "bimbo": "150g melanzane · 60g ricotta di bufala · 50g passata di pomodoro · 8g parmigiano · 25g pane integrale · 4g olio evo · basilico fresco"
+  },
+  "preparazione": "Svuota le melanzane, farcisci con ricotta, polpa e parmigiano, copri di passata; forno 190° per 35 min."
  }
 ]
