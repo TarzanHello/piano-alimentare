@@ -526,53 +526,70 @@ function AnalizzatoreTool() {
   );
 }
 
-// ─── Hub ─────────────────────────────────────────────────────────────
+// ─── Pagina: flusso verticale, tutti i tool aperti ───────────────────
+// Niente click per aprire: si scorre. Una chip-nav sticky evidenzia la
+// sezione visibile e al tap ci salta con uno scroll morbido.
+
+const { useRef, useEffect } = React;
 
 const card = { background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" };
 
+const TOOLS = [
+  { id: "equivalenze",  icon: "🔄", t: "Equivalenze cibi",      d: "A quante pesche corrisponde una banana e ½", nav: "Equivalenze",  col: "#2F6B3A" },
+  { id: "casalinghe",   icon: "🥄", t: "Misure casalinghe",     d: "Cucchiai, cucchiaini e pezzi in grammi",     nav: "Casalinghe",   col: "#C77D1F" },
+  { id: "stagionalita", icon: "🍑", t: "Stagionalità",          d: "Frutta e verdura del mese, mese per mese",   nav: "Stagioni",     col: "#E8792B" },
+  { id: "fabbisogno",   icon: "🧮", t: "Fabbisogno energetico", d: "MB, LAF e macro spiegati, anche per ospiti", nav: "Fabbisogno",   col: "#1FA2D8" },
+  { id: "costituzione", icon: "⌚", t: "Costituzione (polso)",  d: "Indice di Grant e peso forma per ossatura",  nav: "Costituzione", col: "#7c3aed" },
+  { id: "analizzatore", icon: "📊", t: "Analizzatore ricetta",  d: "Macro di qualsiasi preparazione",            nav: "Analizzatore", col: "#0F766E" },
+];
+
 export function StrumentiPage() {
-  const [vista, setVista] = useState("hub");
   const [taraIng, setTaraIng] = useState(null);   // ingrediente nel wizard taratura
   const [taraTick, setTaraTick] = useState(0);    // bump dopo ogni taratura → ricalcola i tool
+  const [attivo, setAttivo] = useState("equivalenze");
+  const refs = useRef({});
   const nTarati = contaTarature() + (taraTick && 0);
 
-  const TOOLS = [
-    { id: "equivalenze",  icon: "🔄", t: "Equivalenze cibi",  d: "A quante pesche corrisponde una banana e ½", badge: "nuovo" },
-    { id: "casalinghe",   icon: "🥄", t: "Misure casalinghe", d: "Cucchiai, cucchiaini e pezzi in grammi",     badge: "nuovo" },
-    { id: "stagionalita", icon: "🍑", t: "Stagionalità",      d: "Frutta e verdura del mese, mese per mese",   badge: "nuovo" },
-    { id: "fabbisogno",   icon: "🧮", t: "Fabbisogno energetico", d: "MB, LAF e macro spiegati, anche per ospiti", badge: "nuovo" },
-    { id: "costituzione", icon: "⌚", t: "Costituzione (polso)",  d: "Indice di Grant e peso forma per ossatura",  badge: "nuovo" },
-    { id: "analizzatore", icon: "📊", t: "Analizzatore ricetta",  d: "Macro di qualsiasi preparazione",            badge: "nuovo" },
-  ];
+  // Evidenzia nella chip-nav la sezione più vicina alla cima del viewport
+  useEffect(() => {
+    const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (fn) => (fn(), null);
+    let pending = false;
+    const onScroll = () => {
+      if (pending) return;
+      pending = true;
+      raf(() => {
+        pending = false;
+        let best = TOOLS[0].id, bestY = -Infinity;
+        for (const t of TOOLS) {
+          const el = refs.current[t.id];
+          if (!el) continue;
+          const y = el.getBoundingClientRect().top;
+          if (y <= 130 && y > bestY) { bestY = y; best = t.id; }
+        }
+        setAttivo(a => a === best ? a : best);
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-  const modal = taraIng && (
-    <TaraturaModal ing={taraIng}
-      onDone={() => { setTaraIng(null); setTaraTick(t => t + 1); }}
-      onClose={() => setTaraIng(null)}/>
-  );
+  const vaiA = (id) => {
+    setAttivo(id);
+    refs.current[id]?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  };
 
-  if (vista !== "hub") {
-    const tool = TOOLS.find(t => t.id === vista);
-    return (
-      <div style={{ padding: "16px 14px 90px" }}>
-        <button onClick={() => setVista("hub")}
-          style={{ border: "none", background: "none", color: "#2F6B3A", fontWeight: 800, fontSize: 13, cursor: "pointer", padding: "0 0 12px", display: "flex", alignItems: "center", gap: 5 }}>
-          ‹ Strumenti
-        </button>
-        <div style={{ ...card, padding: 16 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: "#15251C", marginBottom: 3 }}>{tool.icon} {tool.t}</div>
-          <div style={{ fontSize: 12, color: "#9DB1A2", marginBottom: 16 }}>{tool.d}</div>
-          {vista === "equivalenze"  && <EquivalenzeTool onTara={setTaraIng} taraTick={taraTick}/>}
-          {vista === "casalinghe"   && <CasalingheTool  onTara={setTaraIng} taraTick={taraTick}/>}
-          {vista === "stagionalita" && <StagionalitaTool/>}
-          {vista === "fabbisogno"   && <FabbisognoTool/>}
-          {vista === "costituzione" && <CostituzioneTool/>}
-          {vista === "analizzatore" && <AnalizzatoreTool/>}
-        </div>
-        {modal}
-      </div>
-    );
-  }
+  const corpo = (t) => {
+    switch (t.id) {
+      case "equivalenze":  return <EquivalenzeTool onTara={setTaraIng} taraTick={taraTick}/>;
+      case "casalinghe":   return <CasalingheTool  onTara={setTaraIng} taraTick={taraTick}/>;
+      case "stagionalita": return <StagionalitaTool/>;
+      case "fabbisogno":   return <FabbisognoTool/>;
+      case "costituzione": return <CostituzioneTool/>;
+      case "analizzatore": return <AnalizzatoreTool/>;
+      default: return null;
+    }
+  };
 
   return (
     <div style={{ padding: "16px 14px 90px" }}>
@@ -583,25 +600,61 @@ export function StrumentiPage() {
             style={{ fontSize: 10.5, fontWeight: 900, color: "#2F6B3A", background: "#EDF7EF", border: "1px solid #2F6B3A30", borderRadius: 9, padding: "4px 9px" }}>🎯 {nTarati} tarati</span>
         )}
       </div>
-      <div style={{ fontSize: 12.5, color: "#6E8576", marginBottom: 16, lineHeight: 1.5 }}>
-        Utility per la vita di tutti i giorni: pronte all'uso, senza toccare piano o ricette.
+      <div style={{ fontSize: 12.5, color: "#6E8576", marginBottom: 10, lineHeight: 1.5 }}>
+        Sei utility pronte all'uso: scorri, sono tutte già aperte.
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {TOOLS.map((t, i) => (
-          <button key={i} disabled={!!t.soon}
-            onClick={() => t.soon ? null : setVista(t.id)}
-            style={{ ...card, position: "relative", padding: "14px 12px", border: "1px solid #E7EDE2", textAlign: "left",
-                     cursor: t.soon ? "default" : "pointer", opacity: t.soon ? 0.55 : 1, display: "flex",
-                     flexDirection: "column", gap: 6, minHeight: 96 }}>
-            {t.badge && <span style={{ position: "absolute", top: 8, right: 8, fontSize: 8.5, fontWeight: 900, background: "#2F6B3A", color: "#fff", borderRadius: 5, padding: "2px 5px", letterSpacing: 0.5 }}>NUOVO</span>}
-            {t.soon  && <span style={{ position: "absolute", top: 8, right: 8, fontSize: 8.5, fontWeight: 900, background: "#EFF3EC", color: "#8AA192", borderRadius: 5, padding: "2px 5px", letterSpacing: 0.5 }}>IN ARRIVO</span>}
-            <span style={{ fontSize: 24, lineHeight: 1 }}>{t.icon}</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "#15251C", lineHeight: 1.25 }}>{t.t}</span>
-            <span style={{ fontSize: 10.5, color: "#9DB1A2", lineHeight: 1.35 }}>{t.d}</span>
-          </button>
+
+      {/* Chip-nav sticky */}
+      <div style={{ position: "sticky", top: 6, zIndex: 20, margin: "0 -14px 14px", padding: "6px 14px",
+                    background: "linear-gradient(#F3F7F0 75%, #F3F7F000)", overflowX: "auto",
+                    WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+        <div style={{ display: "flex", gap: 6, width: "max-content" }}>
+          {TOOLS.map(t => (
+            <button key={t.id} onClick={() => vaiA(t.id)}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 11px", borderRadius: 99,
+                       border: `1.5px solid ${attivo === t.id ? t.col : "#E7EDE2"}`,
+                       background: attivo === t.id ? t.col : "#fff",
+                       color: attivo === t.id ? "#fff" : "#4A6152",
+                       fontWeight: 800, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap",
+                       boxShadow: "0 1px 3px rgba(0,0,0,0.07)", transition: "all 0.2s" }}>
+              <span style={{ fontSize: 13 }}>{t.icon}</span>{t.nav}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sezioni: tutti i tool aperti in flusso */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        {TOOLS.map(t => (
+          <section key={t.id} ref={el => { refs.current[t.id] = el; }} style={{ scrollMarginTop: 58 }}>
+            <div style={{ ...card, overflow: "hidden", border: "1px solid #E7EDE2" }}>
+              {/* banda d'accento */}
+              <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "13px 16px",
+                            background: `linear-gradient(105deg, ${t.col}1E, ${t.col}08)`,
+                            borderBottom: `2px solid ${t.col}30` }}>
+                <span style={{ width: 38, height: 38, borderRadius: 12, background: "#fff",
+                               boxShadow: `0 2px 8px ${t.col}30`, display: "flex", alignItems: "center",
+                               justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{t.icon}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#15251C", lineHeight: 1.2 }}>{t.t}</div>
+                  <div style={{ fontSize: 11, color: "#6E8576", marginTop: 1 }}>{t.d}</div>
+                </div>
+              </div>
+              <div style={{ padding: 16 }}>{corpo(t)}</div>
+            </div>
+          </section>
         ))}
       </div>
-      {modal}
+
+      <div style={{ textAlign: "center", fontSize: 11, color: "#9DB1A2", marginTop: 22 }}>
+        🧰 Fine degli strumenti — altri in lavorazione
+      </div>
+
+      {taraIng && (
+        <TaraturaModal ing={taraIng}
+          onDone={() => { setTaraIng(null); setTaraTick(t => t + 1); }}
+          onClose={() => setTaraIng(null)}/>
+      )}
     </div>
   );
 }

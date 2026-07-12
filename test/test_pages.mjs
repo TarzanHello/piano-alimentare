@@ -98,25 +98,22 @@ await new Promise(r=>setTimeout(r,200));
 const hCatExpanded = document.body.innerHTML;
 ok('categoria Colazione del catalogo si espande con ricette', /kcal/.test(hCatExpanded) && !hCatExpanded.includes('Qualcosa si è inceppato'));
 
-// menu → strumenti → tool equivalenze
+// menu → strumenti: flusso verticale, tutti i tool aperti senza click
 await clickByText('Menu');
 await new Promise(r=>setTimeout(r,200));
 const wentStrumenti = await clickByText('Strumenti');
+await new Promise(r=>setTimeout(r,200));
 const hStrumenti = document.body.innerHTML;
-ok('hub Strumenti si apre con le card', wentStrumenti && /Equivalenze cibi/.test(hStrumenti) && /Misure casalinghe/.test(hStrumenti) && /Stagionalità/.test(hStrumenti) && !hStrumenti.includes('Qualcosa si è inceppato'));
-ok('hub Strumenti senza card-link duplicate', !/Editor ricette|Lista spesa smart|Tracker acqua|Peso forma &/.test(hStrumenti));
-ok('tutti i 6 tool attivi (nessun IN ARRIVO)', !/IN ARRIVO/.test(hStrumenti) && /Fabbisogno energetico/.test(hStrumenti) && /Costituzione/.test(hStrumenti) && /Analizzatore ricetta/.test(hStrumenti));
-await clickByText('Equivalenze cibi');
-await new Promise(r=>setTimeout(r,200));
-const hEquiv = document.body.innerHTML;
-ok('tool Equivalenze si apre', /A parità di/.test(hEquiv) && !hEquiv.includes('Qualcosa si è inceppato'));
-// torna all'hub e apri Fabbisogno
-await clickByText('Strumenti');
-await new Promise(r=>setTimeout(r,200));
-await clickByText('Fabbisogno energetico');
-await new Promise(r=>setTimeout(r,200));
-const hFabb = document.body.innerHTML;
-ok('tool Fabbisogno si apre', /Allenamenti a settimana/.test(hFabb) && !hFabb.includes('Qualcosa si è inceppato'));
+ok('pagina Strumenti si apre', wentStrumenti && !hStrumenti.includes('Qualcosa si è inceppato'));
+ok('tutti i 6 tool GIÀ aperti nel flusso (nessun click necessario)',
+   /A parità di/.test(hStrumenti) &&                    // equivalenze
+   /Cucchiaio ≈ 10g|equivalgono a circa|Alimento \(facoltativo/.test(hStrumenti) && // casalinghe
+   /Gen<\/button>/.test(hStrumenti) &&                  // stagionalità (chip mesi)
+   /Allenamenti a settimana/.test(hStrumenti) &&        // fabbisogno
+   /Polso \(cm\)/.test(hStrumenti) &&                   // costituzione
+   /Aggiungi ingrediente/.test(hStrumenti));            // analizzatore
+ok('chip-nav presente', /Fabbisogno<\/button>|>Stagioni</.test(hStrumenti));
+ok('nessuna card-link duplicata', !/Editor ricette|Lista spesa smart|Tracker acqua/.test(hStrumenti));
 
 console.error = origErr;
 ok('nessun errore React durante la navigazione', reactErrors.length === 0);
