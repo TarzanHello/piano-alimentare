@@ -1,8 +1,27 @@
 import React from 'react';
 const { useState, useMemo } = React;
-import { ING_MAP, INGREDIENTS, PESO_PEZZO, cercaIngredienti, pesoPezzoInfo } from '@/core';
+import { ING_MAP, INGREDIENTS, PESO_PEZZO, cercaIngredienti, pesoPezzoInfo, calcTarget, nutriPer100DaQuantita, LAVORI, OBIETTIVI, SESSI } from '@/core';
 import { salvaTaratura, contaTarature } from '@/db/tarature';
+import { AddIngredientModal } from '@/features/ingredienti/IngredientiPage';
+import { addCustomIngredient } from '@/db/customIngredients';
 import { toast } from '@/components/toast';
+
+// Indice di Grant: altezza(cm) / circonferenza polso(cm) → costituzione.
+// Soglie standard per sesso; la costituzione corregge il peso forma di
+// riferimento (BMI 22): esile −7,5%, normale 0, robusta +7,5%.
+export function indiceGrant(sesso, altezzaCm, polsoCm) {
+  if (!(altezzaCm > 0) || !(polsoCm > 0)) return null;
+  const r = altezzaCm / polsoCm;
+  const soglie = sesso === "F" ? [9.9, 10.9] : [9.6, 10.4];
+  const tipo = r > soglie[1] ? "esile" : r < soglie[0] ? "robusta" : "normale";
+  const correzione = { esile: -0.075, normale: 0, robusta: 0.075 }[tipo];
+  const base = 22 * (altezzaCm / 100) ** 2;           // peso a BMI 22
+  const centro = base * (1 + correzione);
+  return {
+    indice: Math.round(r * 100) / 100, tipo, correzione,
+    pesoForma: [Math.round(centro * 0.96 * 10) / 10, Math.round(centro * 1.04 * 10) / 10],
+  };
+}
 
 // ─── Helper puri (esportati per i test) ──────────────────────────────
 
@@ -288,6 +307,225 @@ function StagionalitaTool() {
   );
 }
 
+// ─── Tool: fabbisogno energetico ─────────────────────────────────────
+// Riusa calcTarget del motore (LARN/SINU per adulti, Mifflin per minori):
+// gli stessi numeri del piano, spiegati passo per passo. Modalità ospite:
+// nessun dato viene salvato.
+
+const stileInput = { width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #E7EDE2", fontSize: 14, fontWeight: 700, background: "#F8FAF6", outline: "none" };
+const stileLabel = { fontSize: 10.5, fontWeight: 800, color: "#8AA192", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 5 };
+const chip = (attivo, colore = "#2F6B3A") => ({ flex: 1, padding: "8px 2px", borderRadius: 9, border: `1.5px solid ${attivo ? colore : "#E7EDE2"}`, background: attivo ? colore + "14" : "#F8FAF6", color: attivo ? colore : "#6E8576", fontWeight: 800, fontSize: 11, cursor: "pointer" });
+
+function FabbisognoTool() {
+  const [f, setF] = useState({ sesso: "M", eta: "", peso: "", altezza: "", lavoro: "attivo", allenamenti: 2, obiettivo: "mantenimento" });
+  const set = (k, v) => setF(x => ({ ...x, [k]: v }));
+  const pronto = f.eta > 0 && f.peso > 0 && f.altezza > 0;
+  const res = useMemo(() => {
+    if (!pronto) return null;
+    try {
+      return calcTarget({ sesso: f.sesso, eta: +f.eta, peso: +f.peso, altezza: +f.altezza, lavoro: f.lavoro, allenamenti: +f.allenamenti, obiettivo: f.obiettivo });
+    } catch { return null; }
+  }, [f, pronto]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+      <div style={{ display: "flex", gap: 5 }}>
+        {SESSI.map(s => <button key={s.key} onClick={() => set("sesso", s.key)} style={chip(f.sesso === s.key)}>{s.label}</button>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        {[["eta", "Età"], ["peso", "Peso (kg)"], ["altezza", "Altezza (cm)"]].map(([k, l]) => (
+          <div key={k}>
+            <div style={stileLabel}>{l}</div>
+            <input inputMode="decimal" value={f[k]} onChange={e => set(k, e.target.value)} style={stileInput}/>
+          </div>
+        ))}
+      </div>
+      <div>
+        <div style={stileLabel}>Lavoro</div>
+        <div style={{ display: "flex", gap: 5 }}>
+          {LAVORI.map(l => <button key={l.key} onClick={() => set("lavoro", l.key)} style={chip(f.lavoro === l.key)}>{l.label}</button>)}
+        </div>
+      </div>
+      <div>
+        <div style={stileLabel}>Allenamenti a settimana: {f.allenamenti}</div>
+        <input type="range" min="0" max="7" value={f.allenamenti} onChange={e => set("allenamenti", e.target.value)} style={{ width: "100%" }}/>
+      </div>
+      <div>
+        <div style={stileLabel}>Obiettivo</div>
+        <div style={{ display: "flex", gap: 5 }}>
+          {OBIETTIVI.map(o => <button key={o.key} onClick={() => set("obiettivo", o.key)} style={chip(f.obiettivo === o.key)}>{o.label}</button>)}
+        </div>
+      </div>
+
+      {res && (
+        <div style={{ background: "#EDF7EF", border: "1.5px solid #2F6B3A30", borderRadius: 12, padding: "14px 16px" }}>
+          <div style={{ fontSize: 12, color: "#4A6152", lineHeight: 1.7 }}>
+            {res.larnInfo
+              ? <>Metabolismo basale (LARN/SINU): <b>{Math.round(res.larnInfo.mb)} kcal</b><br/>× LAF {res.larnInfo.laf} (lavoro + sport) → fabbisogno <b>{Math.round(res.tdeeMifflin)} kcal</b></>
+              : <>Fabbisogno stimato (Mifflin-St Jeor × stile): <b>{Math.round(res.tdeeMifflin)} kcal</b></>}
+            {res.noteObiettivo ? <><br/>{res.noteObiettivo}</> : null}
+          </div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: "#15251C", margin: "8px 0 6px" }}>🎯 {res.kcal} kcal/giorno</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[["P", res.p, "#1FA2D8"], ["C", res.c, "#F2A93B"], ["G", res.g, "#8E7BE8"]].map(([l, v, c]) => (
+              <div key={l} style={{ flex: 1, textAlign: "center", background: c + "12", borderRadius: 8, padding: "6px 4px" }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: c }}>{l} </span>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: "#15251C" }}>{v}g</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10.5, color: "#8AA192", marginTop: 8 }}>
+            Proteine: {(res.p / +f.peso).toFixed(1)} g/kg di peso. Stessi metodi del piano Fitsy; qui non viene salvato nulla.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Tool: costituzione (indice di Grant, polso) ─────────────────────
+
+function CostituzioneTool() {
+  const [f, setF] = useState({ sesso: "M", altezza: "", polso: "", peso: "" });
+  const set = (k, v) => setF(x => ({ ...x, [k]: v }));
+  const res = useMemo(() => indiceGrant(f.sesso, +f.altezza, +f.polso), [f.sesso, f.altezza, f.polso]);
+  const ETICHETTE = { esile: ["🪶 Esile", "ossatura leggera: peso forma più basso del riferimento"],
+                      normale: ["⚖️ Normale", "ossatura media: peso forma in linea col riferimento"],
+                      robusta: ["🪨 Robusta", "ossatura importante: peso forma più alto del riferimento"] };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+      <div style={{ display: "flex", gap: 5 }}>
+        {SESSI.map(s => <button key={s.key} onClick={() => set("sesso", s.key)} style={chip(f.sesso === s.key)}>{s.label}</button>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        {[["altezza", "Altezza (cm)"], ["polso", "Polso (cm)"], ["peso", "Peso (opz.)"]].map(([k, l]) => (
+          <div key={k}>
+            <div style={stileLabel}>{l}</div>
+            <input inputMode="decimal" value={f[k]} onChange={e => set(k, e.target.value)} style={stileInput}/>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 10.5, color: "#8AA192", lineHeight: 1.4 }}>
+        📏 Misura la circonferenza del polso della mano dominante, sotto l'osso sporgente, con un metro da sarta.
+      </div>
+
+      {res && (
+        <div style={{ background: "#EDF7EF", border: "1.5px solid #2F6B3A30", borderRadius: 12, padding: "14px 16px" }}>
+          <div style={{ fontSize: 12, color: "#4A6152" }}>Indice di Grant: <b>{res.indice}</b> (altezza ÷ polso)</div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: "#15251C", margin: "6px 0 2px" }}>{ETICHETTE[res.tipo][0]}</div>
+          <div style={{ fontSize: 11.5, color: "#4A6152", lineHeight: 1.5 }}>Costituzione {res.tipo}: {ETICHETTE[res.tipo][1]}.</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "#2F6B3A", marginTop: 8 }}>
+            Peso forma indicativo: {fmt1(res.pesoForma[0])}–{fmt1(res.pesoForma[1])} kg
+          </div>
+          {+f.peso > 0 && (
+            <div style={{ fontSize: 11.5, color: "#4A6152", marginTop: 4 }}>
+              {+f.peso < res.pesoForma[0] ? `Sei ${fmt1(res.pesoForma[0] - f.peso)} kg sotto il range.`
+               : +f.peso > res.pesoForma[1] ? `Sei ${fmt1(f.peso - res.pesoForma[1])} kg sopra il range.`
+               : "✓ Sei dentro il range per la tua costituzione."}
+            </div>
+          )}
+          <div style={{ fontSize: 10.5, color: "#8AA192", marginTop: 8, lineHeight: 1.4 }}>
+            Metodo: riferimento BMI 22 corretto ±7,5% per la costituzione ossea. È un'indicazione orientativa, non un giudizio clinico: il peso forma del piano usa anche composizione corporea e obiettivo.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Tool: analizzatore ricetta ──────────────────────────────────────
+// Componi una preparazione libera → macro totali, per porzione e per
+// 100g. Da qui la puoi salvare come ingrediente custom (🧪), stessa
+// strada della card ricetta.
+
+function AnalizzatoreTool() {
+  const [righe, setRighe] = useState([]);           // [{ing, qta, unit}]
+  const [porzioni, setPorzioni] = useState(4);
+  const [salva, setSalva] = useState(false);
+
+  const quantita = useMemo(() => {
+    const q = {};
+    for (const r of righe) {
+      const n = parseFloat(String(r.qta).replace(",", ".")) || 0;
+      if (r.ing && n > 0) q[r.ing.id] = { g: n, unit: r.unit };
+    }
+    return q;
+  }, [righe]);
+  const res = useMemo(() => Object.keys(quantita).length ? nutriPer100DaQuantita(quantita) : null, [quantita]);
+  const tot = res ? Object.fromEntries(Object.entries(res.per100).map(([k, v]) => [k, v * res.pesoTotale / 100])) : null;
+
+  const setRiga = (i, patch) => setRighe(rs => rs.map((r, j) => j === i ? { ...r, ...patch } : r));
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {righe.map((r, i) => (
+        <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {r.ing
+              ? <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#2F6B3A10", border: "1.5px solid #2F6B3A40", borderRadius: 10, padding: "9px 10px" }}>
+                  <span style={{ flex: 1, fontSize: 12.5, fontWeight: 700, color: "#15251C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.ing.nome}</span>
+                </div>
+              : <IngPicker label={`Ingrediente ${i + 1}`} value={null} onPick={ing => setRiga(i, { ing, unit: "g" })}/>}
+          </div>
+          {r.ing && <>
+            <input inputMode="decimal" value={r.qta} onChange={e => setRiga(i, { qta: e.target.value })} placeholder="q.tà"
+              style={{ width: 62, padding: "10px 8px", borderRadius: 10, border: "1.5px solid #E7EDE2", fontSize: 13, fontWeight: 700, background: "#F8FAF6", outline: "none", textAlign: "center" }}/>
+            <select value={r.unit} onChange={e => setRiga(i, { unit: e.target.value })}
+              style={{ padding: "10px 4px", borderRadius: 10, border: "1.5px solid #E7EDE2", fontSize: 12, fontWeight: 700, background: "#F8FAF6", color: "#4A6152" }}>
+              <option value="g">g</option><option value="ml">ml</option>
+              <option value="cucchiaio">cucch.</option><option value="cucchiaino">cucch.no</option>
+              {pesoPezzoInfo(r.ing.id) && <option value="pz">pz</option>}
+            </select>
+          </>}
+          <button onClick={() => setRighe(rs => rs.filter((_, j) => j !== i))}
+            style={{ border: "none", background: "none", color: "#dc2626", fontWeight: 800, fontSize: 15, cursor: "pointer", padding: "10px 2px" }}>✕</button>
+        </div>
+      ))}
+      <button onClick={() => setRighe(rs => [...rs, { ing: null, qta: "", unit: "g" }])}
+        style={{ padding: "10px 0", borderRadius: 10, border: "1.5px dashed #2F6B3A70", background: "#fff", color: "#2F6B3A", fontWeight: 800, fontSize: 12.5, cursor: "pointer" }}>＋ Aggiungi ingrediente</button>
+
+      {res && tot && (
+        <div style={{ background: "#EDF7EF", border: "1.5px solid #2F6B3A30", borderRadius: 12, padding: "14px 16px" }}>
+          <div style={{ fontSize: 12, color: "#4A6152", marginBottom: 6 }}>Batch: <b>{res.pesoTotale}g</b> · {Math.round(tot.kcal)} kcal totali</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A6152" }}>Porzioni:</span>
+            {[1, 2, 4, 6, 8].map(n => (
+              <button key={n} onClick={() => setPorzioni(n)} style={{ ...chip(porzioni === n), flex: "none", padding: "5px 11px" }}>{n}</button>
+            ))}
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#15251C" }}>
+            {Math.round(tot.kcal / porzioni)} kcal a porzione
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#4A6152" }}> · P {fmt1(tot.p / porzioni)}g · C {fmt1(tot.c / porzioni)}g · G {fmt1(tot.g / porzioni)}g</span>
+          </div>
+          <div style={{ fontSize: 11, color: "#8AA192", marginTop: 4 }}>
+            Per 100g: {res.per100.kcal} kcal · P {res.per100.p} · C {res.per100.c} · G {res.per100.g} (peso a crudo)
+          </div>
+          <button onClick={() => setSalva(true)}
+            style={{ marginTop: 10, padding: "9px 14px", borderRadius: 10, border: "1.5px solid #7c3aed", background: "#f5f3ff", color: "#7c3aed", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+            🧪 Salva come ingrediente
+          </button>
+        </div>
+      )}
+
+      {salva && res && (
+        <AddIngredientModal
+          initial={{ nome: "", cat: "🥫 Varie", deperibile: 5, stagioni: null, nutri: res.per100 }}
+          sorgente="questa preparazione"
+          onSave={async (data) => {
+            try {
+              await addCustomIngredient(data);
+              toast("✓ Ingrediente creato: lo trovi in ricerca, ricette e spesa");
+              setSalva(false);
+            } catch (e) { toast(e?.message || "Errore nella creazione", "err"); }
+          }}
+          onClose={() => setSalva(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Hub ─────────────────────────────────────────────────────────────
 
 const card = { background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" };
@@ -302,9 +540,9 @@ export function StrumentiPage() {
     { id: "equivalenze",  icon: "🔄", t: "Equivalenze cibi",  d: "A quante pesche corrisponde una banana e ½", badge: "nuovo" },
     { id: "casalinghe",   icon: "🥄", t: "Misure casalinghe", d: "Cucchiai, cucchiaini e pezzi in grammi",     badge: "nuovo" },
     { id: "stagionalita", icon: "🍑", t: "Stagionalità",      d: "Frutta e verdura del mese, mese per mese",   badge: "nuovo" },
-    { soon: true,         icon: "🧮", t: "Fabbisogno energetico", d: "BMR, TDEE e macro spiegati" },
-    { soon: true,         icon: "⌚", t: "Costituzione (polso)",  d: "Affina il peso forma con l'indice di Grant" },
-    { soon: true,         icon: "📊", t: "Analizzatore ricetta",  d: "Macro di qualsiasi preparazione" },
+    { id: "fabbisogno",   icon: "🧮", t: "Fabbisogno energetico", d: "MB, LAF e macro spiegati, anche per ospiti", badge: "nuovo" },
+    { id: "costituzione", icon: "⌚", t: "Costituzione (polso)",  d: "Indice di Grant e peso forma per ossatura",  badge: "nuovo" },
+    { id: "analizzatore", icon: "📊", t: "Analizzatore ricetta",  d: "Macro di qualsiasi preparazione",            badge: "nuovo" },
   ];
 
   const modal = taraIng && (
@@ -327,6 +565,9 @@ export function StrumentiPage() {
           {vista === "equivalenze"  && <EquivalenzeTool onTara={setTaraIng} taraTick={taraTick}/>}
           {vista === "casalinghe"   && <CasalingheTool  onTara={setTaraIng} taraTick={taraTick}/>}
           {vista === "stagionalita" && <StagionalitaTool/>}
+          {vista === "fabbisogno"   && <FabbisognoTool/>}
+          {vista === "costituzione" && <CostituzioneTool/>}
+          {vista === "analizzatore" && <AnalizzatoreTool/>}
         </div>
         {modal}
       </div>

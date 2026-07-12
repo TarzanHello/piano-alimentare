@@ -19,6 +19,7 @@ const FORM_EMPTY = {
   tuttoAnno: true,
   stagioni: [],
   kcal: "", p: "", c: "", g: "", z: "", f: "",
+  pesoPezzo: "",
 };
 
 // ─── Modale aggiunta/modifica ingrediente ──────────────────────────
@@ -38,6 +39,7 @@ function formFromIngredient(ing) {
     kcal: ing.nutri?.kcal ?? "", p: ing.nutri?.p ?? "",
     c:    ing.nutri?.c    ?? "", g: ing.nutri?.g ?? "",
     z:    ing.nutri?.z    ?? "", f: ing.nutri?.f ?? "",
+    pesoPezzo: ing.pesoPezzoG ?? "",
   };
 }
 
@@ -88,6 +90,7 @@ export function AddIngredientModal({ editing = null, initial = null, sorgente = 
       deperibile: Number(form.deperibile) || 7,
       stagioni:  form.tuttoAnno ? null : (form.stagioni.length ? form.stagioni : null),
       nutri,
+      pesoPezzoG: form.pesoPezzo !== "" ? (parseFloat(form.pesoPezzo) || null) : null,
     });
   }
 
@@ -174,6 +177,21 @@ export function AddIngredientModal({ editing = null, initial = null, sorgente = 
                 {d >= 365 ? "Stabile" : `${d}g`}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Peso per pezzo (facoltativo) */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "#6E8576", display: "block", marginBottom: 3 }}>
+            Peso per pezzo in g — facoltativo
+          </label>
+          <input
+            type="number" min="0" step="0.5" placeholder="es. 15"
+            value={form.pesoPezzo} onChange={e => set("pesoPezzo", e.target.value)}
+            style={{ width: "100%", padding: "6px 8px", border: "1.5px solid #E7EDE2", borderRadius: 7, fontSize: 12, background: "#fff", boxSizing: "border-box" }}
+          />
+          <div style={{ fontSize: 10, color: "#8AA192", marginTop: 3, lineHeight: 1.4 }}>
+            Serve solo per usare l'unità "pezzi". Il calibro varia da partita a partita? Lascialo vuoto: quando servirà potrai tararlo al grammo con 🎯 in <b>🧰 Strumenti</b>.
           </div>
         </div>
 

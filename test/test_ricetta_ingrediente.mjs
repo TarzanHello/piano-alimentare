@@ -63,7 +63,10 @@ console.log(fail === 0 ? "RICETTA→INGREDIENTE: TUTTO OK" : `RICETTA→INGREDIE
 if (fail > 0) process.exit(1);
 
 // ── Appendice: calcolaEquivalenza + pesoPezzoInfo (hub Strumenti) ────
-const { calcolaEquivalenza } = await import('@/features/strumenti/StrumentiPage');
+// StrumentiPage importa (via AddIngredientModal) la catena customIngredients
+// → sync, che a import-time tocca window: in Node serve uno stub minimo.
+if (typeof globalThis.window === "undefined") globalThis.window = globalThis;
+const { calcolaEquivalenza, indiceGrant } = await import('@/features/strumenti/StrumentiPage');
 const { pesoPezzoInfo, PESO_PEZZO_RANGE, PESO_PEZZO_TARATO } = await import('@/core');
 let fail2 = 0;
 const ok2 = (cond, msg) => { console.log((cond ? "  ✓ " : "  ✗ ") + msg); if (!cond) fail2++; };
@@ -121,6 +124,22 @@ const { quantitaInGrammi: qig } = await import('@/core');
 PESO_PEZZO_TARATO.tst_dattero = 12;
 ok2(qig("tst_dattero", 3, "pz") === 36, "quantitaInGrammi pz usa la taratura (3 pz × 12g = 36g)");
 delete PESO_PEZZO_TARATO.tst_dattero;
+
+// ── indiceGrant: costituzione dal polso ──────────────────────────────
+// Uomo 178cm: polso 16cm → r=11.13 esile; 17.5 → 10.17 normale; 19 → 9.37 robusta.
+let ig = indiceGrant("M", 178, 16);
+ok2(ig?.tipo === "esile" && ig.indice === 11.13, `M 178/16 → esile (r=11.13) — ottenuto ${ig?.tipo}/${ig?.indice}`);
+ig = indiceGrant("M", 178, 17.5);
+ok2(ig?.tipo === "normale", `M 178/17.5 → normale — ottenuto ${ig?.tipo}`);
+ig = indiceGrant("M", 178, 19);
+ok2(ig?.tipo === "robusta", `M 178/19 → robusta — ottenuto ${ig?.tipo}`);
+// Donna: soglie diverse (9.9/10.9): 165/15.5 → r=10.65 normale (per un uomo sarebbe esile)
+ig = indiceGrant("F", 165, 15.5);
+ok2(ig?.tipo === "normale", `F 165/15.5 → normale (soglie femminili) — ottenuto ${ig?.tipo}`);
+// peso forma: robusta > normale > esile a parità di altezza
+const pf = ["esile","normale","robusta"].map((_, i) => indiceGrant("M", 178, [16, 17.5, 19][i]).pesoForma[0]);
+ok2(pf[0] < pf[1] && pf[1] < pf[2], `range peso forma cresce con la robustezza (${pf.join(" < ")})`);
+ok2(indiceGrant("M", 178, 0) === null && indiceGrant("M", 0, 17) === null, "input non validi → null");
 
 console.log(fail2 === 0 ? "EQUIVALENZE: TUTTO OK" : `EQUIVALENZE: ${fail2} FALLIMENTI`);
 if (fail2 > 0) process.exit(1);

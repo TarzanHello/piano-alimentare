@@ -104,11 +104,19 @@ await new Promise(r=>setTimeout(r,200));
 const wentStrumenti = await clickByText('Strumenti');
 const hStrumenti = document.body.innerHTML;
 ok('hub Strumenti si apre con le card', wentStrumenti && /Equivalenze cibi/.test(hStrumenti) && /Misure casalinghe/.test(hStrumenti) && /Stagionalità/.test(hStrumenti) && !hStrumenti.includes('Qualcosa si è inceppato'));
-ok('hub Strumenti senza card-link duplicate', !/Editor ricette|Lista spesa smart|Tracker acqua|Peso forma/.test(hStrumenti));
+ok('hub Strumenti senza card-link duplicate', !/Editor ricette|Lista spesa smart|Tracker acqua|Peso forma &/.test(hStrumenti));
+ok('tutti i 6 tool attivi (nessun IN ARRIVO)', !/IN ARRIVO/.test(hStrumenti) && /Fabbisogno energetico/.test(hStrumenti) && /Costituzione/.test(hStrumenti) && /Analizzatore ricetta/.test(hStrumenti));
 await clickByText('Equivalenze cibi');
 await new Promise(r=>setTimeout(r,200));
 const hEquiv = document.body.innerHTML;
 ok('tool Equivalenze si apre', /A parità di/.test(hEquiv) && !hEquiv.includes('Qualcosa si è inceppato'));
+// torna all'hub e apri Fabbisogno
+await clickByText('Strumenti');
+await new Promise(r=>setTimeout(r,200));
+await clickByText('Fabbisogno energetico');
+await new Promise(r=>setTimeout(r,200));
+const hFabb = document.body.innerHTML;
+ok('tool Fabbisogno si apre', /Allenamenti a settimana/.test(hFabb) && !hFabb.includes('Qualcosa si è inceppato'));
 
 console.error = origErr;
 ok('nessun errore React durante la navigazione', reactErrors.length === 0);

@@ -3,7 +3,7 @@
 // Storage cloud:  famiglia_dati(chiave='ingredienti_custom') — condiviso in famiglia
 // Registrazione engine: ING_MAP mutabile (src/data/index.js)
 
-import { ING_MAP } from '@/data';
+import { ING_MAP, PESO_PEZZO } from '@/data';
 import { supabase } from './cloud';
 import { getCloudMe } from './sync';
 import { logSync } from './synclog';
@@ -37,6 +37,10 @@ export function registerInING_MAP(list) {
       custom:     true,
       tags:       [],
     };
+    // Peso pezzo opzionale: propagato al motore (pesoPezzoInfo lo vede
+    // come mediana DB; la taratura famiglia resta comunque prioritaria).
+    if (Number(ing.pesoPezzoG) > 0) PESO_PEZZO[ing.id] = Number(ing.pesoPezzoG);
+    else delete PESO_PEZZO[ing.id];
   }
 }
 
