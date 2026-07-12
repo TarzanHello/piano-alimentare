@@ -478,6 +478,23 @@ export async function toggleSpesaItem(itemId, checked) {
 }
 
 // Azzera tutte le spunte di una settimana (pulsante reset lista spesa)
+// Riporta le spunte del vecchio seed sul nuovo: la rigenerazione del piano
+// non deve azzerare la spesa già fatta (bug da field test 12/07: ~30 articoli
+// rispuntati a mano dopo ogni regen).
+export async function migraSpesaSeed(oldSeed, newSeed) {
+  if (!supabase||!me) return;
+  if (!oldSeed || !newSeed || String(oldSeed)===String(newSeed)) return;
+  const {data,error} = await supabase.from("famiglia_spesa").select("item_id")
+    .eq("famiglia_id",me.famigliaId).eq("settimana",String(oldSeed)).eq("checked",true);
+  if (error) { logSync("error","Migrazione spesa: errore lettura",{error:error.message}); return; }
+  if (!data || !data.length) return;
+  const righe = data.map(r=>({famiglia_id:me.famigliaId, settimana:String(newSeed), item_id:r.item_id, checked:true}));
+  const {error:e2} = await supabase.from("famiglia_spesa").upsert(righe,{onConflict:"famiglia_id,settimana,item_id"});
+  if (e2) { logSync("error","Migrazione spesa: errore scrittura",{error:e2.message}); return; }
+  logSync("push","Spunte spesa migrate al nuovo piano",{n:righe.length});
+  await pullSpesa();
+}
+
 export async function resetSpesaSeed(seed) {
   if (!supabase||!me) throw new Error("sync non pronto");
   const {error} = await supabase.from("famiglia_spesa").delete()
