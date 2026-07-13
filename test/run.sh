@@ -27,6 +27,18 @@ echo "▸ TEST 2g — Allineamento ricette ↔ ingredienti (ID, porzioni, semant
 node test/test_allineamento.mjs || FAIL=1
 
 echo ""
+echo "▸ TEST 2k — Tool Costituzione: interazione reale (digitazione)"
+"$EB" test/test_costituzione_ui.mjs --bundle --format=esm --outfile=./.tcu.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
+node ./.tcu.mjs || FAIL=1
+rm -f ./.tcu.mjs
+
+echo ""
+echo "▸ TEST 2j — Stabilità piano vs variazioni DB (rendezvous)"
+"$EB" test/test_piano_stabile.mjs --bundle --format=esm --outfile=./.tps.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
+node ./.tps.mjs || FAIL=1
+rm -f ./.tps.mjs
+
+echo ""
 echo "▸ TEST 2i — Override per-membro (isolamento swap)"
 "$EB" test/test_override_membri.mjs --bundle --format=esm --outfile=./.tom.mjs "--alias:@=$ROOT/src" --loader:.json=json --packages=external --log-level=error
 node ./.tom.mjs || FAIL=1

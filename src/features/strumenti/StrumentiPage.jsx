@@ -32,6 +32,10 @@ export function calcolaEquivalenza(ingA, gramsA, ingB, criterio) {
 }
 
 const fmt1 = n => (Math.round(n * 10) / 10).toLocaleString("it-IT");
+// Parsing numerico tollerante alla virgola italiana ("19,7" → 19.7).
+// L'unario + su stringhe con la virgola dà NaN: bug field test 13/07
+// (Costituzione muta con polso 19,7).
+const num = v => parseFloat(String(v).replace(",", ".")) || 0;
 const MESI = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
 
 // Testo pezzi onesto: range se incerto, decimale se tarato o stabile.
@@ -304,11 +308,11 @@ const chip = (attivo, colore = "#2F6B3A") => ({ flex: 1, padding: "8px 2px", bor
 function FabbisognoTool() {
   const [f, setF] = useState({ sesso: "M", eta: "", peso: "", altezza: "", lavoro: "attivo", allenamenti: 2, obiettivo: "mantenimento" });
   const set = (k, v) => setF(x => ({ ...x, [k]: v }));
-  const pronto = f.eta > 0 && f.peso > 0 && f.altezza > 0;
+  const pronto = num(f.eta) > 0 && num(f.peso) > 0 && num(f.altezza) > 0;
   const res = useMemo(() => {
     if (!pronto) return null;
     try {
-      return calcTarget({ sesso: f.sesso, eta: +f.eta, peso: +f.peso, altezza: +f.altezza, lavoro: f.lavoro, allenamenti: +f.allenamenti, obiettivo: f.obiettivo });
+      return calcTarget({ sesso: f.sesso, eta: num(f.eta), peso: num(f.peso), altezza: num(f.altezza), lavoro: f.lavoro, allenamenti: +f.allenamenti, obiettivo: f.obiettivo });
     } catch { return null; }
   }, [f, pronto]);
 
@@ -360,7 +364,7 @@ function FabbisognoTool() {
             ))}
           </div>
           <div style={{ fontSize: 10.5, color: "#8AA192", marginTop: 8 }}>
-            Proteine: {(res.p / +f.peso).toFixed(1)} g/kg di peso. Stessi metodi del piano Fitsy; qui non viene salvato nulla.
+            Proteine: {(res.p / num(f.peso)).toFixed(1)} g/kg di peso. Stessi metodi del piano Fitsy; qui non viene salvato nulla.
           </div>
         </div>
       )}
@@ -373,7 +377,7 @@ function FabbisognoTool() {
 function CostituzioneTool() {
   const [f, setF] = useState({ sesso: "M", altezza: "", polso: "", peso: "" });
   const set = (k, v) => setF(x => ({ ...x, [k]: v }));
-  const res = useMemo(() => indiceGrant(f.sesso, +f.altezza, +f.polso), [f.sesso, f.altezza, f.polso]);
+  const res = useMemo(() => indiceGrant(f.sesso, num(f.altezza), num(f.polso)), [f.sesso, f.altezza, f.polso]);
   const ETICHETTE = { esile: ["🪶 Esile", "ossatura leggera: peso forma più basso del riferimento"],
                       normale: ["⚖️ Normale", "ossatura media: peso forma in linea col riferimento"],
                       robusta: ["🪨 Robusta", "ossatura importante: peso forma più alto del riferimento"] };
@@ -403,10 +407,10 @@ function CostituzioneTool() {
           <div style={{ fontSize: 14, fontWeight: 800, color: "#2F6B3A", marginTop: 8 }}>
             Peso forma indicativo: {fmt1(res.pesoForma[0])}–{fmt1(res.pesoForma[1])} kg
           </div>
-          {+f.peso > 0 && (
+          {num(f.peso) > 0 && (
             <div style={{ fontSize: 11.5, color: "#4A6152", marginTop: 4 }}>
-              {+f.peso < res.pesoForma[0] ? `Sei ${fmt1(res.pesoForma[0] - f.peso)} kg sotto il range.`
-               : +f.peso > res.pesoForma[1] ? `Sei ${fmt1(f.peso - res.pesoForma[1])} kg sopra il range.`
+              {num(f.peso) < res.pesoForma[0] ? `Sei ${fmt1(res.pesoForma[0] - num(f.peso))} kg sotto il range.`
+               : num(f.peso) > res.pesoForma[1] ? `Sei ${fmt1(num(f.peso) - res.pesoForma[1])} kg sopra il range.`
                : "✓ Sei dentro il range per la tua costituzione."}
             </div>
           )}
@@ -564,6 +568,26 @@ const TOOLS = [
   { id: "idrico",       icon: "💧", t: "Fabbisogno idrico",     d: "Quanta acqua al giorno, in litri e bicchieri", nav: "Acqua",       col: "#0284c7" },
 ];
 
+// Boundary per-sezione: un tool rotto (es. bundle misto dopo un deploy
+// parziale, come da field test 12/07 sul tool Costituzione) degrada in
+// una card d'errore locale invece di far crashare l'intero flusso.
+class ToolBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err) { try { console.error("Strumenti/" + this.props.toolId + ":", err); } catch {} }
+  render() {
+    if (this.state.err) return (
+      <div style={{ padding: "14px 4px", fontSize: 12.5, color: "#9a3412", lineHeight: 1.5 }}>
+        ⚠️ Questo strumento ha avuto un problema e non può essere mostrato.
+        Riavvia l'app (o aggiorna la pagina): se persiste, manda il log
+        di sincronizzazione dal Menu.
+        <div style={{ fontSize: 10, color: "#c2410c", marginTop: 6, fontFamily: "monospace" }}>{String(this.state.err?.message || this.state.err).slice(0, 120)}</div>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
 export function StrumentiPage() {
   const [taraIng, setTaraIng] = useState(null);   // ingrediente nel wizard taratura
   const [taraTick, setTaraTick] = useState(0);    // bump dopo ogni taratura → ricalcola i tool
@@ -662,7 +686,9 @@ export function StrumentiPage() {
                   <div style={{ fontSize: 11, color: "#6E8576", marginTop: 1 }}>{t.d}</div>
                 </div>
               </div>
-              <div style={{ padding: 16 }}>{corpo(t)}</div>
+              <div style={{ padding: 16 }}>
+                <ToolBoundary toolId={t.id}>{corpo(t)}</ToolBoundary>
+              </div>
             </div>
           </section>
         ))}

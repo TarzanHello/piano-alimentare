@@ -1203,9 +1203,37 @@ export function buildWeightedPool(ricette, excludedIds, mese) {
   return pool.length > 0 ? pool : ricette.filter(r => !r.ingredients.some(id => excludedIds.includes(id)));
 }
 
+// ── Selezione stabile (weighted rendezvous / HRW) ────────────────────
+// Ogni slot assegna a ogni candidato una chiave deterministica
+// hash(seed|slot|ricettaId) pesata (u^(1/w)) e sceglie la massima.
+// Proprietà chiave: aggiungere ricette al DB cambia SOLO gli slot in cui
+// una nuova ricetta "vince"; rimuovere una ricetta mai scelta non cambia
+// nulla. Prima la selezione era rng-su-indice: qualsiasi variazione della
+// dimensione del pool rimescolava l'intero piano (field test 12/07).
+function hash32(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h >>> 0;
+}
+// pool con duplicati (pesatura per replica) → candidati unici con peso
+function candidatiPesati(pool) {
+  const map = new Map();
+  for (const r of pool) { const e = map.get(r.id); if (e) e.w++; else map.set(r.id, { r, w: 1 }); }
+  return [...map.values()];
+}
+function scegliStabile(seed, slotKey, candidati, vietati) {
+  let best = null, bestKey = -1;
+  for (const { r, w } of candidati) {
+    if (vietati && vietati.has(r.id)) continue;
+    const u = (hash32(`${seed}|${slotKey}|${r.id}`) + 1) / 4294967297;   // (0,1)
+    const key = Math.pow(u, 1 / w);
+    if (key > bestKey) { bestKey = key; best = r; }
+  }
+  return best;
+}
+
 export function generateWeekPlan(seed, excludedIds = [], mese, ricetteUtente = [], ricetteEscluseIds) {
   const m = mese || meseCorrente();
-  const rng = seededRng(seed);
   const escl = ricetteEscluseIds instanceof Set ? ricetteEscluseIds : new Set(ricetteEscluseIds || []);
 
   const diag = {};
@@ -1224,15 +1252,16 @@ export function generateWeekPlan(seed, excludedIds = [], mese, ricetteUtente = [
   const pickSeven = (cat) => {
     const pool = buildMergedPool(cat, ricetteUtente, excludedIds, m, escl);
     if (!pool.length) return (DB[cat]||[]).slice(0, 7);
+    const cand = candidatiPesati(pool);
     const picked = [], usedIds = new Set();
-    let attempts = 0;
-    while (picked.length < 7 && attempts < 300) {
-      attempts++;
-      const r = pool[Math.floor(rng() * pool.length)];
-      if (!usedIds.has(r.id) || usedIds.size >= new Set(pool.map(x=>x.id)).size) {
-        usedIds.add(r.id);
-        picked.push(r);
-      }
+    for (let i = 0; i < 7; i++) {
+      // slot i: vincitore non ancora usato; se il pool ha meno di 7 ricette
+      // uniche, consenti il riuso (vincitore assoluto dello slot)
+      const r = scegliStabile(seed, `${cat}:${i}`, cand, usedIds)
+             || scegliStabile(seed, `${cat}:${i}`, cand, null);
+      if (!r) break;
+      usedIds.add(r.id);
+      picked.push(r);
     }
     return picked.slice(0, 7);
   };
@@ -1246,12 +1275,15 @@ export function generateWeekPlan(seed, excludedIds = [], mese, ricetteUtente = [
   // Spuntini: pool unificato, no due uguali consecutivi
   const spPool = buildMergedPool("spuntino", ricetteUtente, excludedIds, m, escl);
   const spFallback = buildMergedPool("spuntino", ricetteUtente, [], m, escl);
+  const spCand = candidatiPesati(spPool);
+  const spCandFb = candidatiPesati(spFallback.length ? spFallback : spPool);
   const spuntini = [];
   for (let i = 0; i < 14; i++) {
-    const excl = spuntini.slice(-2).map(s => s.id);
-    const avail = spPool.filter(s => !excl.includes(s.id));
-    const src   = avail.length ? avail : (spFallback.length ? spFallback : spPool);
-    spuntini.push(src[Math.floor(rng() * src.length)]);
+    const vietati = new Set(spuntini.slice(-2).map(s => s.id));
+    const r = scegliStabile(seed, `spuntino:${i}`, spCand, vietati)
+           || scegliStabile(seed, `spuntino:${i}`, spCandFb, vietati)
+           || scegliStabile(seed, `spuntino:${i}`, spCand, null);
+    if (r) spuntini.push(r);
   }
 
   try {
