@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
-import { DB, INGREDIENTS, ING_MAP, ING_QTY, PESO_PEZZO, UNIT_OPTIONS, calcMacroEditor, categoriaDaMealKey, categorieCompatibili, cloudRecipeToMeal, formattaPorzione, ingQtyToEditor, nutriPerGrammi, quantitaInGrammi, scalaPastiGiorno } from '@/core';
+import { DB, INGREDIENTS, ING_MAP, ING_QTY, PESO_PEZZO, UNIT_OPTIONS, calcMacroEditor, categoriaDaMealKey, categorieCompatibili, cloudRecipeToMeal, formattaPorzione, ingQtyToEditor, nutriPerGrammi, quantitaInGrammi, scalaPastiGiorno , nutriPer100DaQuantita } from '@/core';
 import { caricaRicette } from '@/db/ricetteCloud';
 import { MealCard, WaterTracker } from '@/features/piano/MealParts';
 
@@ -621,7 +621,13 @@ const CAT_META = {
 };
 
 function RicettarioCard({ r, personaKey, onPick, badge }) {
-  const m = r[personaKey] || r.uomo || { kcal:0, p:0, c:0, g:0 };
+  // Ricette utente/famiglia: niente macro per-slot → mostra la DENSITÀ
+  // calorica (per 100g dal batch), confrontabile tra ricette di batch
+  // diversi. Le ricette catalogo restano per-porzione.
+  const slot = r[personaKey] || r.uomo;
+  const per100 = (!slot || !slot.kcal) ? (nutriPer100DaQuantita(r.quantita)?.per100 || null) : null;
+  const m = per100 || slot || { kcal:0, p:0, c:0, g:0 };
+  const suffisso = per100 ? "/100g" : "";
   const prep = r.prep;
   const prepColor = prep==null ? "#9DB1A2" : prep <= 15 ? "#16a34a" : prep <= 30 ? "#d97706" : "#dc2626";
   const prepBg    = prep==null ? "#F5F8F1"  : prep <= 15 ? "#f0fdf4" : prep <= 30 ? "#fffbeb" : "#fef2f2";
@@ -637,8 +643,8 @@ function RicettarioCard({ r, personaKey, onPick, badge }) {
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontSize:12,fontWeight:700,color:"#15251C",lineHeight:1.3,marginBottom:5}}>{r.nome}</div>
         <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#15251C"}}>{m.kcal} kcal</span>
-          <span style={{fontSize:10,color:"#9DB1A2"}}>P{m.p} C{m.c} G{m.g}</span>
+          <span style={{fontSize:10,fontFamily:"monospace",fontWeight:700,color:"#15251C"}}>{Math.round(m.kcal)} kcal{suffisso}</span>
+          <span style={{fontSize:10,color:"#9DB1A2"}}>P{Math.round(m.p)} C{Math.round(m.c)} G{Math.round(m.g)}{suffisso && <span style={{color:"#C2D0C6"}}> {suffisso}</span>}</span>
           {badge}
         </div>
       </div>

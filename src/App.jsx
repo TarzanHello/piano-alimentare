@@ -1076,10 +1076,12 @@ export function App() {
                   const selDateKey = dateKeyForOffset(selOffset);
                   // Piano della settimana del giorno scelto (può sforare la settimana corrente),
                   // con gli override per-settimana applicati.
-                  const selWeek = applyOverridesWeek(
-                    planForWeek(planState, selWeekIndex, { excludedIds: excluded, ricetteUtente, ricetteEscluseIds }),
-                    overrides, selWeekIndex, persona?.id
-                  );
+                  const baseWeek = planForWeek(planState, selWeekIndex, { excludedIds: excluded, ricetteUtente, ricetteEscluseIds });
+                  const selWeek = applyOverridesWeek(baseWeek, overrides, selWeekIndex, persona?.id);
+                  // La MIA settimana effettiva: serve per capire se un piatto del
+                  // familiare è già identico al mio ("✓ Nel tuo piano")
+                  const myWeek = (myPersonaId && persona?.id !== myPersonaId)
+                    ? applyOverridesWeek(baseWeek, overrides, selWeekIndex, myPersonaId) : selWeek;
                   const weekMealIds = new Set(
                     selWeek.flatMap(d => MEAL_KEYS.map(mk => d[mk]?.id)).filter(Boolean)
                   );
@@ -1133,6 +1135,11 @@ export function App() {
                             onToggleDislike={() => handleToggleDislike(effectiveDay[mk]?.id)}
                             onSwap={alt => handleSwap(selWeekIndex, selWeekday, mk, effectiveDay[mk], alt, persona?.id)}
                             onReset={() => handleResetSwap(selWeekIndex, selWeekday, mk, persona?.id)}
+                            onAdotta={myPersonaId && persona?.id && persona.id !== myPersonaId ? () => {
+                              logSync("swap", `Adottata dal piano di ${persona?.nome}: ${effectiveDay[mk]?.nome?.slice(0,30)}`, { mealKey: mk });
+                              handleSwap(selWeekIndex, selWeekday, mk, effectiveDay[mk], effectiveDay[mk], myPersonaId);
+                            } : null}
+                            adottata={persona?.id !== myPersonaId ? myWeek[selWeekday]?.[mk]?.id === effectiveDay[mk]?.id : false}
                             macroOverride={macroEff}
                             isAdattato={isAdattato}
                             quantitaOverride={pianoPers.personalizzato && effectiveDay[mk] && pianoPers.quantita && !isAdattato ? pianoPers.quantita[effectiveDay[mk].id] : null}
@@ -1294,7 +1301,7 @@ export function App() {
         )}
         {page==="spesa"&&<ShoppingPage planState={{baseSeed:seed, frozen}} overrides={overrides} genArgs={{excludedIds:excluded, ricetteUtente, ricetteEscluseIds}} checks={spesaChecks[String(seed)]||{}} onToggle={handleToggleSpesa} onReset={handleResetSpesa} personas={personas} mealsLog={mealsLog} consumoAttivo={spesaConsumo} onToggleConsumo={toggleSpesaConsumo}/>}
         {page==="ingredienti"&&<IngredientiPage excluded={excluded} onToggle={toggleExcluded}/>}
-        {page==="strumenti"&&<StrumentiPage/>}
+        {page==="strumenti"&&<StrumentiPage personas={personas} misure={misureApp}/>}
         {page==="gusti"&&<GustiPage prefs={prefs} onToggleLike={handleToggleLike} onToggleDislike={handleToggleDislike} onResetPrefs={handleResetPrefs}/>}
         {page==="ricette"&&<RicettePage cloudStatus={cloudStatus} onRicetteChange={handleRicetteChange} onTorna={()=>navigaA("piano")}/>}
         {page==="test-sync"&&<SyncTestPage/>}

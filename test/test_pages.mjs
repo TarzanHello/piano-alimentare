@@ -11,7 +11,10 @@ function setupDom() {
   Object.defineProperty(global, 'navigator', { value: dom.window.navigator, configurable: true });
   window.matchMedia = () => ({ matches:false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} });
   const mem = {
-    'pf-personas': JSON.stringify([{ id:'p1', nome:'Test', sesso:'M', eta:40, peso:88, altezza:178, lavoro:'attivo', allenamenti:4, obiettivo:'perdita', color:'#2563eb' }]),
+    'pf-personas': JSON.stringify([
+      { id:'p1', nome:'Test', sesso:'M', eta:40, peso:88, altezza:178, lavoro:'attivo', allenamenti:4, obiettivo:'perdita', color:'#2563eb' },
+      { id:'p2', nome:'Fede', sesso:'F', eta:38, peso:63, altezza:170, lavoro:'sedentario', allenamenti:2, obiettivo:'perdita', color:'#db2777' },
+    ]),
     'pf-my-persona': 'p1',
     'pf-seed': '123456',
   };
@@ -22,11 +25,22 @@ function setupDom() {
   return mem;
 }
 
+const memGlobal = setupDom();
+
+// Divergenza per il test adozione: Fede (p2) ha swappato il pranzo di oggi.
+{
+  const { weekIndexForDate, weekdayForDate } = await import('@/core');
+  const wkT = weekIndexForDate(new Date()), wdT = weekdayForDate(new Date());
+  const piattoFede = { id:'tst_adotta', nome:'Piatto di Fede (adozione)', ingredients:[], quantita:{},
+    porzioni:{ uomo:'porzione test', donna:'porzione test', bimbo:'porzione test' },
+    uomo:{kcal:500,p:30,c:50,g:15}, donna:{kcal:400,p:25,c:40,g:12}, bimbo:{kcal:250,p:15,c:25,g:8} };
+  memGlobal['pf-overrides'] = JSON.stringify({ _v:2, condivisi:{}, perPersona:{ p2: { [`${wkT}:${wdT}-pranzo`]: piattoFede } } });
+}
+
 const React = (await import('react')).default;
 const { createRoot } = await import('react-dom/client');
 
 // Monta l'App intera e naviga ogni voce di menu, raccogliendo errori React.
-setupDom();
 let reactErrors = [];
 const origErr = console.error; console.error = (...a) => { const s=a.join(' '); if(/Error|undefined|not defined|Cannot read/.test(s)) reactErrors.push(s.slice(0,160)); };
 
@@ -114,6 +128,26 @@ ok('tutti i 6 tool GIÀ aperti nel flusso (nessun click necessario)',
    /Aggiungi ingrediente/.test(hStrumenti));            // analizzatore
 ok('chip-nav presente', /Fabbisogno<\/button>|>Stagioni</.test(hStrumenti));
 ok('nessuna card-link duplicata', !/Editor ricette|Lista spesa smart|Tracker acqua/.test(hStrumenti));
+
+// piano del familiare → il pranzo divergente mostra Adotta, gli slot
+// identici mostrano "Nel tuo piano"; il click scrive nel layer di chi guarda
+await clickByText('Piano');
+await new Promise(r=>setTimeout(r,300));
+await clickByText('Fede');
+await new Promise(r=>setTimeout(r,300));
+const hFede = document.body.innerHTML;
+ok('vista Fede: il suo swap è visibile', /Piatto di Fede/.test(hFede));
+ok('slot divergente → Adotta; slot identici → Nel tuo piano', /Adotta/.test(hFede) && /Nel tuo piano/.test(hFede));
+const btnAdotta = [...document.querySelectorAll('button')].find(b => b.textContent.includes('Adotta'));
+if (btnAdotta) {
+  btnAdotta.click();
+  await new Promise(r=>setTimeout(r,300));
+  const ovr = JSON.parse(memGlobal['pf-overrides'] || '{}');
+  const mieP1 = ovr.perPersona?.p1 || {};
+  ok('adozione scrive nel layer di CHI GUARDA (p1) il piatto di Fede',
+     Object.values(mieP1).some(m => m?.id === 'tst_adotta') && Object.keys(ovr.perPersona?.p2 || {}).length === 1);
+  ok('dopo il click lo slot diventa Nel tuo piano', !/>Adotta</.test(document.body.innerHTML));
+}
 
 console.error = origErr;
 ok('nessun errore React durante la navigazione', reactErrors.length === 0);

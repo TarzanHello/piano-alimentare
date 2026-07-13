@@ -1,6 +1,6 @@
 import React from 'react';
 const { useState, useMemo } = React;
-import { ING_MAP, INGREDIENTS, PESO_PEZZO, cercaIngredienti, pesoPezzoInfo, calcTarget, indiceGrant, nutriPer100DaQuantita, LAVORI, OBIETTIVI, SESSI } from '@/core';
+import { ING_MAP, INGREDIENTS, PESO_PEZZO, cercaIngredienti, dateToSort, pesoPezzoInfo, calcTarget, indiceGrant, nutriPer100DaQuantita, LAVORI, OBIETTIVI, SESSI } from '@/core';
 export { indiceGrant };
 import { salvaTaratura, contaTarature } from '@/db/tarature';
 import { AddIngredientModal } from '@/features/ingredienti/IngredientiPage';
@@ -296,6 +296,29 @@ function StagionalitaTool() {
   );
 }
 
+// ─── Prefill dai profili famiglia ────────────────────────────────────
+// La firma UX della pagina: un tap e il tool si compila con i dati veri
+// del membro (profilo + ultima misura). Stile pillola come i selettori
+// persona del Piano.
+
+function PrefillPersone({ personas, onPick }) {
+  if (!personas?.length) return null;
+  return (
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+      <span style={{ fontSize: 10.5, fontWeight: 800, color: "#8AA192", textTransform: "uppercase", letterSpacing: 0.6 }}>Compila con</span>
+      {personas.map(p => (
+        <button key={p.id} onClick={() => onPick(p)}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99,
+                   border: "1.5px solid #E7EDE2", background: "#fff", color: "#2F6B3A",
+                   fontWeight: 800, fontSize: 11, cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: p.color || "#2F6B3A" }}/>
+          {p.nome}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── Tool: fabbisogno energetico ─────────────────────────────────────
 // Riusa calcTarget del motore (LARN/SINU per adulti, Mifflin per minori):
 // gli stessi numeri del piano, spiegati passo per passo. Modalità ospite:
@@ -305,8 +328,12 @@ const stileInput = { width: "100%", boxSizing: "border-box", padding: "10px 12px
 const stileLabel = { fontSize: 10.5, fontWeight: 800, color: "#8AA192", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 5 };
 const chip = (attivo, colore = "#2F6B3A") => ({ flex: 1, padding: "8px 2px", borderRadius: 9, border: `1.5px solid ${attivo ? colore : "#E7EDE2"}`, background: attivo ? colore + "14" : "#F8FAF6", color: attivo ? colore : "#6E8576", fontWeight: 800, fontSize: 11, cursor: "pointer" });
 
-function FabbisognoTool() {
+function FabbisognoTool({ personas }) {
   const [f, setF] = useState({ sesso: "M", eta: "", peso: "", altezza: "", lavoro: "attivo", allenamenti: 2, obiettivo: "mantenimento" });
+  const prefill = (p) => setF({
+    sesso: p.sesso || "M", eta: String(p.eta ?? ""), peso: String(p.peso ?? ""), altezza: String(p.altezza ?? ""),
+    lavoro: p.lavoro || "attivo", allenamenti: p.allenamenti ?? 2, obiettivo: p.obiettivo || "mantenimento",
+  });
   const set = (k, v) => setF(x => ({ ...x, [k]: v }));
   const pronto = num(f.eta) > 0 && num(f.peso) > 0 && num(f.altezza) > 0;
   const res = useMemo(() => {
@@ -318,6 +345,7 @@ function FabbisognoTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+      <PrefillPersone personas={personas} onPick={prefill}/>
       <div style={{ display: "flex", gap: 5 }}>
         {SESSI.map(s => <button key={s.key} onClick={() => set("sesso", s.key)} style={chip(f.sesso === s.key)}>{s.label}</button>)}
       </div>
@@ -374,8 +402,13 @@ function FabbisognoTool() {
 
 // ─── Tool: costituzione (indice di Grant, polso) ─────────────────────
 
-function CostituzioneTool() {
+function CostituzioneTool({ personas, misuraDi }) {
   const [f, setF] = useState({ sesso: "M", altezza: "", polso: "", peso: "" });
+  const prefill = (p) => {
+    const m = misuraDi ? misuraDi(p.id) : null;
+    setF({ sesso: p.sesso || "M", altezza: String(p.altezza ?? ""),
+           polso: m?.polso ? String(m.polso) : "", peso: String(m?.peso ?? p.peso ?? "") });
+  };
   const set = (k, v) => setF(x => ({ ...x, [k]: v }));
   const res = useMemo(() => indiceGrant(f.sesso, num(f.altezza), num(f.polso)), [f.sesso, f.altezza, f.polso]);
   const ETICHETTE = { esile: ["🪶 Esile", "ossatura leggera: peso forma più basso del riferimento"],
@@ -384,6 +417,7 @@ function CostituzioneTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+      <PrefillPersone personas={personas} onPick={prefill}/>
       <div style={{ display: "flex", gap: 5 }}>
         {SESSI.map(s => <button key={s.key} onClick={() => set("sesso", s.key)} style={chip(f.sesso === s.key)}>{s.label}</button>)}
       </div>
@@ -558,14 +592,16 @@ const { useRef, useEffect } = React;
 
 const card = { background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" };
 
+// Badge icona in pastello (stesso linguaggio delle card pasto); accento
+// d'interazione unico #2F6B3A come nel resto dell'app.
 const TOOLS = [
-  { id: "equivalenze",  icon: "🔄", t: "Equivalenze cibi",      d: "A quante pesche corrisponde una banana e ½", nav: "Equivalenze",  col: "#2F6B3A" },
-  { id: "casalinghe",   icon: "🥄", t: "Misure casalinghe",     d: "Cucchiai, cucchiaini e pezzi in grammi",     nav: "Casalinghe",   col: "#C77D1F" },
-  { id: "stagionalita", icon: "🍑", t: "Stagionalità",          d: "Frutta e verdura del mese, mese per mese",   nav: "Stagioni",     col: "#E8792B" },
-  { id: "fabbisogno",   icon: "🧮", t: "Fabbisogno energetico", d: "MB, LAF e macro spiegati, anche per ospiti", nav: "Fabbisogno",   col: "#1FA2D8" },
-  { id: "costituzione", icon: "⌚", t: "Costituzione (polso)",  d: "Indice di Grant e peso forma per ossatura",  nav: "Costituzione", col: "#7c3aed" },
-  { id: "analizzatore", icon: "📊", t: "Analizzatore ricetta",  d: "Macro di qualsiasi preparazione",            nav: "Analizzatore", col: "#0F766E" },
-  { id: "idrico",       icon: "💧", t: "Fabbisogno idrico",     d: "Quanta acqua al giorno, in litri e bicchieri", nav: "Acqua",       col: "#0284c7" },
+  { id: "equivalenze",  icon: "🔄", t: "Equivalenze cibi",      d: "A quante pesche corrisponde una banana e ½",   nav: "Equivalenze",  tint: "#DFF0E2" },
+  { id: "casalinghe",   icon: "🥄", t: "Misure casalinghe",     d: "Cucchiai, cucchiaini e pezzi in grammi",       nav: "Casalinghe",   tint: "#FDF0D5" },
+  { id: "stagionalita", icon: "🍑", t: "Stagionalità",          d: "Frutta e verdura del mese, mese per mese",     nav: "Stagioni",     tint: "#FDE7DC" },
+  { id: "fabbisogno",   icon: "🧮", t: "Fabbisogno energetico", d: "MB, LAF e macro spiegati, anche per ospiti",   nav: "Fabbisogno",   tint: "#E1EFF7" },
+  { id: "costituzione", icon: "⌚", t: "Costituzione (polso)",  d: "Indice di Grant e peso forma per ossatura",    nav: "Costituzione", tint: "#ECE7F8" },
+  { id: "analizzatore", icon: "📊", t: "Analizzatore ricetta",  d: "Macro di qualsiasi preparazione",              nav: "Analizzatore", tint: "#DEF0ED" },
+  { id: "idrico",       icon: "💧", t: "Fabbisogno idrico",     d: "Quanta acqua al giorno, in litri e bicchieri", nav: "Acqua",        tint: "#DFEDF9" },
 ];
 
 // Boundary per-sezione: un tool rotto (es. bundle misto dopo un deploy
@@ -588,7 +624,12 @@ class ToolBoundary extends React.Component {
   }
 }
 
-export function StrumentiPage() {
+export function StrumentiPage({ personas = [], misure = {} }) {
+  // ultima misura registrata di un membro (per il prefill del polso)
+  const misuraDi = (pid) => {
+    const recs = (misure[pid] || []).slice().sort((a, b) => dateToSort(a.date).localeCompare(dateToSort(b.date)));
+    return recs[recs.length - 1] || null;
+  };
   const [taraIng, setTaraIng] = useState(null);   // ingrediente nel wizard taratura
   const [taraTick, setTaraTick] = useState(0);    // bump dopo ogni taratura → ricalcola i tool
   const [attivo, setAttivo] = useState("equivalenze");
@@ -629,8 +670,8 @@ export function StrumentiPage() {
       case "equivalenze":  return <EquivalenzeTool onTara={setTaraIng} taraTick={taraTick}/>;
       case "casalinghe":   return <CasalingheTool  onTara={setTaraIng} taraTick={taraTick}/>;
       case "stagionalita": return <StagionalitaTool/>;
-      case "fabbisogno":   return <FabbisognoTool/>;
-      case "costituzione": return <CostituzioneTool/>;
+      case "fabbisogno":   return <FabbisognoTool personas={personas}/>;
+      case "costituzione": return <CostituzioneTool personas={personas} misuraDi={misuraDi}/>;
       case "analizzatore": return <AnalizzatoreTool/>;
       case "idrico":       return <IdricoTool/>;
       default: return null;
@@ -657,9 +698,9 @@ export function StrumentiPage() {
         <div style={{ display: "flex", gap: 6, width: "max-content" }}>
           {TOOLS.map(t => (
             <button key={t.id} onClick={() => vaiA(t.id)}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 11px", borderRadius: 99,
-                       border: `1.5px solid ${attivo === t.id ? t.col : "#E7EDE2"}`,
-                       background: attivo === t.id ? t.col : "#fff",
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 99,
+                       border: `1.5px solid ${attivo === t.id ? "#2F6B3A" : "#E7EDE2"}`,
+                       background: attivo === t.id ? "#2F6B3A" : "#fff",
                        color: attivo === t.id ? "#fff" : "#4A6152",
                        fontWeight: 800, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap",
                        boxShadow: "0 1px 3px rgba(0,0,0,0.07)", transition: "all 0.2s" }}>
@@ -674,12 +715,11 @@ export function StrumentiPage() {
         {TOOLS.map(t => (
           <section key={t.id} ref={el => { refs.current[t.id] = el; }} style={{ scrollMarginTop: 58 }}>
             <div style={{ ...card, overflow: "hidden", border: "1px solid #E7EDE2" }}>
-              {/* banda d'accento */}
+              {/* header in stile card-pasto: badge icona pastello + titolo */}
               <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "13px 16px",
-                            background: `linear-gradient(105deg, ${t.col}1E, ${t.col}08)`,
-                            borderBottom: `2px solid ${t.col}30` }}>
-                <span style={{ width: 38, height: 38, borderRadius: 12, background: "#fff",
-                               boxShadow: `0 2px 8px ${t.col}30`, display: "flex", alignItems: "center",
+                            borderBottom: "1px solid #F2F5EF" }}>
+                <span style={{ width: 40, height: 40, borderRadius: 13, background: t.tint,
+                               display: "flex", alignItems: "center",
                                justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{t.icon}</span>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: "#15251C", lineHeight: 1.2 }}>{t.t}</div>

@@ -70,6 +70,15 @@ if (inAltezzaCost && inPolso) {
   if (btnF.length) { btnF[btnF.length - 1].click(); await new Promise(r => setTimeout(r, 150)); }
   ok(!document.body.innerHTML.includes('Qualcosa si è inceppato'), 'nessun crash cambiando sesso');
 }
+// prefill "Compila con {persona}": un tap compila sesso/altezza/peso
+const btnPrefill = [...document.querySelectorAll('button')].filter(b => b.textContent.trim() === 'Test');
+ok(btnPrefill.length >= 1, `pillole prefill presenti (${btnPrefill.length})`);
+if (btnPrefill.length) {
+  btnPrefill[btnPrefill.length - 1].click();           // quella del tool Costituzione
+  await new Promise(r => setTimeout(r, 200));
+  const inAlt2 = inputDaLabel('Polso (cm)')?.closest('div[style*="grid"]')?.querySelector('input');
+  ok(inAlt2 && inAlt2.value === '178', `prefill altezza dal profilo (atteso 178, trovato ${inAlt2?.value})`);
+}
 ok(reactErrors.length === 0, `nessun errore React (${reactErrors[0] || 'ok'})`);
 
 console.error = origErr;

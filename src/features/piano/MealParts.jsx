@@ -108,7 +108,7 @@ export function WaterTracker({ dayKey, personaColor, personaId, readOnly }) {
 
 // Soglie tempo per i pulsanti del selettore
 
-export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, onToggleDislike, macroOverride, quantitaOverride, consumed, saltato, saltatoAuto, onToggleConsumed, onToggleSaltato, onEdit, loggedMacros, loggedIngs, onEditConsumed, gPiano, gConsumati, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly, autoApriSwap, onAutoSwapDone }) {
+export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, weekMealIds, excludedIds, isOverride, onReset, prefEntry, onToggleLike, onToggleDislike, macroOverride, quantitaOverride, consumed, saltato, saltatoAuto, onToggleConsumed, onToggleSaltato, onEdit, loggedMacros, loggedIngs, onEditConsumed, gPiano, gConsumati, isAdattato, cloudStatus, ricetteUtente, onSalvaRicetta, readOnly, autoApriSwap, onAutoSwapDone , onAdotta, adottata }) {
   const [open, setOpen]               = useState(false);
   const [swapOpen, setSwapOpen]       = useState(false);
   const [editOpen, setEditOpen]       = useState(false);
@@ -303,9 +303,20 @@ export function MealCard({ mealKey, dayIdx, meal, personaKey, color, onSwap, wee
               active accent="#7c3aed" filled={swapOpen}
               icon={swapOpen?"✕":"⇄"} label={swapOpen?"Chiudi":"Cambia"} dimIcon={false}/>
           )}
-          {/* Sola lettura: profilo di un altro membro */}
+          {/* Sola lettura: profilo di un altro membro. Il piatto di un altro
+              membro si può sempre ADOTTARE (anche fuori dal readOnly):
+              viene scritto come swap nel piano di chi guarda. */}
           {readOnly && (
-            <div title="Profilo di un altro membro: sola lettura" style={{flex:1.6,display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRadius:10,background:"#EFF3EC",color:"#9DB1A2",fontWeight:700,fontSize:10.5}}>🔒 sola lettura</div>
+            <div title="Profilo di un altro membro: sola lettura" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRadius:10,background:"#EFF3EC",color:"#9DB1A2",fontWeight:700,fontSize:10.5}}>🔒 sola lettura</div>
+          )}
+          {onAdotta && (
+            adottata
+              ? <div style={{flex:1.3,display:"flex",alignItems:"center",justifyContent:"center",gap:4,borderRadius:10,background:"#EDF7EF",border:"1.5px solid #2F6B3A30",color:"#2F6B3A",fontWeight:800,fontSize:10.5}}>✓ Nel tuo piano</div>
+              : <ActionBtn
+                  onClick={e=>{ e.stopPropagation(); onAdotta(); }}
+                  title="Imposta questa ricetta nello stesso pasto del TUO piano"
+                  active accent="#2F6B3A"
+                  icon="⤵" label="Adotta" dimIcon={false}/>
           )}
         </div>
 
